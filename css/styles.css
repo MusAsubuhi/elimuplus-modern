@@ -1,0 +1,1179 @@
+/* =============================================================
+   ELIMU+ — MAIN STYLESHEET
+   Maintainer note (for Musa): This file is organised into numbered
+   sections below. Use Ctrl+F and search for "SECTION" to jump to
+   the part you need. Most day-to-day text edits happen in the HTML
+   files, not here — this file controls colour, spacing and layout.
+   ============================================================= */
+
+/* -------------------------------------------------------------
+   SECTION 1: CSS CUSTOM PROPERTIES (brand variables)
+   Change a colour here and it updates everywhere on the site.
+   ------------------------------------------------------------- */
+:root {
+  /* Brand colours */
+  --deep-teal: #0D3B3B;
+  --deep-teal-dark: #082727;
+  --antique-gold: #D4A843;
+  --antique-gold-dark: #8C661A; /* darker than the base gold — used for text/hover states so contrast on white stays AA-compliant */
+  --coastal-mist: #F5FAF8;
+  --white: #FFFFFF;
+  --dark-text: #1A1A1A;
+  --soft-border: #E0EDE9;
+
+  /* Typography */
+  --font-body: Calibri, 'Lato', sans-serif;
+  --font-display: Calibri, 'Lato', sans-serif;
+
+  /* Type scale */
+  --fs-h1: clamp(2rem, 5vw + 1rem, 3.5rem);
+  --fs-h2: clamp(1.6rem, 3vw + 1rem, 2.5rem);
+  --fs-h3: clamp(1.25rem, 1.5vw + 1rem, 1.6rem);
+  --fs-body: 1rem;
+  --fs-small: 0.875rem;
+  --fs-eyebrow: 0.8rem;
+
+  /* Spacing rhythm */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 1.75rem;
+  --space-lg: 3rem;
+  --space-xl: 5rem;
+
+  /* Layout */
+  --max-width: 1200px;
+  --radius: 4px;
+  --nav-height: 76px;
+
+  /* Motion */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
+
+/* -------------------------------------------------------------
+   SECTION 2: RESET AND BASE
+   ------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--white);
+  color: var(--dark-text);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul,
+ol {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Skip-to-content link — hidden until focused, required for accessibility */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--antique-gold);
+  color: var(--deep-teal);
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  z-index: 1000;
+  border-radius: 0 0 var(--radius) 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+/* Visible focus states everywhere — do not remove */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--antique-gold);
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------
+   SECTION 3: TYPOGRAPHY
+   ------------------------------------------------------------- */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  margin: 0 0 var(--space-sm);
+  color: var(--deep-teal);
+}
+
+h1 {
+  font-size: var(--fs-h1);
+  letter-spacing: 0.005em;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+}
+
+h3 {
+  font-size: var(--fs-h3);
+}
+
+p {
+  margin: 0 0 var(--space-sm);
+}
+
+.text-white h1,
+.text-white h2,
+.text-white h3,
+.text-white p {
+  color: var(--white);
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: var(--fs-eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--antique-gold);
+  margin-bottom: var(--space-sm);
+}
+
+.lede {
+  font-size: 1.15rem;
+  line-height: 1.6;
+}
+
+/* Swahili phrases — always italic, gold, slightly smaller */
+.sw {
+  font-style: italic;
+  color: var(--antique-gold);
+  font-size: 0.95em;
+}
+
+.text-white .sw {
+  color: var(--antique-gold);
+}
+
+/* -------------------------------------------------------------
+   SECTION 4: LAYOUT UTILITIES
+   ------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-sm);
+}
+
+.section {
+  padding: var(--space-xl) 0;
+}
+
+.section--tight {
+  padding: var(--space-lg) 0;
+}
+
+.bg-teal {
+  background: var(--deep-teal);
+}
+
+.bg-mist {
+  background: var(--coastal-mist);
+}
+
+.bg-white {
+  background: var(--white);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-white {
+  color: var(--white);
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.grid-2 {
+  grid-template-columns: 1fr;
+}
+
+.grid-3 {
+  grid-template-columns: 1fr;
+}
+
+.grid-4 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.split {
+  display: grid;
+  gap: var(--space-lg);
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .split {
+    grid-template-columns: 1fr 1fr;
+  }
+  .split--reverse .split__media {
+    order: 2;
+  }
+}
+
+.section-heading {
+  max-width: 640px;
+  margin-bottom: var(--space-lg);
+}
+
+.section-heading.text-center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* The single visual signature of the site: a diagonal teal-to-gold
+   stripe. Used in exactly three places — hero base, between the
+   three pathway cards on the homepage, and above the footer.
+   Do not add this element anywhere else. */
+.diagonal-stripe {
+  width: 100%;
+  background: linear-gradient(
+    135deg,
+    var(--deep-teal) 0%,
+    var(--deep-teal) 48%,
+    var(--antique-gold) 52%,
+    var(--antique-gold) 100%
+  );
+}
+
+.diagonal-stripe--hero {
+  height: 40px;
+}
+
+.diagonal-stripe--divider {
+  height: 28px;
+  margin: var(--space-lg) 0;
+}
+
+.diagonal-stripe--footer {
+  height: 6px;
+}
+
+/* Image placeholder — used wherever a real photo has not been
+   supplied yet. Swap the whole element for an <img> tag when the
+   photo file lands in /images. */
+.img-placeholder {
+  background: var(--deep-teal);
+  color: var(--antique-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-md);
+  min-height: 220px;
+  border-radius: var(--radius);
+  font-style: italic;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+}
+
+.img-placeholder--tall {
+  min-height: 340px;
+}
+
+.img-placeholder--short {
+  min-height: 160px;
+}
+
+.img-placeholder--hero {
+  min-height: 100%;
+}
+
+/* -------------------------------------------------------------
+   SECTION 5: NAVIGATION
+   ------------------------------------------------------------- */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  background: var(--deep-teal);
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  transition: height var(--transition-base), box-shadow var(--transition-base);
+}
+
+.navbar.scrolled {
+  height: 60px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.18);
+}
+
+.navbar__inner {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--white);
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.navbar__logo img {
+  height: 36px;
+  width: auto;
+}
+
+.navbar__links {
+  display: none;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.navbar__links a {
+  color: var(--white);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
+  transition: border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.navbar__links a:hover {
+  opacity: 0.85;
+}
+
+.navbar__links a.active {
+  border-bottom-color: var(--antique-gold);
+}
+
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.navbar__cta {
+  display: none;
+  background: var(--antique-gold);
+  color: var(--deep-teal);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+
+.navbar__cta:hover {
+  background: var(--antique-gold-dark);
+  color: var(--white);
+}
+
+.navbar__toggle {
+  background: none;
+  border: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.navbar__toggle span {
+  width: 24px;
+  height: 2px;
+  background: var(--white);
+  transition: transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.navbar__toggle[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.navbar__toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.navbar__toggle[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.navbar__mobile-panel {
+  display: none;
+  flex-direction: column;
+  background: var(--deep-teal);
+  padding: var(--space-sm) var(--space-sm) var(--space-md);
+  position: absolute;
+  top: var(--nav-height);
+  left: 0;
+  right: 0;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.navbar__mobile-panel.open {
+  display: flex;
+}
+
+.navbar__mobile-panel a {
+  color: var(--white);
+  font-weight: 600;
+  padding: 0.85rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.navbar__mobile-panel a.active {
+  color: var(--antique-gold);
+}
+
+.navbar__mobile-panel .navbar__cta {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  text-align: center;
+}
+
+@media (min-width: 1024px) {
+  .navbar__links {
+    display: flex;
+  }
+  .navbar__cta {
+    display: inline-block;
+  }
+  .navbar__toggle {
+    display: none;
+  }
+}
+
+/* -------------------------------------------------------------
+   SECTION 6: HERO SECTIONS
+   ------------------------------------------------------------- */
+.hero {
+  position: relative;
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  color: var(--white);
+  background: var(--deep-teal);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+}
+
+.hero--full {
+  min-height: 90vh;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--deep-teal);
+  opacity: 0.6;
+}
+
+.hero--overlay-55::before {
+  opacity: 0.55;
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-sm) var(--space-lg);
+  text-align: center;
+}
+
+.hero__inner > * {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero h1 {
+  color: var(--white);
+}
+
+.hero__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .hero__actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.hero__secondary-link {
+  margin-top: var(--space-md);
+  font-size: var(--fs-small);
+}
+
+.hero__secondary-link a {
+  color: var(--antique-gold);
+  font-weight: 700;
+  border-bottom: 1px solid transparent;
+}
+
+.hero__secondary-link a:hover {
+  border-bottom-color: var(--antique-gold);
+}
+
+/* .hero is a flex row, so the stripe must be pulled out of flow and
+   docked to the bottom edge — otherwise it sits beside hero__inner
+   as a second flex item instead of spanning underneath it. */
+.hero .diagonal-stripe--hero {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+}
+
+@media (min-width: 1024px) {
+  .hero--full {
+    min-height: 90vh;
+  }
+}
+
+/* -------------------------------------------------------------
+   SECTION 7: SECTION BLOCKS (proof strip, timeline, values, etc.)
+   ------------------------------------------------------------- */
+.proof-strip {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 1fr;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .proof-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.proof-stat__number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--deep-teal);
+  line-height: 1;
+}
+
+.proof-stat__label {
+  margin-top: var(--space-xs);
+  color: var(--dark-text);
+  font-size: var(--fs-small);
+  max-width: 220px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.proof-strip__note {
+  grid-column: 1 / -1;
+  margin-top: var(--space-sm);
+  font-style: italic;
+  font-size: var(--fs-small);
+  color: #4a5c58;
+}
+
+/* Timeline (follow-up model / certification pathway) */
+.timeline {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 1fr;
+  position: relative;
+}
+
+@media (min-width: 1024px) {
+  .timeline {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .timeline::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: 8%;
+    right: 8%;
+    height: 2px;
+    background: var(--antique-gold);
+    z-index: 0;
+  }
+}
+
+.timeline--4 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .timeline--4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.timeline__step {
+  position: relative;
+  z-index: 1;
+  background: var(--white);
+  border: 1px solid var(--soft-border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+}
+
+.timeline__marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--deep-teal);
+  color: var(--antique-gold);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}
+
+.timeline__step h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+  color: var(--deep-teal);
+}
+
+.timeline__step p {
+  font-size: var(--fs-small);
+  margin-bottom: 0;
+  color: var(--dark-text);
+}
+
+/* Gallery */
+.gallery {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 78%;
+  gap: var(--space-sm);
+  overflow-x: auto;
+  padding-bottom: var(--space-sm);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.gallery figure {
+  margin: 0;
+  scroll-snap-align: start;
+}
+
+.gallery figcaption {
+  margin-top: 0.5rem;
+  font-size: var(--fs-small);
+  color: #4a5c58;
+}
+
+@media (min-width: 1024px) {
+  .gallery {
+    grid-auto-flow: unset;
+    grid-template-columns: repeat(4, 1fr);
+    overflow-x: visible;
+  }
+}
+
+/* Quote block */
+.quote {
+  border-left: 4px solid var(--antique-gold);
+  padding-left: var(--space-md);
+  font-size: 1.15rem;
+  font-style: italic;
+  color: var(--deep-teal);
+}
+
+.quote cite {
+  display: block;
+  margin-top: var(--space-sm);
+  font-style: normal;
+  font-size: var(--fs-small);
+  color: var(--dark-text);
+  font-weight: 700;
+}
+
+/* Values / list blocks with leading label */
+.value-block {
+  border-top: 3px solid var(--antique-gold);
+  padding-top: var(--space-sm);
+}
+
+.value-block h3 {
+  font-size: 1.15rem;
+}
+
+/* -------------------------------------------------------------
+   SECTION 8: CARDS
+   ------------------------------------------------------------- */
+.card {
+  background: var(--white);
+  border: 1px solid var(--soft-border);
+  border-radius: var(--radius);
+  padding: var(--space-md);
+}
+
+.card--pathway {
+  border-top: 4px solid var(--antique-gold);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.card--pathway .card__icon {
+  color: var(--deep-teal);
+}
+
+.card--pathway h3 {
+  margin-bottom: 0;
+}
+
+.card--pathway p {
+  color: #3d4d49;
+  flex-grow: 1;
+}
+
+.card--format {
+  padding: 0;
+  overflow: hidden;
+}
+
+.card--format .card__body {
+  padding: var(--space-md);
+}
+
+.card__badge {
+  display: inline-block;
+  background: var(--deep-teal);
+  color: var(--antique-gold);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius);
+  margin-bottom: var(--space-sm);
+}
+
+.card--format dl {
+  margin: var(--space-sm) 0 0;
+  font-size: var(--fs-small);
+}
+
+.card--format dt {
+  font-weight: 700;
+  color: var(--deep-teal);
+  margin-top: 0.6rem;
+}
+
+.card--format dd {
+  margin: 0.1rem 0 0;
+  color: #3d4d49;
+}
+
+.card--founder {
+  text-align: left;
+}
+
+.card--founder .card__title {
+  color: var(--antique-gold-dark);
+  font-weight: 700;
+  font-size: var(--fs-small);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-xs);
+}
+
+.card--partner-type h3 {
+  font-size: 1.1rem;
+}
+
+.card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--deep-teal);
+  font-weight: 700;
+  border-bottom: 2px solid var(--antique-gold);
+  padding-bottom: 2px;
+  width: fit-content;
+  transition: color var(--transition-fast);
+}
+
+.card-link:hover {
+  color: var(--antique-gold-dark);
+}
+
+/* -------------------------------------------------------------
+   SECTION 9: FORMS
+   ------------------------------------------------------------- */
+.form {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.form-row {
+  display: grid;
+  gap: var(--space-sm);
+  grid-template-columns: 1fr;
+  margin-bottom: var(--space-sm);
+}
+
+@media (min-width: 640px) {
+  .form-row--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-size: var(--fs-small);
+  font-weight: 700;
+}
+
+.field input,
+.field select,
+.field textarea {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--soft-border);
+  background: var(--white);
+  color: var(--dark-text);
+  width: 100%;
+}
+
+.text-white .field input,
+.text-white .field select,
+.text-white .field textarea {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.text-white .field label {
+  color: var(--white);
+}
+
+.field textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: #6b7d78;
+}
+
+.text-white .field-hint {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Honeypot — hidden from real users, present for bots */
+.field--honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.form-feedback {
+  display: none;
+  margin-top: var(--space-sm);
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.form-feedback.visible {
+  display: block;
+}
+
+.form-feedback--success {
+  background: rgba(212, 168, 67, 0.18);
+  color: var(--white);
+  border: 1px solid var(--antique-gold);
+}
+
+.form-feedback--error {
+  background: rgba(200, 60, 60, 0.15);
+  color: var(--white);
+  border: 1px solid #d97b7b;
+}
+
+.bg-white .form-feedback--success,
+.bg-mist .form-feedback--success {
+  color: var(--deep-teal);
+}
+
+.bg-white .form-feedback--error,
+.bg-mist .form-feedback--error {
+  color: #a13d3d;
+}
+
+.form-direct-contact {
+  text-align: center;
+  margin-top: var(--space-md);
+  font-size: var(--fs-small);
+}
+
+/* -------------------------------------------------------------
+   SECTION 10: BUTTONS AND CTAS
+   ------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.6rem;
+  border-radius: var(--radius);
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  min-height: 44px;
+}
+
+.btn--primary {
+  background: var(--antique-gold);
+  color: var(--deep-teal);
+}
+
+.btn--primary:hover {
+  background: var(--antique-gold-dark);
+  color: var(--white);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--white);
+  border-color: var(--white);
+}
+
+.btn--outline:hover {
+  background: var(--white);
+  color: var(--deep-teal);
+}
+
+.btn--outline-teal {
+  background: transparent;
+  color: var(--deep-teal);
+  border-color: var(--deep-teal);
+}
+
+.btn--outline-teal:hover {
+  background: var(--deep-teal);
+  color: var(--white);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+/* -------------------------------------------------------------
+   SECTION 11: FOOTER
+   ------------------------------------------------------------- */
+.site-footer {
+  background: var(--deep-teal);
+  color: var(--white);
+  padding-top: var(--space-lg);
+}
+
+.footer__grid {
+  display: grid;
+  gap: var(--space-lg);
+  grid-template-columns: 1fr;
+  padding-bottom: var(--space-lg);
+}
+
+@media (min-width: 768px) {
+  .footer__grid {
+    grid-template-columns: 1.2fr 1fr 1fr;
+  }
+}
+
+.footer__logo {
+  height: 32px;
+  margin-bottom: var(--space-sm);
+}
+
+.footer__slogan {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.footer h4 {
+  color: var(--antique-gold);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-sm);
+}
+
+.footer__grid a {
+  display: block;
+  padding: 0.3rem 0;
+  color: rgba(255, 255, 255, 0.85);
+  transition: color var(--transition-fast);
+}
+
+.footer__grid a:hover {
+  color: var(--antique-gold);
+}
+
+.footer__social {
+  margin-top: var(--space-sm);
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.footer__social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+}
+
+.footer__bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+@media (min-width: 768px) {
+  .footer__bottom {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+}
+
+/* -------------------------------------------------------------
+   SECTION 12: ANIMATIONS
+   Motion is limited to interaction states (nav, buttons, links)
+   defined in their own sections above — see hover/focus rules.
+   Deliberately no scroll-triggered reveal: on a mobile-data-first
+   site, content must never depend on JS timing to become visible.
+   ------------------------------------------------------------- */
+
+/* -------------------------------------------------------------
+   SECTION 13: MEDIA QUERIES (global breakpoint adjustments)
+   Base styles above are mobile-first. Refinements at 768px and
+   1024px live here where they don't belong to a single component.
+   ------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .hero__inner {
+    padding: var(--space-xl) var(--space-lg);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --nav-height: 84px;
+  }
+
+  .section {
+    padding: 6.5rem 0;
+  }
+}
