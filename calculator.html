@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hesabu ya Biashara (Business Calculator) | Elimu+</title>
+  <meta name="description" content="Hesabu ya Biashara — Calculate your break-even point using the same method taught in every Elimu+ SEE Canvas session. Free bilingual business calculator for entrepreneurs in Kenya.">
+  <meta property="og:title" content="Hesabu ya Biashara | Elimu+">
+  <meta property="og:description" content="Know your profit before you sell. Free bilingual break-even calculator using the Elimu+ SEE Canvas method.">
+  <meta property="og:image" content="images/og-image.jpg">
+  <meta property="og:url" content="https://elimuplus.com/calculator.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Elimu+">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" content="https://elimuplus.com/calculator.html">
+  <link rel="icon" href="images/favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!--
+    Calculator-page-only styles. Everything shared (typography, colour,
+    navbar, footer, buttons, cards, section padding) lives in
+    css/styles.css and is reused via its existing classes/variables.
+    Nothing here redefines a rule that already exists there.
+  -->
+  <style>
+    /* --- Hero (smaller/teal, distinct from the site's full-bleed .hero) --- */
+    .calc-hero {
+      background: var(--deep-teal);
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: var(--space-lg) var(--space-sm);
+    }
+
+    .calc-hero__inner {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .calc-hero h1 {
+      color: var(--white);
+      margin-bottom: 0.2rem;
+    }
+
+    .calc-hero em {
+      display: block;
+      font-style: normal;
+      font-weight: 400;
+      font-size: 18px;
+      color: #9ECFC4;
+      margin-bottom: var(--space-sm);
+    }
+
+    .calc-hero__lede {
+      font-size: 16px;
+      color: var(--antique-gold);
+      font-style: italic;
+      margin: 0;
+    }
+
+    .calc-hero__lede em {
+      font-style: italic;
+      color: var(--antique-gold);
+    }
+
+    .calc-hero__body {
+      color: var(--white);
+      font-size: 14px;
+      max-width: 560px;
+      margin: 12px auto 0;
+    }
+
+    /* --- Calculator section shell --- */
+    .calc-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: var(--space-lg) var(--space-sm);
+    }
+
+    .example-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--white);
+      border: 1px solid var(--antique-gold);
+      color: var(--deep-teal);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: var(--space-md);
+    }
+
+    .example-btn:hover {
+      background: var(--antique-gold);
+    }
+
+    /* --- Cards --- */
+    .calc-card {
+      background: var(--white);
+      border: 1px solid var(--soft-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .calc-card__header {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .calc-card__header .ti {
+      font-size: 18px;
+      color: var(--deep-teal);
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+
+    .calc-card__title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--dark-text);
+    }
+
+    .calc-card__title em {
+      font-style: normal;
+      font-weight: 400;
+      color: #666;
+    }
+
+    .calc-card__subtitle {
+      font-size: 12px;
+      color: #888;
+      margin: 2px 0 0;
+    }
+
+    .calc-card__subtitle .sw-line {
+      font-style: italic;
+    }
+
+    .calc-divider {
+      border: none;
+      border-top: 0.5px solid var(--soft-border);
+      margin: 1rem 0;
+    }
+
+    /* --- Help toggle + panel --- */
+    .calc-help-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #E8F4F1;
+      border: 0.5px solid #9ECFC4;
+      color: var(--deep-teal);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+    .calc-help-toggle .ti-chevron-down {
+      transition: transform var(--transition-fast);
+    }
+
+    .calc-help-toggle.open .ti-chevron-down {
+      transform: rotate(180deg);
+    }
+
+    .calc-help-panel {
+      display: none;
+      background: var(--white);
+      border: 0.5px solid var(--soft-border);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .calc-help-panel.open {
+      display: block;
+    }
+
+    .calc-help-panel table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .calc-help-panel thead {
+      background: var(--deep-teal);
+    }
+
+    .calc-help-panel th {
+      color: var(--antique-gold);
+      padding: 8px 10px;
+      font-size: 11px;
+      text-align: left;
+    }
+
+    .calc-help-panel tbody tr {
+      border-bottom: 0.5px solid var(--soft-border);
+    }
+
+    .calc-help-panel tbody tr:nth-child(even) {
+      background: var(--coastal-mist);
+    }
+
+    .calc-help-panel td {
+      padding: 8px 10px;
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .calc-help-panel td:first-child {
+      font-weight: 500;
+      color: var(--deep-teal);
+      width: 30%;
+    }
+
+    .calc-help-panel .sw {
+      display: block;
+      font-style: italic;
+      color: var(--dark-text);
+      font-size: 1em;
+    }
+
+    .calc-help-panel .en {
+      display: block;
+      color: #666;
+      font-size: 11px;
+      margin-top: 1px;
+    }
+
+    .calc-help-panel .calc {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      background: var(--deep-teal);
+      color: var(--antique-gold);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-style: normal;
+    }
+
+    .calc-help-note {
+      padding: 8px 10px;
+      font-size: 11px;
+      font-style: italic;
+      color: #888;
+      border-top: 0.5px solid var(--soft-border);
+      background: var(--coastal-mist);
+      line-height: 1.6;
+    }
+
+    /* --- Inputs --- */
+    .calc-field-label {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--dark-text);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .calc-field-hint {
+      font-size: 12px;
+      color: #888;
+      margin: 0 0 8px;
+    }
+
+    .kes-input {
+      display: flex;
+      align-items: center;
+      border: 0.5px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--white);
+    }
+
+    .kes-input:focus-within {
+      box-shadow: 0 0 0 2px rgba(13, 59, 59, 0.2);
+    }
+
+    .kes-input__prefix {
+      padding: 0 10px;
+      font-size: 13px;
+      color: #666;
+      background: var(--coastal-mist);
+      border-right: 0.5px solid var(--soft-border);
+      height: 40px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .kes-input input,
+    .plain-input {
+      border: none;
+      outline: none;
+      background: transparent;
+      padding: 0 10px;
+      height: 40px;
+      font-size: 14px;
+      width: 100%;
+      min-width: 0;
+      font-family: var(--font-body);
+      color: var(--dark-text);
+    }
+
+    .kes-input input:focus,
+    .plain-input:focus {
+      box-shadow: none;
+    }
+
+    .plain-input {
+      border: 0.5px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .plain-input:focus {
+      box-shadow: 0 0 0 2px rgba(13, 59, 59, 0.2);
+    }
+
+    .units-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex-wrap: wrap;
+    }
+
+    .units-row .calc-field-label {
+      flex: 1;
+      margin-bottom: 0;
+      min-width: 180px;
+    }
+
+    .units-row .plain-input {
+      width: 140px;
+    }
+
+    /* --- Results --- */
+    .calculate-btn {
+      margin: 0.25rem 0 0.5rem;
+    }
+
+    .calc-error {
+      color: #a13d3d;
+      font-size: 12px;
+      text-align: center;
+      margin: 0 0 1rem;
+    }
+
+    #results-section {
+      display: none;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin: var(--space-sm) 0;
+    }
+
+    .metric-card {
+      background: var(--white);
+      border: 1px solid var(--soft-border);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+
+    .metric-card--highlight {
+      background: var(--deep-teal);
+      border-color: var(--deep-teal);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: #888;
+      margin: 0;
+    }
+
+    .metric-card--highlight .metric-label {
+      color: var(--antique-gold);
+    }
+
+    .metric-sublabel {
+      font-size: 10px;
+      font-style: italic;
+      color: #aaa;
+      margin: 0 0 6px;
+    }
+
+    .metric-card--highlight .metric-sublabel {
+      color: #7ABFB3;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--dark-text);
+      margin: 0;
+    }
+
+    .metric-card--highlight .metric-value {
+      color: var(--white);
+    }
+
+    .metric-subvalue {
+      font-size: 11px;
+      color: #888;
+      margin: 2px 0 0;
+    }
+
+    .metric-card--highlight .metric-subvalue {
+      color: #9ECFC4;
+    }
+
+    #bar-section {
+      display: none;
+      margin: var(--space-sm) 0;
+    }
+
+    .bar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 4px;
+    }
+
+    .bar-track {
+      height: 10px;
+      border-radius: 4px;
+      background: var(--coastal-mist);
+      border: 0.5px solid var(--soft-border);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--antique-gold);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .bar-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    .verdict {
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-top: var(--space-sm);
+    }
+
+    .verdict.profit {
+      background: #EAF3DE;
+      color: #27500A;
+      border: 0.5px solid #97C459;
+    }
+
+    .verdict.loss {
+      background: #FCEBEB;
+      color: #501313;
+      border: 0.5px solid #F09595;
+    }
+
+    .verdict.break {
+      background: #FAEEDA;
+      color: #412402;
+      border: 0.5px solid #EF9F27;
+    }
+
+    #swahili-verdict {
+      font-style: italic;
+      color: var(--deep-teal);
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 6px;
+    }
+
+    /* --- CTA block --- */
+    #cta-block {
+      display: none;
+      background: var(--deep-teal);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    #cta-block h3 {
+      color: var(--white);
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+
+    #cta-block p {
+      color: #9ECFC4;
+      font-size: 12px;
+      font-style: italic;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .cta-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .cta-buttons a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .cta-buttons .cta-primary {
+      background: var(--antique-gold);
+      color: var(--deep-teal);
+      border: none;
+    }
+
+    .cta-buttons .cta-whatsapp {
+      background: transparent;
+      color: var(--white);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+
+    /* --- "What this connects to" section --- */
+    .connects-section {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 var(--space-sm);
+    }
+
+    .connects-section h2 em {
+      display: block;
+      font-style: normal;
+      font-weight: 400;
+      font-size: 1rem;
+      color: #6b7d78;
+      margin-top: -0.3rem;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!--
+    SECTION: Navigation
+    PAGE: All pages
+    PHASE: 1
+    CONTENT OWNER: Musa Asubuhi
+    LAST UPDATED: 2026-07-25
+    NOTES: The active page link gets class="active" — update this by
+    hand on each page.
+  -->
+  <header>
+    <nav class="navbar" aria-label="Primary">
+      <div class="navbar__inner">
+        <a href="index.html" class="navbar__logo"><img src="images/logo-elimu-white.png" alt="" width="59" height="36"><span class="navbar__logo-text">Elimu<span class="logo-plus">+</span></span></a>
+
+        <ul class="navbar__links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="programme.html">Our Programme</a></li>
+          <li><a href="calculator.html" class="active">Hesabu (Calculator)</a></li>
+          <li><a href="partner.html">Partner With Us</a></li>
+          <li><a href="trainer.html">Become a Trainer</a></li>
+          <li><a href="about.html">About</a></li>
+        </ul>
+
+        <div class="navbar__actions">
+          <a href="about.html#contact" class="navbar__cta">Join a Programme</a>
+          <button class="navbar__toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="navbar__mobile-panel" id="mobile-menu">
+        <a href="index.html">Home</a>
+        <a href="programme.html">Our Programme</a>
+        <a href="calculator.html" class="active">Hesabu (Calculator)</a>
+        <a href="partner.html">Partner With Us</a>
+        <a href="trainer.html">Become a Trainer</a>
+        <a href="about.html">About</a>
+        <a href="about.html#contact" class="navbar__cta">Join a Programme</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+
+    <!--
+      SECTION: Hero
+      PAGE: Calculator
+      PHASE: 1
+      CONTENT OWNER: Musa Asubuhi
+      LAST UPDATED: 2026-07-25
+    -->
+    <section class="calc-hero">
+      <div class="calc-hero__inner">
+        <h1>Hesabu ya Biashara<em>(Business Calculator)</em></h1>
+        <p class="calc-hero__lede">Jua faida yako kabla ya kuuza <em>— Know your profit before you sell</em></p>
+        <p class="calc-hero__body">This calculator uses the same method taught in every Elimu+ SEE Canvas session. Fill in your numbers and find out exactly where your business stands — in Swahili and English.</p>
+      </div>
+    </section>
+
+    <!--
+      SECTION: Calculator
+      PAGE: Calculator
+      PHASE: 1
+      CONTENT OWNER: Musa Asubuhi
+      LAST UPDATED: 2026-07-25
+    -->
+    <section class="section section--tight bg-mist">
+      <div class="calc-wrap">
+
+        <div id="restore-notice" style="display:none; align-items:center;
+          gap:10px; background:#E8F4F1; border:0.5px solid #9ECFC4;
+          border-radius:8px; padding:10px 14px; margin-bottom:1rem;
+          font-size:13px; color:#0D3B3B;">
+          <i class="ti ti-clock-hour-4" style="font-size:16px; flex-shrink:0;" aria-hidden="true"></i>
+          <span>
+            <em>Tumeokoa namba zako za mwisho</em> — We have restored your last
+            numbers. Unaweza kubadilisha wakati wowote. (You can change them
+            any time.)
+          </span>
+          <button onclick="dismissRestore()" style="margin-left:auto; background:none;
+            border:none; cursor:pointer; color:#0D3B3B; font-size:18px;
+            line-height:1; padding:0 4px;" aria-label="Dismiss and clear">×</button>
+        </div>
+
+        <button type="button" class="example-btn" onclick="loadExample()">
+          Jaribu mfano wa Mwanahamisi — Try Mwanahamisi's omena stall
+        </button>
+
+        <!-- CARD 1: Bei ya Kuuza (Selling Price) -->
+        <div class="calc-card">
+          <div class="calc-card__header">
+            <i class="ti ti-tag" aria-hidden="true"></i>
+            <div>
+              <div class="calc-card__title">Bei ya Kuuza <em>(Selling Price)</em></div>
+              <p class="calc-card__subtitle"><span class="sw-line">Kiasi unachopata kwa kila bidhaa unayouza</span> — what you receive per unit sold</p>
+            </div>
+          </div>
+
+          <button type="button" class="calc-help-toggle" id="help-price-btn" onclick="toggleHelp('help-price', this)" aria-expanded="false">
+            <i class="ti ti-info-circle" aria-hidden="true"></i> Msaada — Help <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+
+          <div class="calc-help-panel" id="help-price">
+            <table>
+              <thead>
+                <tr><th>Biashara (Business type)</th><th>Bei moja ni nini? (What is one unit price?)</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="sw">Muuza omena</span><span class="en">(Omena seller)</span></td>
+                  <td>
+                    <span class="sw">Bei ya pakiti moja au kipimo kimoja cha omena unachouza kwa mteja.</span>
+                    <span class="en">(Price of one packet or one scoop of omena sold to a customer.)</span>
+                    <span class="calc">Mfano: pakiti 1 = KES 20 (Example: 1 packet = KES 20)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Muuza juisi</span><span class="en">(Juice seller)</span></td>
+                  <td>
+                    <span class="sw">Bei ya chupa moja au kikombe kimoja cha juisi unachomwuzia mteja.</span>
+                    <span class="en">(Price of one bottle or cup of juice sold to a customer.)</span>
+                    <span class="calc">Mfano: chupa 1 = KES 70 (Example: 1 bottle = KES 70)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Muoka keki</span><span class="en">(Cake baker)</span></td>
+                  <td>
+                    <span class="sw">Bei ya keki moja ndogo au mkate mmoja unaomuuzia mteja.</span>
+                    <span class="en">(Price of one queen cake or one loaf sold.)</span>
+                    <span class="calc">Mfano: keki 1 = KES 10 (Example: 1 queen cake = KES 10)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Muuza mitumba</span><span class="en">(Mitumba seller)</span></td>
+                  <td>
+                    <span class="sw">Bei ya wastani ya nguo moja unayouza. Hesabu wastani wa bei zako.</span>
+                    <span class="en">(Average price of one clothing item sold. Calculate your average.)</span>
+                    <span class="calc">Mfano: nguo 1 = KES 200 (Example: 1 item = KES 200)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Muuza mboga</span><span class="en">(Vegetable seller)</span></td>
+                  <td>
+                    <span class="sw">Bei kwa chungu, kwa kilo, au kwa lundo. Chagua kipimo kimoja na ubaki nacho.</span>
+                    <span class="en">(Price per bunch, per kg, or per pile. Pick one unit and stay consistent.)</span>
+                    <span class="calc">Mfano: nyanya 1 kg = KES 80 (Example: 1 kg tomatoes = KES 80)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="calc-help-note">
+              Kidokezo (Tip): Ikiwa unauza bidhaa nyingi, tumia bei ya bidhaa
+              inayouzwa zaidi kwanza. Unaweza kuhesabu kila bidhaa tofauti baadaye.
+              — If you sell many items, use the price of your most common item first.
+              You can calculate each product separately later.
+            </div>
+          </div>
+
+          <label class="calc-field-label" for="price">Bei ya bidhaa moja (price per unit)</label>
+          <p class="calc-field-hint">Unauza kwa bei gani moja kwa moja kwa mteja? — what does one customer pay you for one item?</p>
+          <div class="kes-input">
+            <span class="kes-input__prefix">KES</span>
+            <input type="number" id="price" placeholder="70" inputmode="decimal" min="0">
+          </div>
+        </div>
+
+        <!-- CARD 2: Gharama (Costs) -->
+        <div class="calc-card">
+          <div class="calc-card__header">
+            <i class="ti ti-receipt" aria-hidden="true"></i>
+            <div>
+              <div class="calc-card__title">Gharama <em>(Costs)</em></div>
+              <p class="calc-card__subtitle"><span class="sw-line">Pesa unazotumia kuendesha biashara</span> — money you spend to run the business</p>
+            </div>
+          </div>
+
+          <!-- SUB-FIELD A: Variable cost per unit -->
+          <button type="button" class="calc-help-toggle" id="help-varcost-btn" onclick="toggleHelp('help-varcost', this)" aria-expanded="false">
+            <i class="ti ti-info-circle" aria-hidden="true"></i> Msaada — Help <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+
+          <div class="calc-help-panel" id="help-varcost">
+            <table>
+              <thead>
+                <tr><th>Mfano (Example)</th><th>Jinsi ya kuhesabu (How to calculate per unit)</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="sw">Juisi — embe moja</span><span class="en">(Juice — 1 mango)</span></td>
+                  <td>
+                    <span class="sw">Embe 1 inagharimu KES 30 na inakupa chupa 3 za juisi. Gharama kwa chupa = KES 30 ÷ 3 = KES 10. Ongeza kikombe (KES 5) na barafu (KES 3).</span>
+                    <span class="en">(1 mango costs KES 30 and gives 3 bottles of juice. Cost per bottle = KES 30 ÷ 3 = KES 10. Add cup KES 5 + ice KES 3.)</span>
+                    <span class="calc">Gharama kwa chupa 1 = KES 18 (Variable cost per bottle = KES 18)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Unga — kwa keki moja</span><span class="en">(Flour — per queen cake)</span></td>
+                  <td>
+                    <span class="sw">Unga 1 kg inagharimu KES 120 na inafanya keki 40. Gharama ya unga kwa keki = KES 120 ÷ 40 = KES 3. Ongeza sehemu ya yai, Blue Band, na makaa kwa keki moja.</span>
+                    <span class="en">(1 kg flour costs KES 120 and makes 40 queen cakes. Flour cost per cake = KES 120 ÷ 40 = KES 3. Add egg share, fat share, charcoal share per cake.)</span>
+                    <span class="calc">Hesabu kila kitu, kisha jumulisha (Add every ingredient, then total)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Mahindi ya kuchemsha</span><span class="en">(Boiled maize — per cob)</span></td>
+                  <td>
+                    <span class="sw">Unanunua mahindi 10 kwa KES 200. Gharama kwa bua moja = KES 200 ÷ 10 = KES 20. Ongeza sehemu ya makaa iliyotumika kupika bua moja.</span>
+                    <span class="en">(You buy 10 cobs for KES 200. Cost per cob = KES 200 ÷ 10 = KES 20. Add the share of charcoal used to cook one cob.)</span>
+                    <span class="calc">Mfano: makaa KES 50 ÷ bua 25 = KES 2 kwa bua (Charcoal KES 50 ÷ 25 cobs = KES 2 per cob)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Omena kwa pakiti</span><span class="en">(Omena per packet)</span></td>
+                  <td>
+                    <span class="sw">Omena 1 kg inagharimu KES 300 na inakupa pakiti 20. Gharama kwa pakiti = KES 300 ÷ 20 = KES 15.</span>
+                    <span class="en">(1 kg omena costs KES 300 and gives you 20 packets. Cost per packet = KES 300 ÷ 20 = KES 15.)</span>
+                    <span class="calc">Gharama kwa pakiti 1 = KES 15 (Cost per packet = KES 15)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Mitumba kwa kipande</span><span class="en">(Mitumba per item)</span></td>
+                  <td>
+                    <span class="sw">Bale 1 inagharimu KES 3,000 na ina vipande 30. Gharama kwa kipande = KES 3,000 ÷ 30 = KES 100.</span>
+                    <span class="en">(1 bale costs KES 3,000 and has 30 items. Cost per item = KES 3,000 ÷ 30 = KES 100.)</span>
+                    <span class="calc">Gharama kwa kipande 1 = KES 100 (Cost per item = KES 100)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="calc-help-note">
+              Kanuni ya dhahabu (Golden rule): Nunua kwa wingi, gawanya kwa
+              bidhaa. Hesabu tu gharama zinazobadilika unavyouza zaidi — usijumuishe kodi.
+              — Buy in bulk, divide by units produced. Only count costs that increase when
+              you sell more — do not include rent or fixed costs here.
+            </div>
+          </div>
+
+          <label class="calc-field-label" for="varCost">Gharama inayobadilika kwa bidhaa moja (variable cost per unit)</label>
+          <p class="calc-field-hint">Inagharimu kiasi gani kufanya au kununua bidhaa moja? Huongezeka unavyouza zaidi — goes up the more you sell</p>
+          <div class="kes-input">
+            <span class="kes-input__prefix">KES</span>
+            <input type="number" id="varCost" placeholder="45" inputmode="decimal" min="0">
+          </div>
+
+          <hr class="calc-divider">
+
+          <!-- SUB-FIELD B: Fixed cost per month -->
+          <button type="button" class="calc-help-toggle" id="help-fixedcost-btn" onclick="toggleHelp('help-fixedcost', this)" aria-expanded="false">
+            <i class="ti ti-info-circle" aria-hidden="true"></i> Msaada — Help <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+
+          <div class="calc-help-panel" id="help-fixedcost">
+            <table>
+              <thead>
+                <tr><th>Gharama (Cost)</th><th>Maelezo (Explanation)</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="sw">Mshahara wako</span><span class="en">(Your own salary)</span></td>
+                  <td>
+                    <span class="sw">Jipe mshahara wa kudumu kila mwezi kwa kazi unayofanya — kama vile ungemlipa mfanyakazi mwingine. Hii inakusaidia kutotegemea faida ya biashara kwa mahitaji yako ya kila siku.</span>
+                    <span class="en">(Pay yourself a fixed wage every month for the work you do — as if you were paying an employee. This means you don't have to rely on business profit to cover your daily needs.)</span>
+                    <span class="calc">Mfano: mshahara wako = KES 3,000 kwa mwezi (Example: your wage = KES 3,000/month)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Kodi</span><span class="en">(Rent)</span></td>
+                  <td>
+                    <span class="sw">Kodi ya kiosk, duka, au kibanda kwa mwezi. Ikiwa unagawana nafasi na mtu mwingine, weka sehemu yako tu.</span>
+                    <span class="en">(Monthly stall or shop rent. If you share a space, enter only your share.)</span>
+                    <span class="calc">Mfano: kodi yako = KES 1,000 kwa mwezi (Example: your share = KES 1,000/month)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Umeme</span><span class="en">(Electricity)</span></td>
+                  <td>
+                    <span class="sw">Bili ya umeme kwa mwezi ikiwa unatumia umeme kwa biashara yako.</span>
+                    <span class="en">(Monthly electricity bill if you use power for your business.)</span>
+                    <span class="calc">Mfano: KES 500 kwa mwezi (Example: KES 500/month)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Simu na data</span><span class="en">(Phone and data)</span></td>
+                  <td>
+                    <span class="sw">Airtime au data unayotumia kwa ajili ya biashara kila mwezi.</span>
+                    <span class="en">(Monthly airtime or data used for the business.)</span>
+                    <span class="calc">Mfano: KES 300 kwa mwezi (Example: KES 300/month)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Nauli</span><span class="en">(Transport)</span></td>
+                  <td>
+                    <span class="sw">Nauli ya kwenda soko au kununua bidhaa kila mwezi. Hesabu safari zote za mwezi.</span>
+                    <span class="en">(Regular transport to market or to buy stock per month. Count all trips in the month.)</span>
+                    <span class="calc">Mfano: KES 50 × safari 8 = KES 400 (Example: KES 50 × 8 trips = KES 400)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Malipo ya mtoto</span><span class="en">(Childcare)</span></td>
+                  <td>
+                    <span class="sw">Ikiwa unalipa malezi ya mtoto ili uweze kufanya biashara, zidisha kwa siku za kufanya kazi.</span>
+                    <span class="en">(If you pay for childcare to operate your business, multiply by your working days.)</span>
+                    <span class="calc">Mfano: KES 50 × siku 26 = KES 1,300 (Example: KES 50 × 26 days = KES 1,300)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="calc-help-note">
+              Jumulisha gharama zote isiyobadilika, ikiwemo mshahara wako mwenyewe,
+              kisha weka jumla moja hapa. Ikiwa huna, weka 0 — lakini fikiria vizuri,
+              karibu kila biashara ina angalau moja. Faida ya biashara si mshahara
+              wako — ni pesa ya biashara kwa ajili ya kukua. — Add up all your fixed
+              costs, including your own salary, then enter one total here. If you have
+              none, enter 0 — but think carefully, almost every business has at least
+              one. Business profit is not your salary — it is the business's money
+              for growth.
+            </div>
+          </div>
+
+          <label class="calc-field-label" for="fixedCost">Gharama isiyobadilika kwa mwezi (fixed cost per month)</label>
+          <p class="calc-field-hint">Uuze au usiuze, bado inalipwa — you pay this whether you sell or not</p>
+          <div class="kes-input">
+            <span class="kes-input__prefix">KES</span>
+            <input type="number" id="fixedCost" placeholder="2000" inputmode="decimal" min="0">
+          </div>
+        </div>
+
+        <!-- CARD 3: Lengo la Mauzo (Sales Target) -->
+        <div class="calc-card">
+          <div class="calc-card__header">
+            <i class="ti ti-target" aria-hidden="true"></i>
+            <div>
+              <div class="calc-card__title">Lengo la Mauzo <em>(Sales Target)</em></div>
+              <p class="calc-card__subtitle"><span class="sw-line">Unauza bidhaa ngapi kwa mwezi?</span> — how many units do you actually sell per month?</p>
+            </div>
+          </div>
+
+          <button type="button" class="calc-help-toggle" id="help-units-btn" onclick="toggleHelp('help-units', this)" aria-expanded="false">
+            <i class="ti ti-info-circle" aria-hidden="true"></i> Msaada — Help <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+
+          <div class="calc-help-panel" id="help-units">
+            <table>
+              <thead>
+                <tr><th>Swali (Question)</th><th>Jibu (Answer)</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="sw">Ninajua vipi idadi yangu?</span><span class="en">(How do I know my number?)</span></td>
+                  <td>
+                    <span class="sw">Hesabu bidhaa ulizouza kweli mwezi uliopita — si lengo lako, bali ukweli. Ikiwa hujui, kadiria siku ya wastani kisha zidisha kwa siku 26 za kufanya kazi.</span>
+                    <span class="en">(Count what you actually sold last month — not your target, but the truth. If unsure, estimate an average day then multiply by 26 working days.)</span>
+                    <span class="calc">Mfano: bidhaa 5 kwa siku × siku 26 = bidhaa 130 kwa mwezi (Example: 5 units/day × 26 days = 130 units/month)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Ninatumia kipimo gani?</span><span class="en">(What unit do I use?)</span></td>
+                  <td>
+                    <span class="sw">Tumia kipimo kilekile ulichotumia kwa bei yako. Ikiwa uliweka bei kwa chupa, hesabu chupa zilizouzwa kwa mwezi.</span>
+                    <span class="en">(Use the same unit as your selling price. If you entered price per bottle, count bottles sold per month.)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Biashara yangu ni mpya</span><span class="en">(My business is new)</span></td>
+                  <td>
+                    <span class="sw">Weka lengo lako la kweli la mwezi wa kwanza — kisha angalia matokeo ya kivunja gharama hapa chini. Je, lengo lako linafika?</span>
+                    <span class="en">(Enter your realistic first-month target — then compare to the break-even result below. Does your target reach it?)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Nina bidhaa nyingi</span><span class="en">(I sell many products)</span></td>
+                  <td>
+                    <span class="sw">Hesabu bidhaa yako muhimu zaidi kwanza. Ukielewa njia, rudia kwa kila bidhaa nyingine.</span>
+                    <span class="en">(Calculate your most important product first. Once you understand the method, repeat for each other product.)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="calc-help-note">
+              Ukweli ni muhimu zaidi ya matumaini — pata matokeo ya kweli kwa
+              kutumia namba za kweli. — Reality is more useful than hope. Get honest
+              results by using honest numbers.
+            </div>
+          </div>
+
+          <div class="units-row">
+            <label class="calc-field-label" for="units">Idadi ya bidhaa kwa mwezi (units per month)</label>
+            <input type="number" id="units" class="plain-input" placeholder="120" inputmode="numeric" min="0">
+          </div>
+        </div>
+
+        <button type="button" class="btn btn--primary btn--block calculate-btn" onclick="calculate()">
+          Hesabu Matokeo — Calculate My Results
+        </button>
+        <p class="calc-error" id="calc-error" style="display:none;">Weka bei ya bidhaa kwanza — Please enter a selling price first.</p>
+
+        <!-- RESULTS -->
+        <div class="calc-card" id="results-section">
+          <div class="calc-card__header">
+            <i class="ti ti-chart-bar" aria-hidden="true"></i>
+            <div>
+              <div class="calc-card__title">Matokeo Yako <em>(Your Results)</em></div>
+              <p class="calc-card__subtitle"><span class="sw-line">Hesabu kamili ya biashara yako</span> — the complete picture of your business numbers</p>
+            </div>
+          </div>
+
+          <div class="results-grid">
+            <div class="metric-card">
+              <p class="metric-label">Mchango kwa Faida</p>
+              <p class="metric-sublabel">(Contribution Margin)</p>
+              <p class="metric-value" id="res-cm">—</p>
+              <p class="metric-subvalue">kwa kila bidhaa / per unit</p>
+            </div>
+            <div class="metric-card metric-card--highlight">
+              <p class="metric-label">Kivunja Gharama</p>
+              <p class="metric-sublabel">(Break-Even Point)</p>
+              <p class="metric-value" id="res-be">—</p>
+              <p class="metric-subvalue">bidhaa kwa mwezi / units per month</p>
+            </div>
+            <div class="metric-card">
+              <p class="metric-label">Faida / Hasara</p>
+              <p class="metric-sublabel">(Profit / Loss)</p>
+              <p class="metric-value" id="res-profit">—</p>
+              <p class="metric-subvalue" id="res-profit-sub"></p>
+            </div>
+            <div class="metric-card">
+              <p class="metric-label">Uuzaji wa Kila Siku</p>
+              <p class="metric-sublabel">(Daily Sales Needed)</p>
+              <p class="metric-value" id="res-daily">—</p>
+              <p class="metric-subvalue">kufika usawa / to break even</p>
+            </div>
+          </div>
+
+          <button type="button" class="calc-help-toggle" id="help-results-btn" onclick="toggleHelp('help-results', this)" aria-expanded="false">
+            <i class="ti ti-info-circle" aria-hidden="true"></i> Nini maana ya hizi? — What do these mean? <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+
+          <div class="calc-help-panel" id="help-results">
+            <table>
+              <thead>
+                <tr><th>Neno (Term)</th><th>Maana yake (What it means)</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="sw">Mchango kwa Faida</span><span class="en">(Contribution Margin)</span></td>
+                  <td>
+                    <span class="sw">Bei yako TOA gharama inayobadilika = pesa iliyobaki kwa kila bidhaa. Pesa hii inayolipa gharama isiyobadilika kwanza, kisha inakuwa faida.</span>
+                    <span class="en">(Selling price MINUS variable cost = money remaining per unit. This money pays your fixed costs first, then becomes profit.)</span>
+                    <span class="calc">Mfano: KES 70 − KES 45 = KES 25 kwa chupa (Example: KES 70 − KES 45 = KES 25 per bottle)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Kivunja Gharama</span><span class="en">(Break-Even Point)</span></td>
+                  <td>
+                    <span class="sw">Idadi ya bidhaa lazima uuze ili ulipe gharama zako zote — bila faida wala hasara. Chini ya hapa = hasara. Juu ya hapa = faida.</span>
+                    <span class="en">(Units you must sell to cover all your costs — no profit, no loss. Below this = loss. Above this = profit.)</span>
+                    <span class="calc">Mfano: KES 2,000 ÷ KES 25 = chupa 80 kwa mwezi (Example: KES 2,000 ÷ KES 25 = 80 bottles/month)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Faida / Hasara</span><span class="en">(Profit / Loss)</span></td>
+                  <td>
+                    <span class="sw">Pesa iliyobaki baada ya kulipa gharama zote. Ikiwa ni namba hasi, unapoteza pesa mwezi huu.</span>
+                    <span class="en">(Money left after paying all costs. If the number is negative, you are losing money this month.)</span>
+                    <span class="calc">Mfano: chupa 120 × KES 25 − KES 2,000 = faida KES 1,000 (Example: 120 × KES 25 − KES 2,000 = profit KES 1,000)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Faida ni ya nani?</span><span class="en">(Whose profit is this?)</span></td>
+                  <td>
+                    <span class="sw">Faida ni pesa ya biashara, si mshahara wako binafsi. Mshahara wako tayari umehesabiwa kwenye gharama isiyobadilika. Faida hii inatumika kukuza biashara — kununua bidhaa zaidi, kutengeneza akiba, au kupanua.</span>
+                    <span class="en">(Profit belongs to the business, not to you personally — your own pay is already counted in fixed costs. This money is used to grow the business: buying more stock, building savings, or expanding.)</span>
+                    <span class="calc">Jilipe kwanza, kisha uache faida ikue biashara (Pay yourself first, then let profit grow the business)</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><span class="sw">Uuzaji wa Kila Siku</span><span class="en">(Daily Sales Needed)</span></td>
+                  <td>
+                    <span class="sw">Kivunja gharama gawanya siku 26 za kufanya kazi. Hii ndiyo lengo lako la chini la kila siku.</span>
+                    <span class="en">(Break-even divided by 26 working days. This is your minimum daily sales target to avoid a loss.)</span>
+                    <span class="calc">Mfano: chupa 80 ÷ siku 26 = chupa 4 kwa siku (Example: 80 bottles ÷ 26 days = 4 bottles/day)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="calc-help-note">
+              Hizi ni sehemu ya SEE Canvas — zana ya msingi ya mafunzo ya
+              Elimu+. Katika programu, tunafanya hesabu hizi pamoja kwa biashara yako
+              halisi. — These are part of the SEE Canvas — the core Elimu+ training tool.
+              In the programme, we work through these calculations together for your
+              real business.
+            </div>
+          </div>
+
+          <div id="bar-section">
+            <div class="bar-labels">
+              <span>0</span>
+              <span id="bar-target-label">—</span>
+            </div>
+            <div class="bar-track">
+              <div class="bar-fill" id="progress-bar"></div>
+            </div>
+            <div class="bar-footer">
+              <span>Kivunja gharama: <span id="bar-be-label">—</span></span>
+              <span>Mauzo yako: <span id="bar-sales-label">—</span></span>
+            </div>
+          </div>
+
+          <div class="verdict" id="verdict-box"></div>
+          <p id="swahili-verdict"></p>
+        </div>
+
+        <!-- CTA -->
+        <div id="cta-block">
+          <h3>Je, unataka kuelewa biashara yako kikamilifu?</h3>
+          <p>Want to understand the full picture of your business? The SEE Canvas
+            covers 12 sections — from this calculation to your customers, competition,
+            and growth plan. Join an Elimu+ programme near you.</p>
+          <div class="cta-buttons">
+            <a href="partner.html" class="cta-primary">Pata programu karibu nawe — Find a programme →</a>
+            <a href="https://wa.me/254798639546" class="cta-whatsapp" target="_blank" rel="noopener">
+              <i class="ti ti-brand-whatsapp" aria-hidden="true"></i> WhatsApp
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!--
+      SECTION: What this connects to
+      PAGE: Calculator
+      PHASE: 1
+      CONTENT OWNER: Musa Asubuhi
+      LAST UPDATED: 2026-07-25
+    -->
+    <section class="section bg-white">
+      <div class="connects-section">
+        <h2>Hesabu hii ni sehemu ya SEE Canvas<em>(This calculation is part of the SEE Canvas)</em></h2>
+        <p>In every Elimu+ session, participants work through these
+          exact numbers for their own business — contribution margin,
+          break-even, and profit. The SEE Canvas has 12 sections in total,
+          covering everything from your customers and competition to your
+          daily operations and growth plan. This calculator gives you a
+          glimpse of what the full programme teaches.</p>
+        <a href="programme.html" class="card-link">Jifunze zaidi kuhusu programu yetu → (Learn about our programme →)</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!--
+    SECTION: Footer
+    PAGE: All pages
+    PHASE: 1
+    CONTENT OWNER: Musa Asubuhi
+    LAST UPDATED: 2026-07-25
+  -->
+  <footer class="site-footer">
+    <div class="diagonal-stripe diagonal-stripe--footer" aria-hidden="true"></div>
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="footer__logo"><img src="images/logo-elimu-white.png" alt="" width="65" height="40"><span class="footer__logo-text">Elimu<span class="logo-plus">+</span></span></div>
+          <p class="footer__slogan">Simply Building Sustainable Businesses</p>
+          <p class="sw">Elimu inayobadilisha maisha</p>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <a href="index.html">Home</a>
+          <a href="programme.html">Our Programme</a>
+          <a href="calculator.html">Hesabu (Calculator)</a>
+          <a href="partner.html">Partner With Us</a>
+          <a href="trainer.html">Become a Trainer</a>
+          <a href="about.html">About</a>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <a href="mailto:hello@elimuplus.com">hello@elimuplus.com</a>
+          <a href="tel:+254798639546">+254 798 639 546</a>
+          <a href="https://wa.me/254798639546" target="_blank" rel="noopener">Chat on WhatsApp</a>
+          <a href="about.html#contact">Likoni, Mombasa, Kenya</a>
+          <div class="footer__social">
+            <a href="#" aria-label="Elimu+ on Instagram" title="Instagram (coming soon)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>© 2026 Elimu+. All rights reserved.</span>
+        <span>Built for the entrepreneurs of Likoni.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/calculator.js"></script>
+</body>
+</html>

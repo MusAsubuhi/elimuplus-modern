@@ -15,7 +15,8 @@ SITE-WIDE (used on every page)
 ------------------------------------------------------------
 favicon.ico              DONE — using images/favicon.png (square-padded crop of
                          the logo, generated from logo-elimu-white.png).
-og-image.jpg             Social share preview card. 1200x630.
+og-image.jpg             DONE — brand card (teal bg, logo mark, wordmark,
+                         tagline), generated at 1200x630 for social sharing.
 logo-elimu-white.png     DONE — wired into the navbar/footer on all pages.
 
 ------------------------------------------------------------
