@@ -1,0 +1,83 @@
+ELIMU+ WEBSITE — IMAGES NEEDED
+==============================
+This is the full list of image files the site is currently missing.
+Every spot that needs a photo has been left as a RAW, unmissable red
+dashed box (or a red "Needs image: ..." tag on hero banners) directly
+in the page — open any .html file in a browser and scroll through to
+see them all.
+
+Drop each finished file into this /images folder using the EXACT
+filename below, then ask Claude Code to swap the matching raw
+placeholder for a real <img> tag.
+
+------------------------------------------------------------
+SITE-WIDE (used on every page)
+------------------------------------------------------------
+favicon.ico              DONE — using images/favicon.png (square-padded crop of
+                         the logo, generated from logo-elimu-white.png).
+og-image.jpg             Social share preview card. 1200x630.
+logo-elimu-white.png     DONE — wired into the navbar/footer on all pages.
+
+------------------------------------------------------------
+HOME (index.html)
+------------------------------------------------------------
+hero-bg.jpg                 Hero banner background. Wide/landscape.
+home-training-group.jpg     "Training that doesn't stop at the door" section, AND
+                             reused in the "Elimu+ in action" gallery — women
+                             completing the SEE Canvas together, group session.
+home-canvas-hands.jpg       "SEE Canvas glimpse" section — hands filling in a
+                             SEE Canvas during training.
+programme-mwanahamisi.jpg   "Meet Mwanahamisi" section — a market stall vendor,
+                             Soweto estate, Likoni. (Reused on the Programme page.)
+home-facilitator.jpg        Gallery — a facilitator leading a live session.
+programme-graduation.jpg    Gallery — a graduation/completion moment, KE358 cohort.
+                             (Reused on the Programme page, 3-Day Crush card.)
+home-community.jpg          Gallery — a community gathering shot, Likoni.
+
+------------------------------------------------------------
+OUR PROGRAMME (programme.html)
+------------------------------------------------------------
+programme-canvas-hero.jpg    Hero banner background — SEE Canvas close-up.
+programme-same-group.jpg     "Built on one principle: SAME" section — a cohort
+                              applying the SAME framework together.
+programme-graduation.jpg     3-Day Crush format card (see Home, reused).
+programme-youth-session.jpg  12-Day SEE Programme format card — a youth session.
+programme-mwanahamisi.jpg    "Meet Mwanahamisi" section (see Home, reused).
+
+------------------------------------------------------------
+PARTNER WITH US (partner.html)
+------------------------------------------------------------
+partner-hero.jpg              Hero banner background. Institutional setting.
+partner-ke358-venue.jpg        KE358 case study — the Deliverance Church Likoni
+                                CDC training venue.
+partner-outcome-woman.jpg      KE358 case study — a participant at her business.
+partner-process-meeting.jpg    "What a partnership looks like" section — a
+                                partnership planning meeting.
+
+------------------------------------------------------------
+BECOME A TRAINER (trainer.html)
+------------------------------------------------------------
+trainer-hero.jpg          Hero banner background. Facilitator in action.
+trainer-certificate.jpg   Certification pathway section — a certification moment.
+trainer-coaching.jpg      "What a facilitator actually does" — coaching a
+                          participant one-on-one.
+trainer-team.jpg          The Elimu+ facilitator team.
+
+------------------------------------------------------------
+ABOUT (about.html)
+------------------------------------------------------------
+about-room-wide.jpg    Hero banner background. Wide shot of a training room.
+about-story.jpg        "Why we exist" section — the founding story.
+about-musa.jpg         Founder card — Musa Asubuhi (headshot).
+about-james.jpg        Founder card — James Kimani (headshot).
+
+------------------------------------------------------------
+GUIDELINES
+------------------------------------------------------------
+- Real photos only — no stock imagery, nothing staged or studio-lit.
+- No images of children in poverty — this is a business training
+  programme, not a welfare organisation.
+- Compress before upload. Target well under 200KB per photo where
+  possible so mobile pages stay fast on Android data connections.
+- Hero images: wide/landscape, at least 1600px wide.
+- In-page photos (img-placeholder boxes): at least 900px on the long edge.
