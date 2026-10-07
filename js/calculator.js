@@ -1,7 +1,7 @@
 /* =============================================================
-   ELIMU+ — HESABU YA BIASHARA (BUSINESS CALCULATOR)
-   calculator.js — loaded only on calculator.html
-   Do not edit shared site behaviour here — use main.js for that
+   ELIMU+, HESABU YA BIASHARA (BUSINESS CALCULATOR)
+   calculator.js, loaded only on calculator.html
+   Do not edit shared site behaviour here, use main.js for that
    ============================================================= */
 
 // --- LOCALSTORAGE: Restore last session on page load ---
@@ -86,14 +86,14 @@ function calculate() {
   // Edge case: variable cost exceeds selling price
   if (cm <= 0) {
     document.getElementById('res-cm').textContent = fmt(cm) + ' / bidhaa';
-    document.getElementById('res-be').textContent = '—';
-    document.getElementById('res-profit').textContent = '—';
-    document.getElementById('res-daily').textContent = '—';
+    document.getElementById('res-be').textContent = '-';
+    document.getElementById('res-profit').textContent = '-';
+    document.getElementById('res-daily').textContent = '-';
     document.getElementById('bar-section').style.display = 'none';
     var vbox = document.getElementById('verdict-box');
     vbox.className = 'verdict loss';
     vbox.textContent = 'Gharama yako ni kubwa kuliko bei yako. (Your variable cost is higher than your selling price.) Unapoteza pesa kwa kila bidhaa unayouza. (You are losing money on every unit sold.) Ongeza bei au punguza gharama kwanza. (Increase your price or reduce your costs first.)';
-    document.getElementById('swahili-verdict').textContent = 'Ongeza bei au punguza gharama kwanza. — Raise your price or cut your costs first.';
+    document.getElementById('swahili-verdict').textContent = 'Ongeza bei au punguza gharama kwanza. Raise your price or cut your costs first.';
     document.getElementById('cta-block').style.display = 'block';
     return;
   }
@@ -135,17 +135,17 @@ function calculate() {
 
   if (profit > 0) {
     vbox.className = 'verdict profit';
-    vbox.textContent = 'Uko juu ya kivunja gharama. (You are above break-even.) Kwa mauzo ya bidhaa ' + units.toLocaleString() + ', unapata faida (profit) ya ' + fmt(profit) + ' mwezi huu. Ulihitaji kuuza bidhaa ' + breakEven.toLocaleString() + ' kulipa gharama zako zote. Kumbuka: faida hii ni ya biashara, si mshahara wako — mshahara wako tayari upo kwenye gharama zako. Itumie faida kukuza biashara. (You needed to sell ' + breakEven.toLocaleString() + ' units to cover all costs. Remember: this profit belongs to the business, not to you personally — your own pay is already in your costs. Use this profit to grow the business.)';
-    svbox.textContent = 'Hongera! Biashara yako inalipa — faida hii ni ya kukuza biashara. — Congratulations! Your business is paying — this profit is for growing the business.';
+    vbox.textContent = 'Uko juu ya kivunja gharama. (You are above break-even.) Kwa mauzo ya bidhaa ' + units.toLocaleString() + ', unapata faida (profit) ya ' + fmt(profit) + ' mwezi huu. Ulihitaji kuuza bidhaa ' + breakEven.toLocaleString() + ' kulipa gharama zako zote. Kumbuka: faida hii ni ya biashara, si mshahara wako, mshahara wako tayari upo kwenye gharama zako. Itumie faida kukuza biashara. (You needed to sell ' + breakEven.toLocaleString() + ' units to cover all costs. Remember: this profit belongs to the business, not to you personally, your own pay is already in your costs. Use this profit to grow the business.)';
+    svbox.textContent = 'Hongera! Biashara yako inalipa, faida hii ni ya kukuza biashara. Congratulations! Your business is paying, this profit is for growing the business.';
   } else if (profit < 0) {
     var shortfall = breakEven - units;
     vbox.className = 'verdict loss';
     vbox.textContent = 'Bado hujafika kivunja gharama. (You are below break-even.) Kwa mauzo ya bidhaa ' + units.toLocaleString() + ', una hasara (loss) ya ' + fmt(profit) + ' mwezi huu. Unahitaji kuuza bidhaa ' + shortfall.toLocaleString() + ' zaidi kwa mwezi ili usipoteze pesa. (Sell ' + shortfall.toLocaleString() + ' more units per month to stop losing money.)';
-    svbox.textContent = 'Bado hujafika hatua ya faida. — You have not yet reached the profit point.';
+    svbox.textContent = 'Bado hujafika hatua ya faida. You have not yet reached the profit point.';
   } else {
     vbox.className = 'verdict break';
-    vbox.textContent = 'Umefika usawa hasa. (You are exactly at break-even.) Unalipa gharama zako zote lakini bado hupati faida. (You are covering all your costs but making no profit yet.) Uza bidhaa moja zaidi tu — uanze kupata faida. (Sell just one more unit and you start earning.)';
-    svbox.textContent = 'Umefika hatua ya usawa. — You have reached the balance point.';
+    vbox.textContent = 'Umefika usawa hasa. (You are exactly at break-even.) Unalipa gharama zako zote lakini bado hupati faida. (You are covering all your costs but making no profit yet.) Uza bidhaa moja zaidi tu, uanze kupata faida. (Sell just one more unit and you start earning.)';
+    svbox.textContent = 'Umefika hatua ya usawa. You have reached the balance point.';
   }
 
   document.getElementById('cta-block').style.display = 'block';

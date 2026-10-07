@@ -1,6 +1,6 @@
 /* =============================================================
-   ELIMU+ — MAIN SCRIPT
-   Maintainer note (for Musa): This file has no dependencies —
+   ELIMU+, MAIN SCRIPT
+   Maintainer note (for Musa): This file has no dependencies -
    no jQuery, no libraries. Each numbered block below is
    independent, so you can read them one at a time.
    ============================================================= */
@@ -41,7 +41,7 @@ function initMobileNav() {
 /* -------------------------------------------------------------
    2. STICKY NAVBAR ON SCROLL
    Adds a "scrolled" class after 80px so the bar can shrink
-   slightly and gain a shadow — see .navbar.scrolled in styles.css
+   slightly and gain a shadow, see .navbar.scrolled in styles.css
    ------------------------------------------------------------- */
 function initStickyNavbar() {
   var navbar = document.querySelector('.navbar');
@@ -77,7 +77,7 @@ function initFormspreeForms() {
       var errorEl = form.querySelector('.form-feedback--error');
       var submitBtn = form.querySelector('button[type="submit"]');
 
-      // Honeypot check — if the hidden field has a value, silently
+      // Honeypot check, if the hidden field has a value, silently
       // pretend success and stop. Real visitors never fill this in.
       var honeypot = form.querySelector('input[name="_gotcha"]');
       if (honeypot && honeypot.value) {

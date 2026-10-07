@@ -1,0 +1,303 @@
+{
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/about-us",
+      "destination": "/about.html",
+      "permanent": true
+    },
+    {
+      "source": "/about-us/",
+      "destination": "/about.html",
+      "permanent": true
+    },
+    {
+      "source": "/about",
+      "destination": "/about.html",
+      "permanent": true
+    },
+    {
+      "source": "/about/",
+      "destination": "/about.html",
+      "permanent": true
+    },
+    {
+      "source": "/who-we-are",
+      "destination": "/about.html",
+      "permanent": true
+    },
+    {
+      "source": "/who-we-are/",
+      "destination": "/about.html",
+      "permanent": true
+    },
+    {
+      "source": "/services",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/services/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/our-services",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/our-services/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/programs",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/programs/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/programmes",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/programmes/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/programme",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/programme/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/our-programme",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/our-programme/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/training",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/training/",
+      "destination": "/programme.html",
+      "permanent": true
+    },
+    {
+      "source": "/contact-us",
+      "destination": "/about.html#contact",
+      "permanent": true
+    },
+    {
+      "source": "/contact-us/",
+      "destination": "/about.html#contact",
+      "permanent": true
+    },
+    {
+      "source": "/contact",
+      "destination": "/about.html#contact",
+      "permanent": true
+    },
+    {
+      "source": "/contact/",
+      "destination": "/about.html#contact",
+      "permanent": true
+    },
+    {
+      "source": "/get-in-touch",
+      "destination": "/about.html#contact",
+      "permanent": true
+    },
+    {
+      "source": "/get-in-touch/",
+      "destination": "/about.html#contact",
+      "permanent": true
+    },
+    {
+      "source": "/partner",
+      "destination": "/partner.html",
+      "permanent": true
+    },
+    {
+      "source": "/partner/",
+      "destination": "/partner.html",
+      "permanent": true
+    },
+    {
+      "source": "/partners",
+      "destination": "/partner.html",
+      "permanent": true
+    },
+    {
+      "source": "/partners/",
+      "destination": "/partner.html",
+      "permanent": true
+    },
+    {
+      "source": "/partner-with-us",
+      "destination": "/partner.html",
+      "permanent": true
+    },
+    {
+      "source": "/partner-with-us/",
+      "destination": "/partner.html",
+      "permanent": true
+    },
+    {
+      "source": "/trainer",
+      "destination": "/trainer.html",
+      "permanent": true
+    },
+    {
+      "source": "/trainer/",
+      "destination": "/trainer.html",
+      "permanent": true
+    },
+    {
+      "source": "/become-a-trainer",
+      "destination": "/trainer.html",
+      "permanent": true
+    },
+    {
+      "source": "/become-a-trainer/",
+      "destination": "/trainer.html",
+      "permanent": true
+    },
+    {
+      "source": "/join",
+      "destination": "/join.html",
+      "permanent": true
+    },
+    {
+      "source": "/join/",
+      "destination": "/join.html",
+      "permanent": true
+    },
+    {
+      "source": "/join-a-programme",
+      "destination": "/join.html",
+      "permanent": true
+    },
+    {
+      "source": "/join-a-programme/",
+      "destination": "/join.html",
+      "permanent": true
+    },
+    {
+      "source": "/calculator",
+      "destination": "/calculator.html",
+      "permanent": true
+    },
+    {
+      "source": "/calculator/",
+      "destination": "/calculator.html",
+      "permanent": true
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy.html",
+      "permanent": true
+    },
+    {
+      "source": "/privacy-policy/",
+      "destination": "/privacy.html",
+      "permanent": true
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html",
+      "permanent": true
+    },
+    {
+      "source": "/privacy/",
+      "destination": "/privacy.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog",
+      "destination": "/blog.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/",
+      "destination": "/blog.html",
+      "permanent": true
+    },
+    {
+      "source": "/feed",
+      "destination": "/rss.xml",
+      "permanent": true
+    },
+    {
+      "source": "/feed/",
+      "destination": "/rss.xml",
+      "permanent": true
+    },
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/home/",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/category/:path*",
+      "destination": "/blog.html",
+      "permanent": true
+    },
+    {
+      "source": "/tag/:path*",
+      "destination": "/blog.html",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/downloads/(.*)",
+      "headers": [
+        {
+          "key": "Content-Disposition",
+          "value": "attachment"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ]
+}

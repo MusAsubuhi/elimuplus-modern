@@ -3,11 +3,11 @@ title: What our first 30-day visits taught us about stock, capital and the house
 date: 2026-10-07
 category: Field notes
 author: The Elimu+ team
-draft: true
-summary: We visited ten new businesses a month after training. Nine were still trading. Here is what the one that stopped, and the many that struggled, told us.
+soon: true
+summary: Our first follow-up visits, and what they taught us about stock, capital and household money. Publishing soon.
 ---
 
-A month after the three-day training at KE358 Deliverance Church Likoni CDC, we went back to see what had happened to the ten businesses started by that cohort. This is the part of Elimu+ that no certificate can stand in for. It is also the part where we learn the most.
+A month after the training at KE358 Deliverance Church Likoni CDC, we went back to see what had happened to the ten businesses started by that cohort. This is the part of Elimu+ that no certificate can stand in for. It is also the part where we learn the most.
 
 Nine of the ten businesses were still trading, and six of the ten participants told us their weekly income was rising. A seventh was earning about the same but had widened what she sold, moving from cakes and eggs into sausages. Those are good numbers, and we are proud of them, but with ten participants they are a first signal and not a proof. What follows is more useful than the headline.
 

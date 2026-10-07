@@ -1,0 +1,59 @@
+# Elimu+ redirects and basics (Apache / cPanel). Place in the site root (public_html or the elimuplus.com folder).
+# Redirects from the old WordPress addresses to the new pages.
+Options -Indexes
+ErrorDocument 404 /404.html
+
+RewriteEngine On
+
+# One canonical address: https and no www
+RewriteCond %{HTTPS} off [OR]
+RewriteCond %{HTTP_HOST} ^www\. [NC]
+RewriteRule ^ https://elimuplus.com%{REQUEST_URI} [L,R=301]
+
+# /index.html -> /
+RewriteCond %{THE_REQUEST} \s/index\.html[\s?]
+RewriteRule ^index\.html$ / [R=301,L]
+
+# Old WordPress ?p=123 and ?page_id=123 links go to the home page
+RewriteCond %{QUERY_STRING} (^|&)(p|page_id|cat|s)=
+RewriteRule ^$ /? [R=301,L]
+
+# Old WordPress page addresses
+RewriteRule ^about-us/?$ /about.html [R=301,L]
+RewriteRule ^about/?$ /about.html [R=301,L]
+RewriteRule ^who-we-are/?$ /about.html [R=301,L]
+RewriteRule ^services/?$ /programme.html [R=301,L]
+RewriteRule ^our-services/?$ /programme.html [R=301,L]
+RewriteRule ^programs/?$ /programme.html [R=301,L]
+RewriteRule ^programmes/?$ /programme.html [R=301,L]
+RewriteRule ^programme/?$ /programme.html [R=301,L]
+RewriteRule ^our-programme/?$ /programme.html [R=301,L]
+RewriteRule ^training/?$ /programme.html [R=301,L]
+RewriteRule ^contact-us/?$ /about.html#contact [R=301,L,NE]
+RewriteRule ^contact/?$ /about.html#contact [R=301,L,NE]
+RewriteRule ^get-in-touch/?$ /about.html#contact [R=301,L,NE]
+RewriteRule ^partner/?$ /partner.html [R=301,L]
+RewriteRule ^partners/?$ /partner.html [R=301,L]
+RewriteRule ^partner-with-us/?$ /partner.html [R=301,L]
+RewriteRule ^trainer/?$ /trainer.html [R=301,L]
+RewriteRule ^become-a-trainer/?$ /trainer.html [R=301,L]
+RewriteRule ^join/?$ /join.html [R=301,L]
+RewriteRule ^join-a-programme/?$ /join.html [R=301,L]
+RewriteRule ^calculator/?$ /calculator.html [R=301,L]
+RewriteRule ^privacy-policy/?$ /privacy.html [R=301,L]
+RewriteRule ^privacy/?$ /privacy.html [R=301,L]
+RewriteRule ^blog/?$ /blog.html [R=301,L]
+RewriteRule ^feed/?$ /rss.xml [R=301,L]
+RewriteRule ^home/?$ / [R=301,L]
+
+# Old WordPress system addresses that no longer exist
+RewriteRule ^(wp-content|wp-includes|wp-json)(/|$) - [R=410,L]
+RewriteRule ^(category|tag|author)/.* /blog.html [R=301,L]
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 1 month"
+  ExpiresByType image/png "access plus 1 month"
+  ExpiresByType text/css "access plus 1 week"
+  ExpiresByType application/javascript "access plus 1 week"
+</IfModule>

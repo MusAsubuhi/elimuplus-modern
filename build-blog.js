@@ -39,6 +39,7 @@ function parsePost(file) {
   meta.author = meta.author || 'The Elimu+ team';
   meta.category = meta.category || 'Field notes';
   meta.draft = /^(true|yes)$/i.test(meta.draft || '');
+  meta.soon = /^(true|yes)$/i.test(meta.soon || '');
   meta.body = m[2].trim();
   meta.words = meta.body.split(/\s+/).length;
   meta.minutes = Math.max(1, Math.round(meta.words / 200));
@@ -99,7 +100,7 @@ function markdown(src) {
 /* ---------- shared header / footer ---------- */
 const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const header = indexHtml.match(/<header>[\s\S]*?<\/header>/)[0]
-  .replace(/ class="active"/g, '')
+  .replace(/ class="active" aria-current="page"/g, '').replace(/ class="active"/g, '')
   .replace(/<a href="blog\.html">/g, '<a href="blog.html" class="active" aria-current="page">');
 const footer = indexHtml.match(/<footer[\s\S]*?<\/footer>/)[0];
 
@@ -138,6 +139,7 @@ function page({ title, desc, canonical, image, body, depth, type, ld }) {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
   ${css}
+  <script defer data-domain="elimuplus.com" src="https://plausible.io/js/script.js"></script>
 ${ld ? '  <script type="application/ld+json">' + JSON.stringify(ld) + '</script>\n' : ''}</head>
 <body>
 
@@ -161,7 +163,8 @@ const imgUrl = (p) => (p ? (/^https?:/.test(p) ? p : SITE + '/' + p.replace(/^\/
 /* ---------- build ---------- */
 const files = fs.existsSync(POSTS_DIR) ? fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.md') && !f.startsWith('_')) : [];
 const all = files.map(parsePost).sort((a, b) => (a.date < b.date ? 1 : -1));
-const posts = all.filter((p) => !p.draft);
+const posts = all.filter((p) => !p.draft && !p.soon);
+const soonPosts = all.filter((p) => p.soon && !p.draft);
 
 // remove stale generated posts
 const keep = new Set(posts.map((p) => p.slug + '.html'));
@@ -180,6 +183,17 @@ function card(p, depthPrefix) {
     <h3><a href="${depthPrefix}blog/${p.slug}.html">${esc(p.title)}</a></h3>
     <p>${esc(p.summary)}</p>
     <a class="card-link" href="${depthPrefix}blog/${p.slug}.html">Read the post →</a>
+  </div>
+</article>`;
+}
+
+function soonCard(p) {
+  return `<article class="blog-card blog-card--soon">
+  <div class="blog-card__img blog-card__img--none" aria-hidden="true"><span>Elimu<b>+</b></span></div>
+  <div class="blog-card__body">
+    <p class="blog-card__meta"><span class="card__badge soon-badge">Coming soon</span> <span>${esc(p.category)}</span></p>
+    <h3>${esc(p.title)}</h3>
+    <p>${esc(p.summary)}</p>
   </div>
 </article>`;
 }
@@ -208,7 +222,7 @@ ${markdown(p.body).replace(/src="images\//g, 'src="../images/')}
         <aside class="post-cta">
           <h2>Want Elimu+ in your community?</h2>
           <p>We train through churches, NGOs and colleges, then follow up at 30, 60 and 90 days.</p>
-          <p><a class="btn btn--primary" href="../partner.html">Partner With Us</a> <a class="btn btn--outline-teal" href="https://wa.me/254798639546" target="_blank" rel="noopener">WhatsApp Us</a></p>
+          <p><a class="btn btn--primary" href="../partner.html">Partner With Us</a> <a class="btn btn--outline-teal" href="https://wa.me/254798639546?text=Hello%20Elimu%2B%2C%20I%20read%20your%20blog%20and%20would%20like%20to%20talk." target="_blank" rel="noopener">WhatsApp Us</a></p>
         </aside>
       </div>
     </article>
@@ -246,8 +260,8 @@ const listBody = `  <main id="main">
 
     <section class="section">
       <div class="container">
-${posts.length ? `        <div class="grid grid-3 blog-grid">\n${posts.map((p) => card(p, '')).join('\n')}\n        </div>` : '        <p>The first post is on its way.</p>'}
-        <p class="blog-feed"><a href="rss.xml">Subscribe via RSS</a> · <a href="https://wa.me/254798639546" target="_blank" rel="noopener">Ask us to message you each new post on WhatsApp</a></p>
+${(posts.length || soonPosts.length) ? `        <div class="grid grid-3 blog-grid">\n${soonPosts.map(soonCard).join('\n')}${soonPosts.length && posts.length ? '\n' : ''}${posts.map((p) => card(p, '')).join('\n')}\n        </div>` : '        <p>The first post is on its way.</p>'}
+        <p class="blog-feed"><a href="rss.xml">Subscribe via RSS</a> · <a href="https://wa.me/254798639546?text=Hello%20Elimu%2B%2C%20please%20message%20me%20when%20you%20publish%20a%20new%20blog%20post." target="_blank" rel="noopener">Ask us to message you each new post on WhatsApp</a></p>
       </div>
     </section>
   </main>`;
@@ -268,7 +282,7 @@ ${posts.map((p) => `<item><title>${xml(p.title)}</title><link>${SITE}/blog/${p.s
 `);
 
 // sitemap
-const stat = ['index', 'programme', 'calculator', 'partner', 'trainer', 'about', 'blog'];
+const stat = ['index', 'about', 'programme', 'join', 'calculator', 'partner', 'case-studies', 'trainer', 'blog', 'privacy'];
 const today = new Date().toISOString().slice(0, 10);
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
