@@ -15,7 +15,7 @@ const ROOT = __dirname;
 const SITE = 'https://elimuplus.com';
 const POSTS_DIR = path.join(ROOT, 'blog', 'posts');
 const OUT_DIR = path.join(ROOT, 'blog');
-const DEFAULT_OG = SITE + '/images/og-image.jpg';
+const DEFAULT_OG = SITE + '/images/og/og-blog.jpg';
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const xml = esc;
@@ -129,6 +129,9 @@ function page({ title, desc, canonical, image, body, depth, type, ld }) {
   <meta property="og:description" content="${esc(desc)}">
   <meta property="og:url" content="${canonical}">
   <meta property="og:image" content="${image}">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:locale" content="en_KE">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${esc(title)}">
