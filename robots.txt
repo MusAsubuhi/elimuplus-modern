@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://elimuplus.com/sitemap.xml

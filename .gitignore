@@ -2,3 +2,5 @@
 Thumbs.db
 node_modules/
 *.log
+_to_delete/
+BLOG-GUIDE.md
