@@ -364,6 +364,16 @@ p {
   min-height: 100%;
 }
 
+/* Real photos that replaced the raw placeholders above. */
+.site-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
+  background-color: var(--mist, #eef3f3);
+}
+
 /* RAW flag for hero background images — hero sections use a CSS
    background-image so a missing file is invisible; this tag makes the
    gap visible in-browser instead of silently falling back to teal. */
@@ -1225,4 +1235,21 @@ header {
   .section {
     padding: 6.5rem 0;
   }
+}
+
+/* PENDING PHOTOS — hides the raw red placeholder boxes (and collapses the
+   layout around them) until the real photo exists. When a photo arrives:
+   swap the element for an <img class="site-img ..."> as done elsewhere, or
+   simply remove the "pending-photo" class from it to show the placeholder. */
+.pending-photo {
+  display: none !important;
+}
+.split__media:has(> .pending-photo) {
+  display: none;
+}
+.split:has(> .split__media > .pending-photo) {
+  display: block;
+}
+.gallery figure:has(.pending-photo) {
+  display: none;
 }
