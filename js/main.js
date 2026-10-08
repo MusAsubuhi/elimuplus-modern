@@ -73,6 +73,13 @@ function initFormspreeForms() {
     form.addEventListener('submit', function (event) {
       event.preventDefault();
 
+      // novalidate is on the <form> so the browser won't block submission
+      // on its own; enforce required fields ourselves before sending.
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+
       var successEl = form.querySelector('.form-feedback--success');
       var errorEl = form.querySelector('.form-feedback--error');
       var submitBtn = form.querySelector('button[type="submit"]');
