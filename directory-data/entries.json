@@ -1,0 +1,74 @@
+{
+  "_about": "Data for Biashara za Elimu+ (directory.html). Run: node build-directory.js. Entries marked sample:true are IMAGINARY and show how the directory will look. Replace them with real entries only after the owner's written consent (90-day visit) and the host organisation's approval. Never add phone numbers; use the WhatsApp link field only.",
+  "businesses": [
+    {
+      "id": "b1", "sample": true, "featured": true,
+      "name": "Mandazi ya Mama Zuhura", "owner": "Mama Zuhura",
+      "category": "food", "category_sw": "Chakula", "category_en": "Food",
+      "area": "Soweto, Likoni", "cohort": "Kundi la watu wazima la 1, 2026", "cohort_en": "Adult cohort 1, 2026",
+      "confirmed": "Oktoba 2026", "confirmed_en": "October 2026",
+      "blurb_sw": "Anauza mandazi, chapati na chai ya moto kando ya barabara kuanzia saa kumi na moja asubuhi. Wateja wake wakuu ni wafanyakazi wanaoelekea kivukoni.",
+      "blurb_en": "Sells mandazi, chapati and hot tea at a roadside stall from 5 am. Her main customers are workers heading to the ferry.",
+      "quote_sw": "Sasa najua faida yangu kwa kila mandazi moja, na ninaandika kila siku.",
+      "quote_en": "Now I know my profit on every single mandazi, and I write it down every day.",
+      "whatsapp": ""
+    },
+    {
+      "id": "b2", "sample": true, "featured": false,
+      "name": "Duka la Baraka", "owner": "Baraka",
+      "category": "retail", "category_sw": "Rejareja", "category_en": "Retail",
+      "area": "Mtongwe", "cohort": "Kundi la watu wazima la 2, 2026", "cohort_en": "Adult cohort 2, 2026",
+      "confirmed": "Oktoba 2026", "confirmed_en": "October 2026",
+      "blurb_sw": "Duka dogo la unga, sukari na mafuta ya kupikia yanayouzwa kwa vipimo vidogo. Anataka kukua na kuwa muuzaji wa jumla kwa majirani.",
+      "blurb_en": "A small shop selling flour, sugar and cooking oil in small measures. He wants to grow into a wholesaler for his neighbours.",
+      "quote_sw": "", "quote_en": "",
+      "whatsapp": ""
+    }
+  ],
+  "needs": [
+    {
+      "id": "n1", "sample": true, "business": "b1",
+      "type": "stall", "type_sw": "Kibanda au vifaa", "type_en": "Stall or equipment",
+      "title_sw": "Kibanda chenye paa kwa mandazi na chai", "title_en": "A covered stall for mandazi and tea",
+      "detail_sw": "Mvua hukatiza mauzo siku nyingi. Kibanda chenye paa na rafu ya kuonyesha bidhaa kingemwezesha kuuza hata siku za mvua.",
+      "detail_en": "Rain interrupts her sales on many days. A covered stall with a display shelf would let her sell on wet days too.",
+      "unlock_sw": "Siku za mauzo zaidi kwa wiki na bidhaa safi zaidi.", "unlock_en": "More selling days each week and cleaner, safer food.",
+      "estimate": "KES 18,000 (mfano / sample)",
+      "how_sw": "Kibanda kijengwe na fundi; hakuna pesa inayotolewa mkononi.", "how_en": "Built by a craftsman; no cash is handed over.",
+      "status": "open"
+    },
+    {
+      "id": "n2", "sample": true, "business": "b2",
+      "type": "supplier", "type_sw": "Mshirika wa kununua kwa jumla", "type_en": "Bulk-buying link",
+      "title_sw": "Kununua unga na sukari kwa magunia", "title_en": "Buying flour and sugar by the sack",
+      "detail_sw": "Anapanga kununua kwa magunia badala ya pakiti ndogo, kisha kuwauzia wauzaji wadogo wa karibu. Anahitaji msambazaji wa kuaminika na ushauri wa kuhifadhi bidhaa.",
+      "detail_en": "He plans to buy by the sack instead of small packs, then sell on to nearby small traders. He needs a reliable supplier and advice on storing stock.",
+      "unlock_sw": "Gharama ndogo kwa kila kipimo na kuanza kuuza kwa jumla.", "unlock_en": "A lower cost per measure and a first step into wholesale.",
+      "estimate": "",
+      "how_sw": "Utambulisho kwa msambazaji na mshauri kupitia shirika mwenyeji.", "how_en": "An introduction to a supplier and a mentor through the host organisation.",
+      "status": "talking"
+    },
+    {
+      "id": "n3", "sample": true, "business": "b1",
+      "type": "mentor", "type_sw": "Ushauri", "type_en": "Mentorship",
+      "title_sw": "Mshauri wa kutunza kumbukumbu za biashara", "title_en": "A mentor for keeping business records",
+      "detail_sw": "Mshauri wa kujitolea alikutana naye mara tatu na kumsaidia kuandaa daftari la mauzo na gharama.",
+      "detail_en": "A volunteer mentor met her three times and helped her set up a sales and expenses book.",
+      "unlock_sw": "Uamuzi bora wa bei na akiba.", "unlock_en": "Better pricing decisions and savings.",
+      "estimate": "",
+      "how_sw": "Imekamilika kupitia shirika mwenyeji.", "how_en": "Completed through the host organisation.",
+      "status": "done"
+    }
+  ],
+  "youth": [
+    {
+      "id": "y1", "sample": true,
+      "who": "Neema, miaka 19, Likoni", "who_en": "Neema, 19, Likoni",
+      "concept_sw": "Kuuza mboga za majani zilizosafishwa na kukatwa tayari kwa migahawa midogo ya karibu. Ameshakamilisha SEE Canvas yake na kupima bei na gharama zake.",
+      "concept_en": "Selling washed, chopped leafy vegetables, ready to cook, to small restaurants nearby. She has completed her SEE Canvas and tested her prices and costs.",
+      "seeks_sw": "Mshauri wa biashara na mtaji wa kuanzia wa bidhaa, kupitia shirika lake.",
+      "seeks_en": "A business mentor and starting stock, through her organisation.",
+      "status": "open"
+    }
+  ]
+}
