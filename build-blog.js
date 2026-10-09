@@ -285,7 +285,7 @@ ${posts.map((p) => `<item><title>${xml(p.title)}</title><link>${SITE}/blog/${p.s
 `);
 
 // sitemap
-const stat = ['index', 'about', 'programme', 'join', 'calculator', 'partner', 'case-studies', 'trainer', 'sacco', 'blog', 'privacy'];
+const stat = ['index', 'about', 'programme', 'join', 'calculator', 'partner', 'case-studies', 'trainer', 'sacco', 'directory', 'blog', 'privacy'];
 const today = new Date().toISOString().slice(0, 10);
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
