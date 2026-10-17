@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "levels": {
+    "0": {
+      "name": "Trainee Facilitator",
+      "short": "Trainee",
+      "depth": "Short observation report. We want fresh eyes: what you saw, what surprised you, what worried you.",
+      "goes_to": "Your supervisor first, then the founders see a summary.",
+      "fields": [
+        { "key": "day_number", "core": true, "label": "Which training day was this?", "type": "number", "required": true },
+        { "key": "headcount", "core": true, "label": "How many participants were in the room?", "type": "number", "required": true },
+        { "key": "started_on_time", "label": "Did the session start on time?", "type": "choice", "options": ["Yes", "Within 15 minutes", "Late by more than 15 minutes"], "required": true },
+        { "key": "room_ok", "label": "Was the room comfortable and ready?", "type": "choice", "options": ["Yes", "Mostly", "No"], "required": true },
+        { "key": "engagement", "label": "How engaged were the participants?", "type": "scale", "min": 1, "max": 5, "minLabel": "Switched off", "maxLabel": "Fully engaged", "required": true },
+        { "key": "best_moment", "label": "What was the best moment of the day?", "type": "longtext", "required": true },
+        { "key": "surprised_me", "label": "What surprised you today, good or bad? Anything we may not have expected.", "type": "longtext", "required": true, "help": "This is the most valuable question on the form. Say what you actually saw." },
+        { "key": "concern", "core": true, "label": "Is there anything we should look at?", "type": "choice", "options": ["No concern", "Keep an eye on it", "Urgent, someone should call me"], "required": true },
+        { "key": "concern_note", "core": true, "label": "If so, what happened?", "type": "longtext", "required": false }
+      ]
+    },
+    "1": {
+      "name": "Associate Facilitator",
+      "short": "Associate",
+      "depth": "Day report. What you taught, how it went, what is not working yet.",
+      "goes_to": "Your supervisor, then the founders see a summary.",
+      "fields": [
+        { "key": "day_number", "core": true, "label": "Training day number", "type": "number", "required": true },
+        { "key": "headcount", "core": true, "label": "Participants present", "type": "number", "required": true },
+        { "key": "enrolled", "label": "Participants enrolled", "type": "number", "required": false },
+        { "key": "topics", "label": "Topics covered today", "type": "longtext", "required": true },
+        { "key": "plan_followed", "label": "Did you follow the day plan?", "type": "choice", "options": ["Yes", "Partly", "No"], "required": true },
+        { "key": "plan_change", "label": "If not, what changed and why?", "type": "longtext", "required": false },
+        { "key": "hardest", "label": "Which concept was hardest for the group?", "type": "longtext", "required": true },
+        { "key": "canvas_progress", "label": "How far have participants got with their canvas?", "type": "choice", "options": ["Not started", "Started", "Halfway", "Nearly complete", "Complete"], "required": true },
+        { "key": "engagement", "label": "Participant engagement", "type": "scale", "min": 1, "max": 5, "minLabel": "Low", "maxLabel": "High", "required": true },
+        { "key": "materials_ok", "label": "Were materials and equipment enough?", "type": "choice", "options": ["Yes", "Short of something"], "required": true },
+        { "key": "materials_note", "label": "What was missing?", "type": "longtext", "required": false },
+        { "key": "surprised_me", "label": "Anything unexpected today?", "type": "longtext", "required": false },
+        { "key": "concern", "core": true, "label": "Is there anything we should look at?", "type": "choice", "options": ["No concern", "Keep an eye on it", "Urgent, someone should call me"], "required": true },
+        { "key": "concern_note", "core": true, "label": "If so, what happened?", "type": "longtext", "required": false }
+      ]
+    },
+    "2": {
+      "name": "Certified Facilitator",
+      "short": "Certified",
+      "depth": "Full delivery report. Numbers, learning evidence, welfare and the plan for tomorrow.",
+      "goes_to": "A master trainer and the founders.",
+      "fields": [
+        { "key": "day_number", "core": true, "label": "Training day number", "type": "number", "required": true },
+        { "key": "headcount", "core": true, "label": "Participants present", "type": "number", "required": true },
+        { "key": "enrolled", "label": "Participants enrolled", "type": "number", "required": true },
+        { "key": "girls_women", "label": "How many present are girls or women?", "type": "number", "required": true },
+        { "key": "under18", "label": "How many present are under 18?", "type": "number", "required": true },
+        { "key": "late_or_left", "label": "Late arrivals or people who left early", "type": "number", "required": false },
+        { "key": "topics", "label": "Topics covered and sessions delivered", "type": "longtext", "required": true },
+        { "key": "plan_followed", "label": "Did you follow the day plan?", "type": "choice", "options": ["Yes", "Partly", "No"], "required": true },
+        { "key": "plan_change", "label": "What changed and why?", "type": "longtext", "required": false },
+        { "key": "learning_evidence", "label": "What evidence did you see that participants learned today?", "type": "longtext", "required": true },
+        { "key": "hardest", "label": "Hardest concepts, and what you will change", "type": "longtext", "required": true },
+        { "key": "canvas_progress", "label": "Canvas progress", "type": "choice", "options": ["Not started", "Started", "Halfway", "Nearly complete", "Complete"], "required": true },
+        { "key": "engagement", "label": "Participant engagement", "type": "scale", "min": 1, "max": 5, "minLabel": "Low", "maxLabel": "High", "required": true },
+        { "key": "venue_ok", "label": "Venue, facilities and safety today", "type": "choice", "options": ["All fine", "Minor issues", "Serious issue"], "required": true },
+        { "key": "venue_note", "label": "Venue issue details", "type": "longtext", "required": false },
+        { "key": "money_today", "label": "Money spent today on the cohort (KES)", "type": "number", "required": false },
+        { "key": "safeguarding", "label": "Any safeguarding or welfare matter?", "type": "choice", "options": ["No", "Yes, I have handled it", "Yes, I need help"], "required": true },
+        { "key": "voice", "label": "One thing a participant said that we should hear", "type": "longtext", "required": false },
+        { "key": "tomorrow", "label": "Plan for tomorrow and help you need", "type": "longtext", "required": true },
+        { "key": "concern", "core": true, "label": "Overall concern level", "type": "choice", "options": ["No concern", "Keep an eye on it", "Urgent, someone should call me"], "required": true },
+        { "key": "concern_note", "core": true, "label": "Concern details", "type": "longtext", "required": false }
+      ]
+    },
+    "3": {
+      "name": "Master Trainer (QA visit)",
+      "short": "Master",
+      "depth": "Quality visit. Scored observation with a decision.",
+      "goes_to": "The founders.",
+      "kind": "qa",
+      "fields": [
+        { "key": "day_number", "core": true, "label": "Training day observed", "type": "number", "required": true },
+        { "key": "headcount", "core": true, "label": "Participants present", "type": "number", "required": true },
+        { "key": "facilitator_name", "label": "Facilitator observed", "type": "text", "required": true },
+        { "key": "score_preparation", "label": "Preparation and materials", "type": "scale", "min": 1, "max": 5, "minLabel": "Poor", "maxLabel": "Excellent", "required": true },
+        { "key": "score_delivery", "label": "Delivery and clarity", "type": "scale", "min": 1, "max": 5, "minLabel": "Poor", "maxLabel": "Excellent", "required": true },
+        { "key": "score_participation", "label": "Participation and inclusion", "type": "scale", "min": 1, "max": 5, "minLabel": "Poor", "maxLabel": "Excellent", "required": true },
+        { "key": "score_canvas", "label": "Quality of canvas work on the walls", "type": "scale", "min": 1, "max": 5, "minLabel": "Poor", "maxLabel": "Excellent", "required": true },
+        { "key": "score_safeguarding", "label": "Safeguarding and respect", "type": "scale", "min": 1, "max": 5, "minLabel": "Poor", "maxLabel": "Excellent", "required": true },
+        { "key": "venue_ok", "label": "Venue against the readiness checklist", "type": "choice", "options": ["Matches", "Minor gaps", "Serious gaps"], "required": true },
+        { "key": "strengths", "label": "What the facilitator does well", "type": "longtext", "required": true },
+        { "key": "improve", "label": "What to improve before the next day", "type": "longtext", "required": true },
+        { "key": "decision", "label": "Decision", "type": "choice", "options": ["Pass", "Pass with actions", "Needs another visit", "Escalate to founders"], "required": true },
+        { "key": "concern", "core": true, "label": "Overall concern level", "type": "choice", "options": ["No concern", "Keep an eye on it", "Urgent, someone should call me"], "required": true },
+        { "key": "concern_note", "core": true, "label": "Concern details", "type": "longtext", "required": false }
+      ]
+    }
+  }
+}

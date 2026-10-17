@@ -6,6 +6,7 @@ import { AddPersonForm, ResetPinButton } from '@/components/pin-forms';
 import { EDUCATION, ROLE_OPTIONS, educationLabel, roleLabel } from '@/lib/options';
 import { audit } from '@/lib/audit';
 import { endRole, grantRole, issueCertificate } from '../../team-actions';
+import { assignSupervisor } from '../../ops-actions';
 
 export default async function Team() {
   const me = await requireMe('founder');
@@ -16,10 +17,14 @@ export default async function Team() {
            from role_assignments ra left join organisations o on o.id = ra.organisation_id where ra.person_id = p.id and ra.status = 'active') roles,
         (select max(tier) from certifications c where c.person_id = p.id and c.status = 'active') cert_tier
         from people p order by p.created_at desc, p.full_name`),
+    sup: await q("select s.person_id, p.display_name from supervision s join people p on p.id=s.supervisor_id where s.status='active'"),
     orgs: await q('select id, name from organisations where not is_internal order by name'),
     cohorts: await q('select c.id, c.name from cohorts c join organisations o on o.id = c.organisation_id where not o.is_internal order by c.start_date desc nulls last'),
   }));
   const trainers = T.people.filter((p) => (p.roles as any[]).some((r) => r.role === 'facilitator'));
+  const supOf = new Map(T.sup.map((x) => [x.person_id, x.display_name]));
+  const juniors = T.people.filter((p) => (p.roles as any[]).some((r) => r.role === 'facilitator' && r.tier <= 1));
+  const seniors = T.people.filter((p) => (p.roles as any[]).some((r) => r.role === 'founder' || (r.role === 'facilitator' && r.tier >= 2)));
   const nextTier = (p: any) => (p.cert_tier ?? 0) + 1;
   return (
     <>
@@ -49,6 +54,17 @@ export default async function Team() {
           p.auth_user_id ? (p.pin_reset_required ? <Badge key="s" tone="gold">temporary PIN</Badge> : <Badge key="s" tone="green">signed in</Badge>) : <Badge key="s" tone="red">no sign-in</Badge>,
           <ResetPinButton key="x" personId={p.id} />,
         ])} empty="No one yet." />
+      </Card>
+
+      <Card title="Who supervises whom" subtitle="Trainee and associate reports go to their supervisor first. Founders see a summary of every report." className="mt-4">
+        {juniors.length === 0 ? <p className="text-sm text-slate-600">No trainees or associates yet. Add one with the role “Trainee Facilitator”.</p> : (
+          <Table head={['Trainee or associate', 'Level', 'Supervisor', 'Change']} rows={juniors.map((p) => [
+            <b key="n">{p.full_name}</b>,
+            (p.roles as any[]).filter((r) => r.role === 'facilitator').map((r) => roleLabel('facilitator', r.tier)).join(', '),
+            supOf.get(p.id) ?? <span key="x" className="font-bold text-[#C8553D]">not assigned</span>,
+            <form key="f" action={assignSupervisor} className="flex gap-1"><input type="hidden" name="person" value={p.id} />
+              <select name="supervisor" className={`${inputCls} w-44`}>{seniors.filter((x) => x.id !== p.id).map((x) => <option key={x.id} value={x.id}>{x.display_name}</option>)}</select>
+              <button className={submitCls}>Set</button></form>])} />)}
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

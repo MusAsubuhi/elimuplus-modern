@@ -13,7 +13,7 @@ export default async function People() {
   const me = await requireMe('founder');
   await audit(me.id, 'view people, agreements and welfare', 'welfare_flags');
   const P = await asUser(me.id, async (q) => ({
-    invites: await q(`select i.*, o.name org_name, n.display_name nominator from invitations i left join organisations o on o.id=i.organisation_id join people n on n.id=i.nominated_by order by case i.status when 'nominated' then 0 else 1 end, i.created_at desc`),
+    invites: await q(`select i.*, o.name org_name, n.display_name nominator, coalesce(cp.called,false) called from invitations i left join organisations o on o.id=i.organisation_id join people n on n.id=i.nominated_by left join crm_person_status cp on cp.invitation_id=i.id order by case i.status when 'nominated' then 0 else 1 end, i.created_at desc`),
     orgSug: await q(`select s.*, n.display_name suggester, par.name parent_name from org_suggestions s join people n on n.id=s.suggested_by left join organisations par on par.id=s.parent_id order by case s.status when 'suggested' then 0 else 1 end, s.created_at desc`),
     roles: await q(`select role, coalesce(tier::text,'') tier, count(*)::int n from role_assignments where status='active' group by 1,2 order by 1,2`),
     orgs: await q(`select o.*, a.named_participant_access, a.welfare_flag_visibility, a.released_report_types, p.name parent_name from organisations o left join agreements a on a.organisation_id=o.id left join organisations p on p.id=o.parent_id where not o.is_internal order by coalesce(p.name,o.name), o.parent_id nulls first, o.name`),
@@ -36,12 +36,12 @@ export default async function People() {
           const minor = age !== null && age < 18;
           return [
             <div key="n"><b>{i.full_name}</b>{minor && <span className="ml-2"><Badge tone="gold">under 18</Badge></span>}<div className="text-xs text-slate-500">{i.contact}</div></div>,
-            <div key="a" className="text-xs">{[age !== null ? `${age} yrs` : '', educationLabel(i.education_level), i.occupation].filter(Boolean).join(' · ')}<div className="text-slate-500">{[i.ward, i.county].filter(Boolean).join(', ')}</div>{i.note && <div className="mt-1 text-slate-600">{i.note}</div>}{minor && <div className={i.guardian_consent ? 'text-emerald-700' : 'font-bold text-[#C8553D]'}>{i.guardian_consent ? 'Guardian consent on file' : 'No guardian consent yet'}</div>}</div>,
+            <div key="a" className="text-xs">{[age !== null ? `${age} yrs` : '', educationLabel(i.education_level), i.occupation].filter(Boolean).join(' · ')}<div className="text-slate-500">{[i.ward, i.county].filter(Boolean).join(', ')}</div>{i.note && <div className="mt-1 text-slate-600">{i.note}</div>}<div className={i.called ? 'text-emerald-700' : 'text-slate-500'}>{i.called ? '✓ Called' : 'Not called yet'} · <a className="underline" href={`/portal/crm?tab=people#p-${i.id}`}>log a call</a></div>{minor && <div className={i.guardian_consent ? 'text-emerald-700' : 'font-bold text-[#C8553D]'}>{i.guardian_consent ? 'Guardian consent on file' : 'No guardian consent yet'}</div>}</div>,
             i.role.replace(/_/g, ' '), i.org_name ?? 'Direct', i.nominator,
             i.status === 'nominated' ? (
               <div key="d" className="flex min-w-72 flex-col gap-2">
                 {minor && !i.guardian_consent && <form action={recordGuardianConsent}><input type="hidden" name="invitation" value={i.id} /><button className="rounded-lg border border-teal px-2 py-1 text-xs font-bold text-teal">Record guardian consent</button></form>}
-                <ApproveInvitationForm invitationId={i.id} contact={i.contact} />
+                <ApproveInvitationForm invitationId={i.id} contact={i.contact} called={i.called} />
                 <form action={decideInvitation}><input type="hidden" name="invitation" value={i.id} /><button name="decision" value="decline" className="rounded-lg border border-[#C8553D] px-3 py-1.5 text-xs font-bold text-[#C8553D]">Decline</button></form>
               </div>) : <Badge key="s" tone={statusTone(i.status)}>{i.status === 'activated' ? 'account created' : i.status}</Badge>];
         })} empty="No suggestions." />

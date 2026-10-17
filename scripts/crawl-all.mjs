@@ -4,12 +4,12 @@ const base = process.env.BASE || 'http://localhost:3100';
 const P = (n) => `00000000-0000-4000-8000-000000000${n}`;
 const roles = {
   founder: P(101), cofounder: P(102), master: P(201), tier2: P(202), tier1: P(203), tier1young: P(204),
-  zawadi: P(301), rehema: P(302), amina: P(303), salim: P(306), ke358: P(401), school: P(402),
+  trainee: P(205), zawadi: P(301), rehema: P(302), amina: P(303), salim: P(306), ke358: P(401), school: P(402),
 };
 const paths = [
   '/portal', '/portal/me', '/portal/canvas', '/portal/canvas/print', '/portal/journey', '/portal/pathway', '/portal/cohorts',
   '/portal/command', '/portal/directory', '/portal/finance', '/portal/approvals', '/portal/invite', '/portal/people', '/portal/team',
-  '/portal/qa', '/portal/requests', '/portal/audit', '/portal/partner', '/portal/partner/billing', '/portal/partner/library', '/portal/partner/request',
+  '/portal/qa', '/portal/requests', '/portal/reports', '/portal/reports?show=queue', '/portal/reports?show=mine', '/portal/crm', '/portal/crm?tab=people', '/portal/alerts', '/portal/audit', '/portal/partner', '/portal/partner/billing', '/portal/partner/library', '/portal/partner/request',
 ];
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const out = [];
@@ -51,5 +51,5 @@ for (const o of problems) console.log(JSON.stringify(o));
 const redirects = out.filter((o) => o.url !== o.p && !o.broken);
 const byRole = {};
 for (const o of redirects) (byRole[o.role] ??= []).push(`${o.p}→${o.url}`);
-for (const [r, v] of Object.entries(byRole)) console.log(`redirects ${r}: ${v.length}`);
+for (const [r, v] of Object.entries(byRole)) console.log(`redirects ${r}: ${v.length}`, ["founder","master","trainee","tier2"].includes(r) ? v.join(" ") : "");
 console.log(JSON.stringify(out.filter((o) => o.len < 400 && o.url === o.p).map((o) => `${o.role}:${o.p}:${o.len}`)));

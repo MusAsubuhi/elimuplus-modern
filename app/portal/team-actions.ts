@@ -6,6 +6,7 @@ import { asAdmin, asUser, dbMode, type Q } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { normPhone, provisionLogin, tempPin } from '@/lib/accounts';
 import { audit } from '@/lib/audit';
+import { notify } from '@/lib/mail';
 
 export type PinState = { ok?: boolean; error?: string; name?: string; phone?: string; pin?: string; message?: string } | null;
 
@@ -19,7 +20,7 @@ type RoleSpec = { role: 'founder' | 'staff' | 'facilitator' | 'participant' | 't
 function parseRole(spec: string): RoleSpec | null {
   if (spec.startsWith('facilitator:')) {
     const tier = Number(spec.split(':')[1]);
-    return tier >= 1 && tier <= 4 ? { role: 'facilitator', tier } : null;
+    return tier >= 0 && tier <= 4 ? { role: 'facilitator', tier } : null;
   }
   return ['founder', 'staff', 'participant', 'trainer_candidate', 'org_admin', 'org_viewer'].includes(spec) ? { role: spec as RoleSpec['role'], tier: null } : null;
 }
@@ -192,6 +193,7 @@ export async function suggestIndividual(f: FormData) {
        [s(f, 'note'), minor ? 'Under 18: guardian consent needed before approval' : ''].filter(Boolean).join(' | ') || null,
        s(f, 'education'), s(f, 'occupation') || null, s(f, 'county') || null, s(f, 'ward') || null]));
   } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to suggest that role.', 'err'); }
+  await notify();
   revalidatePath('/portal', 'layout');
   back(ret, 'Suggestion sent. A founder will review it.');
 }
@@ -208,6 +210,7 @@ export async function suggestOrganisation(f: FormData) {
        s(f, 'contact_person') || null, s(f, 'contact_phone') || null, s(f, 'contact_email') || null, Number(s(f, 'people')) || null,
        s(f, 'what') || null, s(f, 'why') || null, me.id]));
   } catch (e) { console.error("[portal action]", e); back('/portal/invite', 'Could not send that suggestion.', 'err'); }
+  await notify();
   revalidatePath('/portal', 'layout');
   back('/portal/invite', 'Organisation suggested. A founder will review it.');
 }
@@ -245,6 +248,10 @@ export async function approveInvitation(_prev: PinState, f: FormData): Promise<P
   if (!inv) return { error: 'Suggestion not found.' };
   if (inv.status === 'activated') return { error: 'This person already has an account.' };
   if (inv.birth_year && year() - inv.birth_year < 18 && !inv.guardian_consent) return { error: 'Guardian consent is required before approving someone under 18.' };
+  const called = (await asUser(me.id, (q) => q('select called from crm_person_status where invitation_id=$1', [id])))[0]?.called === true;
+  const override = s(f, 'override');
+  if (!called && !override) return { error: 'Call this person first and log the call in CRM (they must be reached). If a call is not possible, type the reason in the box and approve again.' };
+  if (!called) await asUser(me.id, (q) => q("insert into crm_activities(invitation_id, kind, outcome, summary, logged_by) values ($1,'note','completed',$2,$3)", [id, 'Approved without a call. Reason: ' + override, me.id]));
   const phone = normPhone(s(f, 'phone'));
   if (!phone) return { error: 'Enter the phone number they will sign in with, for example 0712 345 678.' };
   if (await phoneTaken(phone)) return { error: 'Someone with that phone number is already on the platform.' };

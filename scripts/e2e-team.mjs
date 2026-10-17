@@ -97,7 +97,10 @@ check('founder sees organisation details (ward, landmark, contact)', /Shika Adab
 await f.locator('button:has-text("Add as partner")').first().click(); await f.getByText('Organisation added as a prospect').waitFor();
 check('organisation approved as prospect', true);
 const row = f.locator('tr', { hasText: 'Mama Neema' });
-await row.locator('button:has-text("Approve and create account")').click(); await f.getByText('can now sign in').first().waitFor();
+await row.locator('button:has-text("Approve and create account")').click();
+await f.getByText('Call this person first').first().waitFor();
+check('approving without a logged call is refused', true);
+await row.locator('input[name=override]').fill('Known to the founders already'); await row.locator('button:has-text("Approve and create account")').click(); await f.getByText('can now sign in').first().waitFor();
 check('approving a person creates an account with a PIN', /0722111222/.test(await text(f)) && /temporary PIN\s*\d{6}/.test((await text(f)).replace(/\s+/g, ' ')));
 await f.goto(`${base}/portal/team`, { waitUntil: 'networkidle' });
 check('approved person now on the team list', /Mama Neema/.test(await text(f)));

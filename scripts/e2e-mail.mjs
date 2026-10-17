@@ -1,0 +1,34 @@
+// Proves founder alerts are emailed: fake Resend server, real app, real triggers. Needs a server started with RESEND_API_KEY and RESEND_API_URL.
+import http from 'node:http';
+import { chromium } from 'playwright';
+const base = process.env.BASE || 'http://localhost:3100';
+const P = (n) => `00000000-0000-4000-8000-000000000${n}`;
+const got = [];
+const srv = http.createServer((req, res) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { got.push({ auth: req.headers.authorization, body: JSON.parse(b || '{}') }); res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"id":"x"}'); }); }).listen(3199);
+const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
+let bad = 0;
+const check = (n, c, x = '') => { if (!c) bad++; console.log(`${c ? 'ok  ' : 'FAIL'} ${n}${c ? '' : '  -> ' + String(x).slice(0, 300)}`); };
+const as = async (id) => { const ctx = await browser.newContext({ viewport: { width: 1300, height: 1000 } }); await ctx.addCookies([{ name: 'elimu_demo', value: id, url: base }]); return ctx.newPage(); };
+const f = await as(P(101));
+await f.goto(base + '/portal/alerts', { waitUntil: 'networkidle' });
+await f.fill('input[name=email]', 'asubuhi@example.org'); await f.click('button:has-text("Save")'); await f.waitForTimeout(1500);
+check('no email before anything happens', got.length === 0, got.length);
+// an associate files an urgent report
+const t = await as(P(203));
+await t.goto(base + '/portal/reports', { waitUntil: 'networkidle' });
+await t.selectOption('select[name=cohort]', { index: 1 });
+await t.fill('input[name=day_number]', '1'); await t.fill('input[name=headcount]', '20');
+await t.check('input[name=plan_followed][value="Yes"]'); await t.check('input[name=canvas_progress][value="Started"]');
+await t.check('input[name=engagement][value="3"]', { force: true }); await t.check('input[name=materials_ok][value="Yes"]');
+await t.fill('textarea[name=topics]', 'Welcome'); await t.fill('textarea[name=hardest]', 'Profit');
+await t.check('input[name=concern][value^="Urgent"]'); await t.fill('textarea[name=concern_note]', 'Roof leaking on day one');
+await t.click('button:has-text("Send report")'); await t.waitForTimeout(2500);
+check('an email was sent to the founder', got.length === 1 && got[0].body.to.includes('asubuhi@example.org'), JSON.stringify(got).slice(0, 300));
+check('it carries the key and an urgent subject', got[0]?.auth === 'Bearer test-key' && /URGENT/.test(got[0]?.body.subject ?? ''), got[0]?.body.subject);
+check('it names the concern', /Roof leaking/.test(got[0]?.body.html ?? ''));
+await f.goto(base + '/portal/alerts', { waitUntil: 'networkidle' });
+const txt = await f.textContent('body');
+check('alerts show as emailed', /emailed/.test(txt) && !/waiting to be emailed/.test(txt), txt.slice(0, 400));
+check('the same alert is not sent twice', (await (async () => { await f.goto(base + '/portal/alerts'); await f.click('button:has-text("Send waiting alerts now")'); await f.waitForTimeout(1500); return got.length; })()) === 1);
+await browser.close(); srv.close();
+console.log(bad ? `\n${bad} FAILED` : '\nall ok'); process.exit(bad ? 1 : 0);

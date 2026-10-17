@@ -90,7 +90,7 @@ export function ResetPinButton({ personId }: { personId: string }) {
   );
 }
 
-export function ApproveInvitationForm({ invitationId, contact }: { invitationId: string; contact: string }) {
+export function ApproveInvitationForm({ invitationId, contact, called = true }: { invitationId: string; contact: string; called?: boolean }) {
   const [state, action, pending] = useActionState(approveInvitation, null);
   const isEmail = contact.includes('@');
   if (state?.ok) return <PinResult state={state} />;
@@ -99,6 +99,7 @@ export function ApproveInvitationForm({ invitationId, contact }: { invitationId:
       <input type="hidden" name="invitation" value={invitationId} />
       <label className="text-xs font-bold">Sign-in phone<input name="phone" required defaultValue={isEmail ? '' : contact} inputMode="tel" className={`${inputCls} w-36`} /></label>
       <label className="text-xs font-bold">Language<select name="lang" defaultValue="sw" className={`${inputCls} w-28`}><option value="sw">Kiswahili</option><option value="en">English</option></select></label>
+      {!called && <label className="w-full text-xs font-bold text-[#C8553D]">Not called yet. If you must approve without a call, say why<input name="override" className={inputCls} placeholder="Reason (it is recorded)" /></label>}
       <button disabled={pending} className={submitCls}>{pending ? '…' : 'Approve and create account'}</button>
       {state?.error && <p role="alert" className="w-full text-xs font-semibold text-red-700">{state.error}</p>}
     </form>

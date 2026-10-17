@@ -301,5 +301,11 @@
         }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/alerts",
+      "schedule": "0 3 * * *"
+    }
   ]
 }

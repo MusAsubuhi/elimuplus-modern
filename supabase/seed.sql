@@ -35,6 +35,7 @@ insert into public.people(id,full_name,display_name,phone,preferred_language,bir
  ('00000000-0000-4000-8000-000000000202','Brian Otieno (Tier 2)','Brian','+254700000202','en',2001),
  ('00000000-0000-4000-8000-000000000203','Faith Wanjiru (Tier 1)','Faith','+254700000203','en',2003),
  ('00000000-0000-4000-8000-000000000204','Kevin Mwangi (Tier 1, 16)','Kevin','+254700000204','en',2010),
+ ('00000000-0000-4000-8000-000000000205','Wanjiku Mutua (Trainee)','Wanjiku','+254700000205','en',2007),
  ('00000000-0000-4000-8000-000000000301','Zawadi (demo)','Zawadi','+254700000301','sw',1998),
  ('00000000-0000-4000-8000-000000000302','Rehema (demo)','Rehema','+254700000302','sw',1985),
  ('00000000-0000-4000-8000-000000000303','Amina (demo)','Amina','+254700000303','sw',2006),
@@ -51,6 +52,7 @@ insert into public.role_assignments(person_id,role,tier,organisation_id) values
  ('00000000-0000-4000-8000-000000000202','facilitator',2,null),
  ('00000000-0000-4000-8000-000000000203','facilitator',1,null),
  ('00000000-0000-4000-8000-000000000204','facilitator',1,null),
+ ('00000000-0000-4000-8000-000000000205','facilitator',0,null),
  ('00000000-0000-4000-8000-000000000301','participant',null,'00000000-0000-4000-8000-0000000000a2'),
  ('00000000-0000-4000-8000-000000000302','participant',null,'00000000-0000-4000-8000-0000000000a2'),
  ('00000000-0000-4000-8000-000000000303','participant',null,'00000000-0000-4000-8000-0000000000a2'),
@@ -67,7 +69,14 @@ insert into public.cohorts(id,organisation_id,name,format,language,audience,star
 insert into public.cohort_facilitators values
  ('00000000-0000-4000-8000-000000000501','00000000-0000-4000-8000-000000000202','lead'),
  ('00000000-0000-4000-8000-000000000501','00000000-0000-4000-8000-000000000203','co'),
- ('00000000-0000-4000-8000-000000000502','00000000-0000-4000-8000-000000000202','lead');
+ ('00000000-0000-4000-8000-000000000502','00000000-0000-4000-8000-000000000202','lead'),
+ ('00000000-0000-4000-8000-000000000502','00000000-0000-4000-8000-000000000205','observer');
+
+insert into public.supervision(person_id,supervisor_id) values
+ ('00000000-0000-4000-8000-000000000205','00000000-0000-4000-8000-000000000203'),
+ ('00000000-0000-4000-8000-000000000204','00000000-0000-4000-8000-000000000202'),
+ ('00000000-0000-4000-8000-000000000203','00000000-0000-4000-8000-000000000202'),
+ ('00000000-0000-4000-8000-000000000202','00000000-0000-4000-8000-000000000201');
 
 insert into public.enrolments(id,cohort_id,person_id,has_business_at_entry,track,status) values
  ('00000000-0000-4000-8000-000000000601','00000000-0000-4000-8000-000000000501','00000000-0000-4000-8000-000000000301',true,'standard','completed'),
@@ -205,3 +214,6 @@ insert into public.settings(key,value,note) values
 insert into public.invitations(full_name,contact,role,organisation_id,nominated_by,status,birth_year,guardian_consent,note) values
  ('Grace Njeri (demo)','+254700000777','participant','00000000-0000-4000-8000-0000000000a3','00000000-0000-4000-8000-000000000402','nominated',2009,false,'Under 18: guardian consent needed before approval'),
  ('Hassan Ali (demo)','+254700000778','trainer_candidate','00000000-0000-4000-8000-0000000000a4','00000000-0000-4000-8000-000000000201','nominated',2003,false,'Campus student, English');
+
+-- demo data should not raise founder alerts
+delete from public.founder_alerts;

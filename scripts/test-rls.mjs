@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -24,7 +24,7 @@ await db.exec(`
 
 const P = (n) => `00000000-0000-4000-8000-000000000${n}`;
 const who = {
-  founder: P(101), cofounder: P(102), master: P(201), tier2: P(202), tier1: P(203), tier1young: P(204),
+  founder: P(101), cofounder: P(102), master: P(201), tier2: P(202), tier1: P(203), tier1young: P(204), trainee: P(205),
   zawadi: P(301), rehema: P(302), amina: P(303), salim: P(306), ke358: P(401), school: P(402),
 };
 async function as(person, sql) {
@@ -135,6 +135,74 @@ ok('co-founder can certify the founder', (await asErr('cofounder', `insert into 
 ok('founder can enrol self in a cohort', (await asErr('founder', `insert into organisations(id,name,type,is_internal) values('00000000-0000-4000-8000-0000000000f1','Founders','other',true)`)) === null);
 ok('trainer cannot create organisations directly', (await asErr('tier1', `insert into organisations(name,type) values('Sneaky','ngo')`)) !== null);
 ok('trainer cannot create people directly', (await asErr('tier1', `insert into people(full_name) values('Sneaky')`)) !== null);
+
+// ---------- levels, supervision and day reports ----------
+const COHORT2 = P(502);
+ok('trainee is a tier 0 facilitator', (await as('founder', `select 1 from role_assignments where person_id='${who.trainee}' and role='facilitator' and tier=0`)).length === 1);
+const REPORT = (author, routed, concern = 'none', level = 0) => `insert into day_reports(author_id,cohort_id,level,routed_to,concern,answers) values('${author}','${COHORT2}',${level},'${routed}','${concern}','{"went_well":"x"}')`;
+ok('trainee can file a day report for themselves', (await asErr('trainee', REPORT(who.trainee, who.tier1))) === null);
+ok('trainee cannot file a report as someone else', (await asErr('trainee', REPORT(who.tier1, who.tier1))) !== null);
+ok('participant cannot file a day report', (await asErr('zawadi', REPORT(who.zawadi, who.tier1))) !== null);
+ok('partner admin cannot file a day report', (await asErr('ke358', REPORT(who.ke358, who.tier1))) !== null);
+ok('author reads own report', (await n('trainee', 'select 1 from day_reports')) === 1);
+ok('supervisor reads their trainee’s report', (await n('tier1', 'select 1 from day_reports')) === 1);
+ok('other trainer cannot read it', (await n('tier1young', 'select 1 from day_reports')) === 0);
+ok('master trainer reads all day reports', (await n('master', 'select 1 from day_reports')) === 1);
+ok('founder reads all day reports', (await n('founder', 'select 1 from day_reports')) === 1);
+ok('partner cannot read day reports', (await n('ke358', 'select 1 from day_reports')) === 0);
+ok('trainee cannot mark own report seen', (await as('trainee', `update day_reports set status='seen' returning id`)).length === 0);
+ok('supervisor can mark it seen', (await as('tier1', `update day_reports set status='seen', seen_by='${who.tier1}', seen_at=now() returning id`)).length === 1);
+ok('unrelated trainer cannot change reports', (await as('tier1young', `update day_reports set review_note='x' returning id`)).length === 0);
+ok('trainee cannot ask for expenses', (await asErr('trainee', `insert into expense_requests(requester_id,amount_kes,reason) values('${who.trainee}',500,'x')`)) !== null);
+ok('associate can ask for expenses linked to a cohort and purpose', (await asErr('tier1', `insert into expense_requests(requester_id,cohort_id,purpose,amount_kes,reason) values('${who.tier1}','${COHORT2}','followup_30',500,'fare')`)) === null);
+ok('purpose must be valid', (await asErr('tier1', `insert into expense_requests(requester_id,purpose,amount_kes,reason) values('${who.tier1}','holiday',500,'x')`)) !== null);
+ok('trainee cannot see who supervises others outside their line', (await n('trainee', 'select 1 from supervision')) === 1);
+ok('only staff can set supervision', (await asErr('tier1', `insert into supervision(person_id,supervisor_id) values('${who.zawadi}','${who.tier1}')`)) !== null);
+
+// ---------- CRM: calls, visits and venue checks ----------
+const GATE_ORG = P('f02');
+await db.exec(`reset role; insert into organisations(id,name,type,status) values('${GATE_ORG}','Gate Test Church','church','prospect');
+  insert into cohorts(id,organisation_id,name,format,status) values('${P('f03')}','${GATE_ORG}','Gate cohort','5-day','requested'),('${P('f04')}','${GATE_ORG}','Override cohort','5-day','requested');`);
+ok('trainer cannot read CRM notes', (await n('tier1', 'select 1 from crm_activities')) === 0);
+ok('trainer cannot log a call', (await asErr('tier1', `insert into crm_activities(organisation_id,kind,outcome,summary,logged_by) values('${GATE_ORG}','call','reached','x','${who.tier1}')`)) !== null);
+ok('participant cannot read venue checks', (await n('zawadi', 'select 1 from readiness_checks')) === 0);
+ok('everyone signed in can read the checklist template', (await n('tier1', 'select 1 from readiness_items')) >= 13);
+ok('new organisation starts as not called', (await as('founder', `select called, visited, checks_complete from crm_org_status where organisation_id='${GATE_ORG}'`))[0].called === false);
+ok('confirming is refused before any call, visit or check', (await asErr('founder', `update cohorts set status='confirmed' where id='${P('f03')}'`)) !== null);
+ok('master trainer can log a call', (await asErr('master', `insert into crm_activities(organisation_id,kind,outcome,summary,logged_by) values('${GATE_ORG}','call','reached','Spoke to the pastor','${who.master}')`)) === null);
+ok('a no-answer call does not count as called', (await asErr('master', `insert into crm_activities(organisation_id,kind,outcome,summary,logged_by) values('${P('0a1')}','call','no_answer','No answer','${who.master}')`)) === null
+  && (await as('founder', `select called from crm_org_status where organisation_id='${P('0a1')}'`))[0].called === false);
+ok('the call now shows', (await as('founder', `select called, calls from crm_org_status where organisation_id='${GATE_ORG}'`))[0].called === true);
+ok('still refused after only a call', (await asErr('founder', `update cohorts set status='confirmed' where id='${P('f03')}'`)) !== null);
+await as('master', `insert into crm_activities(organisation_id,kind,outcome,summary,logged_by) values('${GATE_ORG}','visit','completed','Walked the hall','${who.master}') returning id`);
+ok('still refused until the venue checks pass', (await asErr('founder', `update cohorts set status='confirmed' where id='${P('f03')}'`)) !== null);
+ok('master trainer can record venue checks', (await asErr('master', `insert into readiness_checks(organisation_id,item_key,status,checked_by,checked_on) select '${GATE_ORG}', key, 'ok', '${who.master}', current_date from readiness_items where required`)) === null);
+ok('required checks complete', (await as('founder', `select checks_complete from crm_org_status where organisation_id='${GATE_ORG}'`))[0].checks_complete === true);
+ok('now the cohort can be confirmed', (await asErr('founder', `update cohorts set status='confirmed' where id='${P('f03')}'`)) === null);
+ok('an issue on a required check blocks confirmation again', (await asErr('master', `update readiness_checks set status='issue', note='Roof leaks' where organisation_id='${GATE_ORG}' and item_key='room_quiet'`)) === null
+  && (await asErr('founder', `update cohorts set status='delivering' where id='${P('f04')}'`)) !== null);
+ok('a founder can override with a recorded reason', (await asErr('founder', `update cohorts set readiness_override_note='Host is a known partner, venue visited by James', status='delivering' where id='${P('f04')}'`)) === null);
+ok('trainer cannot edit checks', (await as('tier1', `update readiness_checks set status='ok' returning id`)).length === 0);
+
+// ---------- founder alerts ----------
+ok('a trainee report raised an alert', (await as('founder', `select 1 from founder_alerts where source_table='day_reports'`)).length >= 1);
+await asErr('trainee', REPORT(who.trainee, who.tier1, 'urgent'));
+ok('an urgent concern raises an urgent alert', (await as('founder', `select 1 from founder_alerts where severity='urgent' and source_table='day_reports'`)).length === 1);
+ok('an expense request raised an alert', (await as('founder', `select 1 from founder_alerts where source_table='expense_requests'`)).length >= 1);
+ok('a flagged venue issue raised an alert', (await as('founder', `select 1 from founder_alerts where source_table='readiness_checks'`)).length >= 1);
+ok('a partner can request training', (await asErr('ke358', `insert into cohorts(organisation_id,name,format,status) values('${P('0a1')}','Partner request','5-day','requested')`)) === null);
+ok('a partner training request raised an alert', (await as('founder', `select 1 from founder_alerts where source_table='cohorts' and title like 'Training requested by %'`)).length >= 1);
+ok('trainers cannot read founder alerts', (await n('tier1', 'select 1 from founder_alerts')) === 0);
+ok('master trainers cannot read founder alerts', (await n('master', 'select 1 from founder_alerts')) === 0);
+ok('trainers cannot write alerts', (await asErr('tier1', `insert into founder_alerts(kind,title) values('x','x')`)) !== null);
+const anAlert = (await as('founder', 'select id from founder_alerts limit 1'))[0].id;
+ok('founder can mark an alert read', (await asErr('founder', `insert into alert_reads(alert_id,person_id) values('${anAlert}','${who.founder}')`)) === null);
+ok('founder cannot mark read for the co-founder', (await asErr('founder', `insert into alert_reads(alert_id,person_id) values('${anAlert}','${who.cofounder}')`)) !== null);
+ok('master trainer can read organisations to do calls and visits', (await n('master', 'select 1 from organisations')) >= 3);
+ok('master trainer cannot read agreements', (await n('master', 'select 1 from agreements')) === 0);
+ok('master trainer cannot edit an organisation', (await as('master', `update organisations set name = name returning id`)).length === 0);
+ok('master trainer can log a call', (await asErr('master', `insert into crm_activities(organisation_id,kind,outcome,summary,logged_by) select id,'call','reached','test',app.me() from organisations limit 1`)) === null);
+ok('the co-founder still sees it as unread', (await as('cofounder', `select 1 from alert_reads`)).length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

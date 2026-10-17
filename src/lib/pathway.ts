@@ -1,7 +1,7 @@
 import 'server-only';
 import type { Q, Row } from './db';
 
-export const TIER_TITLES: Record<number, string> = { 1: 'Foundation Facilitator', 2: 'Programme Facilitator', 3: 'Senior Facilitator (master trainer)', 4: 'Accredited ToT Lead (master trainer)' };
+export const TIER_TITLES: Record<number, string> = { 0: 'Trainee Facilitator', 1: 'Foundation Facilitator', 2: 'Programme Facilitator', 3: 'Senior Facilitator (master trainer)', 4: 'Accredited ToT Lead (master trainer)' };
 export const MAINTENANCE_MIN: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 0 };
 
 export interface Req { label: string; have: number; need: number; unit?: string; note?: string; manual?: boolean }

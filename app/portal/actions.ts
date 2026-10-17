@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { asAdmin, asUser, dbMode } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { loginEmail } from '@/lib/accounts';
+import { notify } from '@/lib/mail';
 
 const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never =>
   redirect(`${path}${path.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}`);
@@ -109,6 +110,7 @@ export async function saveSessionLog(f: FormData) {
          hardest_concepts=excluded.hardest_concepts, went_well=excluded.went_well, to_improve=excluded.to_improve, notable_quotes=excluded.notable_quotes`,
       [session, me.id, Number(s(f, 'flow')) || null, JSON.stringify(checks), s(f, 'hardest'), s(f, 'well'), s(f, 'improve'), s(f, 'quotes')]));
   } catch (e) { console.error("[portal action]", e); back(`/portal/cohorts/${cohort}`, 'Could not save: you may not be assigned to this cohort.', 'err'); }
+  await notify();
   revalidatePath(`/portal/cohorts/${cohort}`);
   back(`/portal/cohorts/${cohort}`, 'Session note saved');
 }
@@ -147,6 +149,7 @@ export async function recordVisit(f: FormData) {
       [sched, f.get('operating') === 'on', f.get('sold14') === 'on', s(f, 'income') || null, f.get('breakeven') === 'on', f.get('metric') === 'on', Number(s(f, 'confidence')) || null, s(f, 'notes'), me.id]);
     await q("update followup_schedule set status='done', attempts=attempts+1 where id=$1", [sched]);
   });
+  await notify();
   revalidatePath('/portal', 'layout');
   back(s(f, 'back') || '/portal/cohorts', 'Visit recorded');
 }
@@ -155,12 +158,25 @@ export async function recordVisit(f: FormData) {
 export async function submitExpense(f: FormData) {
   const me = await requireMe('facilitator', 'founder');
   const amount = Number(s(f, 'amount'));
+  const purpose = ['training', 'followup_30', 'followup_60', 'followup_90', 'other'].includes(s(f, 'purpose')) ? s(f, 'purpose') : 'training';
+  const cohort = s(f, 'cohort') || null;
   if (!(amount > 0) || !s(f, 'reason')) back('/portal/requests', 'Add an amount and a reason.', 'err');
+  if (purpose !== 'other' && !cohort) back('/portal/requests', 'Choose the cohort this is for. Use "Something else" only for costs that belong to no cohort.', 'err');
   try {
-    await asUser(me.id, (q) => q(
-      'insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason) values($1,$2,$3,$4,$5)',
-      [me.id, s(f, 'cohort') || null, s(f, 'category') || null, amount, s(f, 'reason')]));
-  } catch (e) { console.error("[portal action]", e); back('/portal/requests', 'Could not submit that request.', 'err'); }
+    await asUser(me.id, async (q) => {
+      if (cohort) {
+        const c = (await q("select status from cohorts where id=$1", [cohort]))[0];
+        if (!c) throw new Error('cohort not visible');
+        if (c.status === 'closed' || c.status === 'requested' || c.status === 'quoted') throw new Error('cohort not active');
+      }
+      await q('insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason,purpose) values($1,$2,$3,$4,$5,$6)',
+        [me.id, cohort, s(f, 'category') || null, amount, s(f, 'reason'), purpose]);
+    });
+  } catch (e: any) {
+    console.error("[portal action]", e);
+    back('/portal/requests', e?.message === 'cohort not active' ? 'That cohort is not running. Requests attach to a confirmed, running or follow-up cohort.' : 'Could not submit that request.', 'err');
+  }
+  await notify();
   revalidatePath('/portal/requests');
   back('/portal/requests', 'Request submitted. A founder will review it.');
 }
@@ -207,6 +223,7 @@ export async function requestCohort(f: FormData) {
       [s(f, 'org'), s(f, 'name') || 'New cohort request', s(f, 'format') === '12-day' ? '12-day' : '5-day', s(f, 'language') === 'en' ? 'en' : 'sw',
        s(f, 'audience'), s(f, 'start') || null, s(f, 'venue'), Number(s(f, 'size')) || null]));
   } catch (e) { console.error("[portal action]", e); back('/portal/partner/request', 'Could not send the request.', 'err'); }
+  await notify();
   revalidatePath('/portal', 'layout');
   back('/portal/partner/request', 'Request sent. We will confirm details and a quote with you.');
 }
@@ -225,6 +242,7 @@ export async function nominate(f: FormData) {
       [s(f, 'name'), s(f, 'contact'), role, s(f, 'org') || null, s(f, 'cohort') || null, birth, f.get('guardian') === 'on', me.id,
        minor ? 'Under 18: guardian consent needed before approval' : s(f, 'note')]));
   } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to nominate that role.', 'err'); }
+  await notify();
   revalidatePath('/portal', 'layout');
   back(ret, 'Nomination sent for approval');
 }
