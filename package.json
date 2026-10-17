@@ -10,7 +10,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "db:test": "node scripts/test-rls.mjs",
-    "db:seed": "node scripts/seed-supabase.mjs"
+    "db:seed": "node scripts/seed-supabase.mjs",
+    "test:auth": "tsx scripts/test-auth-admin.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
