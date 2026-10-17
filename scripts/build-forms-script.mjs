@@ -1,6 +1,6 @@
 // Generates the Google Apps Script that creates one Google Form per facilitator level.
 // The questions come from src/lib/report-templates.json, the same file the portal uses, so the two never drift apart.
-// Usage: FORMS_WEBHOOK_SECRET=... PORTAL_URL=https://elimuplus.com node scripts/build-forms-script.mjs [outfile]
+// Usage: FORMS_WEBHOOK_SECRET=... PORTAL_URL=https://portal.elimuplus.com node scripts/build-forms-script.mjs [outfile]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -8,7 +8,7 @@ const tpl = JSON.parse(readFileSync(new URL('../src/lib/report-templates.json', 
 const fu = JSON.parse(readFileSync(new URL('../src/lib/followup-template.json', import.meta.url), 'utf8'));
 const out = process.argv[2] || 'forms-kit/ElimuPlusForms.gs';
 const secret = process.env.FORMS_WEBHOOK_SECRET || 'PASTE_THE_SECRET_HERE';
-const portal = process.env.PORTAL_URL || 'https://elimuplus.com';
+const portal = process.env.PORTAL_URL || 'https://portal.elimuplus.com';
 const phases = [['training', 'The training'], ['followup_30', '30-day follow-up'], ['followup_60', '60-day follow-up'], ['followup_90', '90-day follow-up'], ['other', 'Something else']];
 
 const code = `/**
