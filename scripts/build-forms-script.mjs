@@ -325,6 +325,21 @@ function recreateFollowUpForm() {
   createFollowUpForm();
 }
 
+/** The learning-check questions were changed. Run this once to close the old learning form and build the new one; past answers stay in the portal. */
+function recreateLearningForm() {
+  const props = PropertiesService.getScriptProperties();
+  const ids = JSON.parse(props.getProperty('FORM_IDS') || '{}');
+  if (ids.learning) {
+    const oldId = ids.learning;
+    const old = FormApp.openById(oldId);
+    old.setTitle('OLD ' + old.getTitle()).setAcceptingResponses(false);
+    ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getTriggerSourceId && t.getTriggerSourceId() === oldId) ScriptApp.deleteTrigger(t); });
+    delete ids.learning;
+    props.setProperty('FORM_IDS', JSON.stringify(ids));
+  }
+  createInstrumentForm_('learning');
+}
+
 /** One submitted baseline, learning check, exit form or youth visit goes to the portal as: the instrument, the chosen branch, and the answers by question text. */
 function onInstrumentSubmit_(e, key) {
   const inst = INSTRUMENTS[key];

@@ -525,7 +525,7 @@
     },
     {
      "key": "q2",
-     "label": "Which of these is a fixed cost for a small shop?",
+     "label": "Which of these is a fixed cost for a small shop (one you pay whether you sell or not)?",
      "type": "choice",
      "required": true,
      "options": [
@@ -551,16 +551,16 @@
     },
     {
      "key": "q4",
-     "label": "Money received from customers before taking away costs is called:",
+     "label": "A juice seller sells a bottle for KES 70. The fruit, bottle and ice for that one bottle cost KES 45. How much does each bottle contribute towards the rent and the profit?",
      "type": "choice",
      "required": true,
      "options": [
-      "Profit",
-      "Sales",
-      "Capital",
-      "Savings"
+      "KES 115",
+      "KES 70",
+      "KES 45",
+      "KES 25"
      ],
-     "correct": "Sales"
+     "correct": "KES 25"
     },
     {
      "key": "q5",
@@ -577,16 +577,16 @@
     },
     {
      "key": "q6",
-     "label": "A sunk cost is money:",
+     "label": "A woman buys a KES 6,000 blender once for her juice stall. If she closes the business, she cannot get that money back. This is called a:",
      "type": "choice",
      "required": true,
      "options": [
-      "Already spent that cannot be recovered",
-      "Saved for the next restock",
-      "Owed by a customer",
-      "That will be spent next month"
+      "Sunk cost",
+      "Variable cost",
+      "Sale",
+      "Saving"
      ],
-     "correct": "Already spent that cannot be recovered"
+     "correct": "Sunk cost"
     },
     {
      "key": "confidence",
