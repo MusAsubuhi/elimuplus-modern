@@ -100,7 +100,7 @@ export async function grantRole(f: FormData) {
   try {
     await asUser(me.id, (q) => q('insert into role_assignments(person_id, role, tier, organisation_id) values ($1,$2,$3,$4)',
       [s(f, 'person'), role!.role, role!.tier, role!.role === 'participant' || (role && needsOrg(role)) ? orgId : null]));
-  } catch { back('/portal/team', 'That change is not allowed. Founders cannot raise their own facilitator tier; a co-founder certifies it.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/team', 'That change is not allowed. Founders cannot raise their own facilitator tier; a co-founder certifies it.', 'err'); }
   await audit(me.id, `granted ${role!.role}${role!.tier ? ' tier ' + role!.tier : ''}`, 'role_assignments');
   revalidatePath('/portal', 'layout');
   back('/portal/team', 'Role added');
@@ -168,7 +168,7 @@ export async function startJourney(f: FormData) {
       await enrol(q, cohort.id, me.id);
       await q('insert into canvas_unlocks(cohort_id, box_number) select $1, number from canvas_boxes on conflict do nothing', [cohort.id]);
     });
-  } catch { back('/portal/journey', 'Could not start that journey.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/journey', 'Could not start that journey.', 'err'); }
   revalidatePath('/portal', 'layout');
   back('/portal/journey', kind === 'facilitator' ? 'Your facilitator pathway has started at Tier 1.' : 'Your participant journey has started. All twelve canvas boxes are open for you.');
 }
@@ -191,7 +191,7 @@ export async function suggestIndividual(f: FormData) {
       [s(f, 'name'), contact, role, s(f, 'org') || null, s(f, 'cohort') || null, birthFromAge(age), f.get('guardian') === 'on', me.id,
        [s(f, 'note'), minor ? 'Under 18: guardian consent needed before approval' : ''].filter(Boolean).join(' | ') || null,
        s(f, 'education'), s(f, 'occupation') || null, s(f, 'county') || null, s(f, 'ward') || null]));
-  } catch { back(ret, 'You are not allowed to suggest that role.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to suggest that role.', 'err'); }
   revalidatePath('/portal', 'layout');
   back(ret, 'Suggestion sent. A founder will review it.');
 }
@@ -207,7 +207,7 @@ export async function suggestOrganisation(f: FormData) {
       [s(f, 'name'), s(f, 'type') || 'other', s(f, 'parent') || null, s(f, 'county'), s(f, 'ward') || null, s(f, 'address') || null,
        s(f, 'contact_person') || null, s(f, 'contact_phone') || null, s(f, 'contact_email') || null, Number(s(f, 'people')) || null,
        s(f, 'what') || null, s(f, 'why') || null, me.id]));
-  } catch { back('/portal/invite', 'Could not send that suggestion.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/invite', 'Could not send that suggestion.', 'err'); }
   revalidatePath('/portal', 'layout');
   back('/portal/invite', 'Organisation suggested. A founder will review it.');
 }
@@ -231,7 +231,7 @@ export async function decideOrgSuggestion(f: FormData) {
       await q('update org_suggestions set status=$2, decided_by=$3, decision_note=$4, organisation_id=$5 where id=$1',
         [id, approve ? 'approved' : 'declined', me.id, s(f, 'note') || null, orgId]);
     });
-  } catch { back('/portal/people', 'That suggestion was already decided.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/people', 'That suggestion was already decided.', 'err'); }
   await audit(me.id, `${approve ? 'approved' : 'declined'} organisation suggestion`, 'org_suggestions');
   revalidatePath('/portal', 'layout');
   back('/portal/people', approve ? 'Organisation added as a prospect. Agreement defaults to aggregates only.' : 'Suggestion declined');
@@ -264,7 +264,7 @@ export async function approveInvitation(_prev: PinState, f: FormData): Promise<P
       await q("update invitations set status='activated', approved_by=$2, accepted_at=now() where id=$1", [id, me.id]);
       return p.id as string;
     });
-  } catch { return { error: 'Could not create the account. Check the details and try again.' }; }
+  } catch (e) { console.error("[portal action]", e); return { error: 'Could not create the account. Check the details and try again.' }; }
   const pin = tempPin();
   try { await provisionLogin(personId, phone, pin); }
   catch (e: any) { return { error: `${inv.full_name} was added, but the sign-in could not be created (${e.message}). Use "Reset PIN" on the Team page.` }; }

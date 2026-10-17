@@ -12,8 +12,10 @@ await db.exec(`
 for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
-  insert into auth.users select id from public.people;
-  update public.people set auth_user_id = id;
+  create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
+  insert into auth.users select aid from _auth_map;
+  update public.people p set auth_user_id = m.aid from _auth_map m where m.id = p.id;
+  drop table _auth_map;
   grant usage on schema public, app, auth to authenticated;
   grant select, insert, update, delete on all tables in schema public to authenticated;
   grant usage, select on all sequences in schema public to authenticated;
@@ -26,7 +28,9 @@ const who = {
   zawadi: P(301), rehema: P(302), amina: P(303), salim: P(306), ke358: P(401), school: P(402),
 };
 async function as(person, sql) {
-  await db.exec(`reset role; set request.jwt.sub = '${who[person]}'; set role authenticated;`);
+  // Production identifies people by their login id, which differs from the profile id.
+  const aid = (await db.query('select auth_user_id from public.people where id = $1', [who[person]])).rows[0].auth_user_id;
+  await db.exec(`reset role; set request.jwt.sub = '${aid}'; set role authenticated;`);
   try { return (await db.query(sql)).rows; } finally { await db.exec('reset role;'); }
 }
 async function asErr(person, sql) {

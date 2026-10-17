@@ -23,8 +23,9 @@ export async function provisionLogin(personId: string, phone: string, pin: strin
   const email = loginEmail(phone);
   if ((await dbMode()) === 'demo') {
     await asAdmin(async (q) => {
-      await q('insert into auth.users(id) values ($1) on conflict do nothing', [personId]);
-      await q('update people set auth_user_id=id, pin_reset_required=true where id=$1', [personId]);
+      const existing = (await q('select auth_user_id from people where id=$1', [personId]))[0]?.auth_user_id;
+      const aid = existing ?? (await q('insert into auth.users(id) values (gen_random_uuid()) returning id'))[0].id;
+      await q('update people set auth_user_id=$2, pin_reset_required=true where id=$1', [personId, aid]);
     });
     return;
   }

@@ -13,6 +13,10 @@ type Driver = {
 
 const g = globalThis as unknown as { __elimuDb?: Promise<Driver> };
 
+/** Sets the signed-in identity for row level security from a profile id (runs before switching role). */
+const AUTH_SUB =
+  "select set_config('request.jwt.claim.sub', coalesce((select auth_user_id::text from public.people where id = $1::uuid), $1::text), true)";
+
 async function makeDemo(): Promise<Driver> {
   const { PGlite } = await import('@electric-sql/pglite');
   const db = new PGlite();
@@ -31,8 +35,10 @@ async function makeDemo(): Promise<Driver> {
   await db.exec(sql('migrations/0006_team_suggestions_journey.sql'));
   await db.exec(sql('seed.sql'));
   await db.exec(`
-    insert into auth.users select id from public.people;
-    update public.people set auth_user_id = id;
+    create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
+    insert into auth.users select aid from _auth_map;
+    update public.people p set auth_user_id = m.aid from _auth_map m where m.id = p.id;
+    drop table _auth_map;
     grant usage on schema public, app, auth to authenticated;
     grant select, insert, update, delete on all tables in schema public to authenticated;
     grant usage, select on all sequences in schema public to authenticated;
@@ -44,8 +50,9 @@ async function makeDemo(): Promise<Driver> {
     async as(personId, fn) {
       return db.transaction(async (tx) => {
         if (personId) {
+          // Row level security knows people by their login id (auth.uid()), not by their profile id.
+          await tx.query(AUTH_SUB, [personId]);
           await tx.exec('set local role authenticated');
-          await tx.query("select set_config('request.jwt.claim.sub', $1, true)", [personId]);
         }
         return fn(wrap(tx));
       });
@@ -78,7 +85,7 @@ async function makePg(): Promise<Driver> {
     mode: 'pg',
     as: (personId, fn) =>
       personId
-        ? run(['set local role authenticated', "select set_config('request.jwt.claim.sub', $1, true)"], [[], [personId]], fn)
+        ? run([AUTH_SUB, 'set local role authenticated'], [[personId], []], fn)
         : run([], [], fn),
     admin: (fn) => run([], [], fn),
   };

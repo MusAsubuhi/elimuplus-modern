@@ -108,7 +108,7 @@ export async function saveSessionLog(f: FormData) {
        on conflict (session_id) do update set flow_rating=excluded.flow_rating, checks=excluded.checks,
          hardest_concepts=excluded.hardest_concepts, went_well=excluded.went_well, to_improve=excluded.to_improve, notable_quotes=excluded.notable_quotes`,
       [session, me.id, Number(s(f, 'flow')) || null, JSON.stringify(checks), s(f, 'hardest'), s(f, 'well'), s(f, 'improve'), s(f, 'quotes')]));
-  } catch { back(`/portal/cohorts/${cohort}`, 'Could not save: you may not be assigned to this cohort.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back(`/portal/cohorts/${cohort}`, 'Could not save: you may not be assigned to this cohort.', 'err'); }
   revalidatePath(`/portal/cohorts/${cohort}`);
   back(`/portal/cohorts/${cohort}`, 'Session note saved');
 }
@@ -160,7 +160,7 @@ export async function submitExpense(f: FormData) {
     await asUser(me.id, (q) => q(
       'insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason) values($1,$2,$3,$4,$5)',
       [me.id, s(f, 'cohort') || null, s(f, 'category') || null, amount, s(f, 'reason')]));
-  } catch { back('/portal/requests', 'Could not submit that request.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/requests', 'Could not submit that request.', 'err'); }
   revalidatePath('/portal/requests');
   back('/portal/requests', 'Request submitted. A founder will review it.');
 }
@@ -182,7 +182,7 @@ export async function decideExpense(f: FormData) {
       else if (decision === 'query') await q("update expense_requests set status='queried' where id=$1", [id]);
       else if (approvals[0].n >= need) await q("update expense_requests set status='approved', decided_on=current_date where id=$1", [id]);
     });
-  } catch { back('/portal/approvals', 'You cannot decide on your own request.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/approvals', 'You cannot decide on your own request.', 'err'); }
   revalidatePath('/portal', 'layout');
   back('/portal/approvals', 'Decision recorded');
 }
@@ -206,7 +206,7 @@ export async function requestCohort(f: FormData) {
        values($1,$2,$3,$4,$5,$6,$7,$8,'requested')`,
       [s(f, 'org'), s(f, 'name') || 'New cohort request', s(f, 'format') === '12-day' ? '12-day' : '5-day', s(f, 'language') === 'en' ? 'en' : 'sw',
        s(f, 'audience'), s(f, 'start') || null, s(f, 'venue'), Number(s(f, 'size')) || null]));
-  } catch { back('/portal/partner/request', 'Could not send the request.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back('/portal/partner/request', 'Could not send the request.', 'err'); }
   revalidatePath('/portal', 'layout');
   back('/portal/partner/request', 'Request sent. We will confirm details and a quote with you.');
 }
@@ -224,7 +224,7 @@ export async function nominate(f: FormData) {
        values($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [s(f, 'name'), s(f, 'contact'), role, s(f, 'org') || null, s(f, 'cohort') || null, birth, f.get('guardian') === 'on', me.id,
        minor ? 'Under 18: guardian consent needed before approval' : s(f, 'note')]));
-  } catch { back(ret, 'You are not allowed to nominate that role.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to nominate that role.', 'err'); }
   revalidatePath('/portal', 'layout');
   back(ret, 'Nomination sent for approval');
 }
@@ -259,7 +259,7 @@ export async function advanceReport(f: FormData) {
       else if (to === 'released') await q("update reports set status='released', released_by=$2, released_on=current_date where id=$1", [id, me.id]);
       else if (to === 'draft') await q("update reports set status='draft', reviewed_by=null where id=$1", [id]);
     });
-  } catch { back(s(f, 'back') || '/portal/qa', 'You cannot do that step.', 'err'); }
+  } catch (e) { console.error("[portal action]", e); back(s(f, 'back') || '/portal/qa', 'You cannot do that step.', 'err'); }
   revalidatePath('/portal', 'layout');
   back(s(f, 'back') || '/portal/qa', `Report moved to ${to}`);
 }
