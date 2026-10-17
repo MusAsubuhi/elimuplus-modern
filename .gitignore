@@ -4,3 +4,11 @@ node_modules/
 *.log
 _to_delete/
 BLOG-GUIDE.md
+
+# platform (Next.js app)
+.next/
+public/
+next-env.d.ts
+tsconfig.tsbuildinfo
+.env*.local
+shots/

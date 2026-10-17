@@ -1,4 +1,6 @@
 {
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
   "redirects": [
     {
       "source": "/index.html",

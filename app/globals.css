@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+body { font-family: Lato, system-ui, -apple-system, 'Segoe UI', sans-serif; background: #F5FAF8; color: #1B2A2A; }
+.sw { font-style: italic; color: #B88F2F; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  @page { size: A4; margin: 12mm; }
+  .print-page { break-after: page; }
+}
