@@ -107,9 +107,13 @@ create or replace function app.report_released_to_me(org uuid, t text, st text) 
     and exists (select 1 from public.agreements a where a.organisation_id = org and t = any(a.released_report_types))
 $$;
 
--- enable RLS everywhere
+-- enable RLS on the Elimu+ tables only (explicit list: other apps may share this Supabase project)
 do $$ declare t text; begin
-  for t in select tablename from pg_tables where schemaname='public' loop
+  foreach t in array array['agreements','attendance','audit_log','canvas_answers','canvas_boxes','canvas_comments','canvas_unlocks','canvases','certifications',
+    'cohort_facilitators','cohorts','directory_listings','documents','enrolments','expense_approvals','expense_categories','expense_requests',
+    'followup_schedule','followup_visits','invitations','invoices','organisations','payments','people','qa_visits','quote_lines','quotes','reports',
+    'role_assignments','session_logs','sessions','settings','support_ledger','trainer_payments','welfare_flags']
+  loop
     execute format('alter table public.%I enable row level security', t);
   end loop;
 end $$;

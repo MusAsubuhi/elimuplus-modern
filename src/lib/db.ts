@@ -27,6 +27,8 @@ async function makeDemo(): Promise<Driver> {
   await db.exec(sql('migrations/0001_schema.sql'));
   await db.exec(sql('migrations/0002_rls.sql'));
   await db.exec(sql('migrations/0003_partner_aggregates.sql'));
+  await db.exec(sql('migrations/0004_function_search_path.sql'));
+  await db.exec(sql('migrations/0006_team_suggestions_journey.sql'));
   await db.exec(sql('seed.sql'));
   await db.exec(`
     insert into auth.users select id from public.people;

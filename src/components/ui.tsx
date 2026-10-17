@@ -40,7 +40,7 @@ export function Badge({ children, tone = 'grey' }: { children: ReactNode; tone?:
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONES[tone] ?? TONES.grey}`}>{children}</span>;
 }
 export const statusTone = (s: string) =>
-  ({ done: 'green', paid: 'green', released: 'green', approved: 'green', active: 'green', completed: 'green', listed: 'green', pass: 'green',
+  ({ done: 'green', paid: 'green', released: 'green', approved: 'green', active: 'green', completed: 'green', listed: 'green', pass: 'green', activated: 'green', nominated: 'gold', suggested: 'gold',
      scheduled: 'blue', submitted: 'gold', draft: 'grey', reviewed: 'blue', part_paid: 'gold', issued: 'gold', queried: 'gold', conditional: 'gold', enrolled: 'blue',
      missed: 'red', unreachable: 'red', declined: 'red', overdue: 'red', dropped: 'red', concern: 'red', open: 'red' } as Record<string, string>)[s] ?? 'grey';
 

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getLang, requireMe, type Role } from '@/lib/session';
 import { asAdmin } from '@/lib/db';
 import { logout, setLang, demoLogin } from '../actions';
@@ -14,10 +15,11 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
   facilitator: { title: 'Facilitator', items: [
     { href: '/portal/cohorts', label: 'My cohorts', icon: '◧' },
     { href: '/portal/requests', label: 'My requests', icon: '₭' },
-    { href: '/portal/pathway', label: 'My pathway', icon: '△' }] },
+    { href: '/portal/pathway', label: 'My pathway', icon: '△' },
+    { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer (Tier 3/4)', items: [
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
-    { href: '/portal/invite', label: 'Nominate trainers', icon: '+' }] },
+    { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   org_admin: { title: 'Partner', items: [
     { href: '/portal/partner', label: 'Overview', icon: '◉' },
     { href: '/portal/partner/request', label: 'Request training', icon: '✎' },
@@ -27,16 +29,19 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/command', label: 'Command view', icon: '★' },
     { href: '/portal/finance', label: 'Finance', icon: '₭' },
     { href: '/portal/approvals', label: 'Approvals', icon: '✔' },
-    { href: '/portal/people', label: 'People and partners', icon: '☰' },
+    { href: '/portal/team', label: 'Team and people', icon: '☺' },
+    { href: '/portal/people', label: 'Suggestions and partners', icon: '☰' },
+    { href: '/portal/journey', label: 'My journeys', icon: '➜' },
     { href: '/portal/audit', label: 'Audit log', icon: '⌕' }] },
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const me = await requireMe();
+  if (me.mustChangePin) redirect('/portal/set-pin');
   const lang = await getLang(me);
   const personas = me.demo ? await asAdmin((q) => q(`select p.id, p.display_name, (select string_agg(distinct role || coalesce(tier::text,''),'/') from role_assignments where person_id=p.id) r from people p order by p.full_name`)) : [];
   // founders and master trainers also see the facilitator and QA areas
-  const groups: Role[] = me.roles.includes('founder') ? ['founder', 'master', 'facilitator'] : me.roles;
+  const groups: Role[] = me.roles.includes('founder') ? ['founder', 'master', 'facilitator', ...(me.roles.includes('participant') ? (['participant'] as Role[]) : [])] : me.roles;
   const seen = new Set<string>();
   return (
     <div className="min-h-screen md:flex">

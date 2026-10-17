@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   insert into auth.users select id from public.people;
@@ -108,6 +108,29 @@ ok('founder cannot approve own request', (await asErr('founder', `insert into ex
 ok('founder can release a report', (await asErr('founder', `update reports set status='released' where id='${P('e02')}'`)) === null);
 ok('founder reads audit log', (await asErr('founder', 'select 1 from audit_log')) === null);
 ok('non-founder cannot read audit log', (await n('master', 'select 1 from audit_log')) === 0);
+
+// suggestions: trainers suggest organisations; founders decide
+const NEWORG = `insert into org_suggestions(name,type,county,suggested_by) values('Test Youth Group','ngo','Mombasa','%ID%')`;
+ok('tier1 trainer can suggest an organisation', (await asErr('tier1', NEWORG.replace('%ID%', who.tier1))) === null);
+ok('master trainer can suggest an organisation', (await asErr('master', NEWORG.replace('%ID%', who.master))) === null);
+ok('participant cannot suggest an organisation', (await asErr('zawadi', NEWORG.replace('%ID%', who.zawadi))) !== null);
+ok('partner admin cannot suggest an organisation', (await asErr('ke358', NEWORG.replace('%ID%', who.ke358))) !== null);
+ok('trainer cannot suggest on behalf of someone else', (await asErr('tier1', NEWORG.replace('%ID%', who.tier2))) !== null);
+ok('trainer sees only own suggestions', (await n('tier1', 'select 1 from org_suggestions')) === 1);
+ok('founder sees all suggestions', (await n('founder', 'select 1 from org_suggestions')) === 2);
+ok('trainer cannot approve a suggestion', (await asErr('tier1', `update org_suggestions set status='approved'`)) === null && (await as('founder', `select 1 from org_suggestions where status='approved'`)).length === 0);
+ok('founder can approve a suggestion', (await asErr('founder', `update org_suggestions set status='approved', decided_by='${who.founder}'`)) === null);
+ok('trainer can suggest an individual with education and location', (await asErr('tier1', `insert into invitations(full_name,contact,role,birth_year,education_level,occupation,county,ward,nominated_by) values('Z','+254','participant',2000,'secondary','Hawker','Mombasa','Likoni','${who.tier1}')`)) === null);
+
+// founders go through the journey but cannot certify or promote themselves
+ok('founder can start own facilitator pathway at Tier 1', (await asErr('founder', `insert into role_assignments(person_id,role,tier) values('${who.founder}','facilitator',1)`)) === null);
+ok('founder cannot give self Tier 3', (await asErr('founder', `insert into role_assignments(person_id,role,tier) values('${who.founder}','facilitator',3)`)) !== null);
+ok('founder cannot raise own tier by update', (await asErr('founder', `update role_assignments set tier=3 where person_id='${who.founder}' and role='facilitator'`)) !== null);
+ok('founder cannot issue own certificate', (await asErr('founder', `insert into certifications(person_id,tier,number,issued_on) values('${who.founder}',1,'EL-TEST-SELF',current_date)`)) !== null);
+ok('co-founder can certify the founder', (await asErr('cofounder', `insert into certifications(person_id,tier,number,issued_on) values('${who.founder}',1,'EL-TEST-OTHER',current_date)`)) === null);
+ok('founder can enrol self in a cohort', (await asErr('founder', `insert into organisations(id,name,type,is_internal) values('00000000-0000-4000-8000-0000000000f1','Founders','other',true)`)) === null);
+ok('trainer cannot create organisations directly', (await asErr('tier1', `insert into organisations(name,type) values('Sneaky','ngo')`)) !== null);
+ok('trainer cannot create people directly', (await asErr('tier1', `insert into people(full_name) values('Sneaky')`)) !== null);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

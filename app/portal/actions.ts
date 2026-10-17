@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { asAdmin, asUser, dbMode } from '@/lib/db';
 import { requireMe } from '@/lib/session';
+import { loginEmail } from '@/lib/accounts';
 
 const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never =>
   redirect(`${path}${path.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}`);
@@ -25,8 +26,7 @@ export async function passwordLogin(f: FormData) {
     cookies: { getAll: () => jar.getAll(), setAll: (cs) => cs.forEach((c) => jar.set(c.name, c.value, c.options)) },
   });
   // Phone + PIN accounts use a synthetic email so people without email can sign in.
-  const phone = s(f, 'phone').replace(/\D/g, '');
-  const email = s(f, 'email') || `${phone}@phone.elimuplus.app`;
+  const email = s(f, 'email') || loginEmail(s(f, 'phone'));
   const { error } = await sb.auth.signInWithPassword({ email, password: s(f, 'pin') });
   if (error) back('/portal/login', 'Sign-in failed. Check your number and PIN.', 'err');
   redirect('/portal');

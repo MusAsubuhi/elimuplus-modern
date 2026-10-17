@@ -16,6 +16,7 @@ export interface Me {
   primary: Role;
   tier: number;
   orgIds: string[];
+  mustChangePin: boolean;
   demo: boolean;
 }
 
@@ -62,6 +63,7 @@ export async function getMe(): Promise<Me | null> {
     language: p.preferred_language, birthYear: p.birth_year,
     roles: list, primary: list[0] ?? 'participant', tier,
     orgIds: ra.filter((r) => r.organisation_id).map((r) => r.organisation_id),
+    mustChangePin: !!p.pin_reset_required,
     demo: (await dbMode()) === 'demo',
   };
 }

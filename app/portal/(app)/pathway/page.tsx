@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { facilitatorStats, maintenance, nextTierRequirements, TIER_TITLES, type Req } from '@/lib/pathway';
@@ -25,17 +26,36 @@ function ReqList({ reqs }: { reqs: Req[] }) {
   );
 }
 
-export default async function Pathway() {
-  const me = await requireMe('facilitator');
-  const s = await asUser(me.id, (q) => facilitatorStats(q, me.id));
-  const tier = s.cert?.tier ?? me.tier;
+export default async function Pathway({ searchParams }: { searchParams: Promise<{ person?: string }> }) {
+  const me = await requireMe('facilitator', 'founder');
+  const { person } = await searchParams;
+  // founders can review another trainer's pathway before issuing a certificate
+  const target = me.roles.includes('founder') && person && person !== me.id ? person : me.id;
+  const own = target === me.id;
+  const { s, who, roleTier } = await asUser(me.id, async (q) => ({
+    s: await facilitatorStats(q, target),
+    who: (await q('select full_name, birth_year from people where id=$1', [target]))[0],
+    roleTier: Number((await q("select coalesce(max(tier),0) t from role_assignments where person_id=$1 and role='facilitator' and status='active'", [target]))[0]?.t ?? 0),
+  }));
+  const tier = s.cert?.tier ?? roleTier;
+  if (!who || tier === 0) {
+    return (
+      <>
+        <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who?.full_name ?? 'Trainer'}’s pathway`} subtitle="From Foundation Facilitator to Accredited ToT Lead." />
+        <Card title={own ? 'You are not on the facilitator pathway yet' : 'This person is not on the facilitator pathway'}>
+          <p className="text-sm text-slate-700">{own ? 'Founders go through the pathway like every trainer. Start at Tier 1 and your co-founder certifies each step.' : 'They hold no facilitator role. Give them one from the Team page.'}</p>
+          <Link href={own ? '/portal/journey' : '/portal/team'} className="mt-3 inline-block rounded-lg bg-teal px-4 py-2 text-sm font-bold text-white">{own ? 'Start my facilitator pathway' : 'Open the Team page'}</Link>
+        </Card>
+      </>
+    );
+  }
   const next = nextTierRequirements(tier, s);
   const maint = maintenance(tier, s);
   const ladder = [1, 2, 3, 4].map((t) => ({ tier: `Tier ${t}`, you: t <= tier ? 1 : 0, ahead: t > tier ? 1 : 0 }));
-  const young = me.birthYear && new Date().getFullYear() - me.birthYear < 18;
+  const young = who.birth_year && new Date().getFullYear() - who.birth_year < 18;
   return (
     <>
-      <PageHeader image="/images/trainer-hero.jpg" title="My pathway" subtitle="From Foundation Facilitator to Accredited ToT Lead: what you hold, what you need next, and what keeps you certified." />
+      <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who.full_name}’s pathway`} subtitle="From Foundation Facilitator to Accredited ToT Lead: what is held, what is needed next, and what keeps a trainer certified." />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Current tier" value={`Tier ${tier}`} sub={TIER_TITLES[tier]} />
         <Stat tone="gold" label="Certificate" value={s.cert?.number ?? '—'} sub={s.cert ? `Issued ${d(s.cert.issued_on)}` : undefined} />

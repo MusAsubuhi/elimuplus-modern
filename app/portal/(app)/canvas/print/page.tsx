@@ -6,7 +6,7 @@ import PrintButton from '@/components/print-button';
 
 // Two-page A4 bilingual SEE Canvas. Page 1: boxes 1-7. Page 2: boxes 8-12 plus a footer.
 export default async function PrintCanvas() {
-  const me = await requireMe('participant');
+  const me = await requireMe('participant', 'founder');
   const lang = await getLang(me);
   const ctx = await asUser(me.id, (q) => participantContext(q, me.id));
   if (!ctx) return null;

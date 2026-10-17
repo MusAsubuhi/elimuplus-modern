@@ -24,7 +24,7 @@ export default async function Command() {
     byCat: await q(`select coalesce(k.name,'Other') name, sum(coalesce(r.paid_amount_kes,r.amount_kes))::int value from expense_requests r left join expense_categories k on k.id=r.category_id where r.status in ('paid','reconciled') group by 1 order by 2 desc`),
     byOrg: await q(`select o.name, coalesce(sum(p.amount_kes),0)::int value from organisations o join invoices i on i.organisation_id=o.id join payments p on p.invoice_id=i.id group by o.name having sum(p.amount_kes)>0`),
     follow: await q(`select s.visit, s.status, s.due_date, v.sold_within_14_days sold from followup_schedule s left join followup_visits v on v.schedule_id=s.id`),
-    cohorts: await q(`select c.name, c.status, (select count(*) from enrolments e where e.cohort_id=c.id)::int enrolled, (select count(*) from enrolments e where e.cohort_id=c.id and e.status='completed')::int completed from cohorts c order by c.start_date`),
+    cohorts: await q(`select c.name, c.status, (select count(*) from enrolments e where e.cohort_id=c.id)::int enrolled, (select count(*) from enrolments e where e.cohort_id=c.id and e.status='completed')::int completed from cohorts c join organisations o on o.id=c.organisation_id where not o.is_internal order by c.start_date`),
     pendingExp: await q(`select count(*)::int n, coalesce(sum(amount_kes),0)::int amt from expense_requests where status in ('submitted','queried')`),
     drafts: await q(`select count(*)::int n from reports where status <> 'released'`),
     noms: await q(`select count(*)::int n from invitations where status='nominated'`),
