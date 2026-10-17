@@ -9,13 +9,13 @@ const chain = (o) => new Proxy(o, { get: (t, k) => (k in t ? t[k] : (...a) => { 
 let p;
 const mkItem = (type) => { const it = { type }; p = chain(it); return p; };
 const FormApp = {
-  ItemType: { LIST: 'LIST' }, DestinationType: { SPREADSHEET: 'S' },
+  ItemType: { LIST: 'LIST' }, PageNavigationType: { SUBMIT: 'SUBMIT', CONTINUE: 'CONTINUE' }, DestinationType: { SPREADSHEET: 'S' },
   create(title) { const id = 'form' + ++n; const items = []; const f = { id, title, items,
     getId: () => id, getPublishedUrl: () => 'https://forms/' + id, getEditUrl: () => 'https://edit/' + id,
     setDescription() { return f; }, setCollectEmail() { return f; }, setProgressBar() { return f; }, setAllowResponseEdits() { return f; }, setShowLinkToRespondAgain() { return f; }, setConfirmationMessage() { return f; },
     setDestination() {}, getItems: () => items.filter((i) => i.type === 'LIST').map((i) => ({ asListItem: () => i })),
   };
-  for (const [m, t] of [['addListItem', 'LIST'], ['addTextItem', 'TEXT'], ['addParagraphTextItem', 'PARA'], ['addMultipleChoiceItem', 'CHOICE'], ['addScaleItem', 'SCALE']]) f[m] = () => { const it = { type: t, getTitle: () => it.title, setChoiceValues(v) { it.choices = v; return it; }, setTitle(x) { it.title = x; return it; }, setRequired(x) { it.required = x; return it; }, setHelpText() { return it; }, setValidation() { return it; }, setBounds() { return it; }, setLabels() { return it; } }; items.push(it); return it; };
+  for (const [m, t] of [['addListItem', 'LIST'], ['addTextItem', 'TEXT'], ['addParagraphTextItem', 'PARA'], ['addMultipleChoiceItem', 'CHOICE'], ['addScaleItem', 'SCALE'], ['addCheckboxItem', 'CHECKBOX'], ['addDateItem', 'DATE'], ['addPageBreakItem', 'PAGE']]) f[m] = () => { const it = { type: t, getTitle: () => it.title, setChoiceValues(v) { it.choices = v; return it; }, setTitle(x) { it.title = x; return it; }, setRequired(x) { it.required = x; return it; }, setHelpText() { return it; }, setValidation() { return it; }, setBounds() { return it; }, setLabels() { return it; }, setGoToPage() { return it; }, setChoices(c) { it.choices = c; return it; }, createChoice(l) { return l; }, setPoints() { return it; }, setRequired2() { return it; } }; items.push(it); return it; };
   forms[id] = f; return f; },
   openById: (id) => forms[id], createTextValidation: () => ({ requireNumber: () => ({ build: () => ({}) }) }),
 };
@@ -24,7 +24,7 @@ const ctx = {
   Session: { getEffectiveUser: () => ({ getEmail: () => 'owner@x.org' }) },
   SpreadsheetApp: { create: () => ({ getId: () => 's1', getUrl: () => 'https://sheet' }) },
   PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => store[k] ?? null, setProperty: (k, v) => (store[k] = v), getProperties: () => ({ ...store }), deleteProperty: (k) => delete store[k] }) },
-  ScriptApp: { newTrigger: (fn) => { const t = { fn }; const b = { forForm: () => b, onFormSubmit: () => b, timeBased: () => b, everyDays: () => b, everyHours: () => b, atHour: () => b, create: () => triggers.push(fn) }; return b; }, getProjectTriggers: () => [] },
+  ScriptApp: { newTrigger: (fn) => { const t = { fn }; const b = { forForm: () => b, onFormSubmit: () => b, timeBased: () => b, everyDays: () => b, everyHours: () => b, everyMinutes: () => b, everyWeeks: () => b, onWeekDay: () => b, nearMinute: () => b, atHour: () => b, create: () => triggers.push(fn) }; return b; }, getProjectTriggers: () => [] },
   UrlFetchApp: { fetch: (url, o = {}) => { const done = (code, text) => ({ getResponseCode: () => code, getContentText: () => text }); return { __sync: true, url, o, done }; } },
 };
 // UrlFetchApp is synchronous in Apps Script; emulate with a pre-fetched answer table.
@@ -59,8 +59,25 @@ vm.runInContext('onFormSubmit(__e)', ctx);
 check('the script posts a payload with level, respondent and answers', lastPayload && lastPayload.level === 0 && lastPayload.respondent_name === 'Wanjiku Mutua' && lastPayload.answers['Which training day was this?'] === '4', JSON.stringify(lastPayload));
 check('the chosen leader is emailed the report', lists.leaders.length === 0 || (mails.length === 1 && /Wanjiku/.test(mails[0].subject)), JSON.stringify(mails));
 
+const reportPayload = lastPayload;
+// ---- the baseline, learning, exit and youth follow-up forms
+const before = Object.keys(forms).length;
+vm.runInContext('createAllInstruments()', ctx);
+check('four more forms are created for the baseline, learning check, exit and youth follow-up', Object.keys(forms).length - before === 4, Object.keys(forms).length - before);
+const ids2 = JSON.parse(store.FORM_IDS);
+check('their ids are remembered', ['baseline', 'learning', 'exit', 'youth_followup'].every((k) => ids2[k]), JSON.stringify(ids2));
+check('the baseline asks which group the participant is in', forms[ids2.baseline].items.some((i) => i.title === 'Which group is this participant in?'));
+check('the learning check does not ask for an officer', !forms[ids2.learning].items.some((i) => i.title === 'Your full name'));
+const ir2 = (title, resp) => ({ getItem: () => ({ getTitle: () => title }), getResponse: () => resp });
+ctx.__b = { source: forms[ids2.learning], response: { getId: () => 'gform-learn-1', getItemResponses: () => [
+  ir2('Participant name', 'Zawadi Demo'), ir2('Participant phone number', '0700 000 301'), ir2('Which cohort is this about', cohort),
+  ir2('When is this check being taken?', 'Start of the programme'),
+] } };
+vm.runInContext('onFormSubmit(__b)', ctx);
+check('submitting the learning check posts an instrument payload', lastPayload && lastPayload.kind === 'instrument' && lastPayload.instrument === 'learning', JSON.stringify(lastPayload));
+
 // and the real webhook understands it
-const r = await fetch(base + '/api/forms/report', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forms-secret': SECRET }, body: JSON.stringify(lastPayload) });
+const r = await fetch(base + '/api/forms/report', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forms-secret': SECRET }, body: JSON.stringify(reportPayload) });
 const j = await r.json();
 check('the portal accepts it and matches the person and the cohort', r.status === 200 && j.ok && j.matchedPerson && j.matchedCohort, JSON.stringify(j));
 console.log(bad ? `\n${bad} FAILED` : '\nall ok'); process.exit(bad ? 1 : 0);

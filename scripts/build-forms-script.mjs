@@ -6,6 +6,7 @@ import path from 'node:path';
 
 const tpl = JSON.parse(readFileSync(new URL('../src/lib/report-templates.json', import.meta.url), 'utf8'));
 const fu = JSON.parse(readFileSync(new URL('../src/lib/followup-template.json', import.meta.url), 'utf8'));
+const ins = JSON.parse(readFileSync(new URL('../src/lib/instruments.json', import.meta.url), 'utf8'));
 const out = process.argv[2] || 'forms-kit/ElimuPlusForms.gs';
 const secret = process.env.FORMS_WEBHOOK_SECRET || 'PASTE_THE_SECRET_HERE';
 const portal = process.env.PORTAL_URL || 'https://portal.elimuplus.com';
@@ -27,6 +28,7 @@ const WEBHOOK_SECRET = ${JSON.stringify(secret)};
 const TEMPLATES = ${JSON.stringify(tpl.levels)};
 const PHASES = ${JSON.stringify(phases)};
 const FOLLOWUP = ${JSON.stringify(fu)};
+const INSTRUMENTS = ${JSON.stringify(ins.instruments)};
 
 const ROUTE_Q = 'Send this report to';
 const NAME_Q = 'Your full name';
@@ -130,6 +132,7 @@ function onFormSubmit(e) {
   const form = e.source;
   const level = levelOf_(form.getId());
   if (level === 'followup') return onFollowUpSubmit_(e);
+  if (INSTRUMENTS[level]) return onInstrumentSubmit_(e, level);
   if (level === 'register') return onRegisterSubmit_(e);
   const t = TEMPLATES[level];
   const answers = {};
@@ -248,6 +251,98 @@ function onFollowUpSubmit_(e) {
         'Everything she and the officer answered is in the portal under the cohort: ' + PORTAL_URL + '/portal/cohorts'].join('\\n')
     });
   }
+}
+
+/* ---------- Day 0 baseline, learning check, exit feedback and youth follow-up ---------- */
+/** Creates one form from the definition in INSTRUMENTS: who it is about, the questions, and (when there is a branch) the pages each choice leads to. */
+function createInstrumentForm_(key) {
+  const props = PropertiesService.getScriptProperties();
+  const ids = JSON.parse(props.getProperty('FORM_IDS') || '{}');
+  const inst = INSTRUMENTS[key];
+  if (ids[key]) { Logger.log(inst.title + ' already created: ' + FormApp.openById(ids[key]).getPublishedUrl()); return ''; }
+  const lists = fetchLists_();
+  const form = FormApp.create(inst.title);
+  form.setDescription(inst.description);
+  form.setCollectEmail(false).setProgressBar(true).setAllowResponseEdits(false).setShowLinkToRespondAgain(true);
+  form.setConfirmationMessage('Thank you. Your answers have been recorded.');
+  if (!inst.self) {
+    form.addTextItem().setTitle(NAME_Q).setHelpText('The officer or facilitator filling this in.').setRequired(true);
+    form.addTextItem().setTitle(PHONE_Q).setRequired(true);
+  }
+  form.addListItem().setTitle(COHORT_Q).setChoiceValues(cohortLabels_(lists)).setRequired(true);
+  form.addTextItem().setTitle(P_NAME_Q).setHelpText(inst.self ? 'Your full name.' : 'Full name, as registered.').setRequired(true);
+  form.addTextItem().setTitle(P_PHONE_Q).setHelpText('The number registered in Elimu+, so this links to the right record.').setRequired(true);
+  inst.common.forEach(function (f) { addQuestion_(form, f); });
+  if (inst.branch) {
+    const choice = form.addMultipleChoiceItem().setTitle(inst.branch.label).setRequired(true);
+    const firstPage = {};
+    inst.branch.options.forEach(function (opt) {
+      var last;
+      opt.sections.forEach(function (sec, i) {
+        const pb = form.addPageBreakItem().setTitle(sec.title);
+        if (sec.help) pb.setHelpText(sec.help);
+        if (i === 0) firstPage[opt.value] = pb;
+        last = pb;
+        sec.fields.forEach(function (f) { addQuestion_(form, f); });
+      });
+      last.setGoToPage(FormApp.PageNavigationType.SUBMIT);
+    });
+    choice.setChoices(inst.branch.options.map(function (opt) { return choice.createChoice(opt.label, firstPage[opt.value]); }));
+  }
+  const sheet = SpreadsheetApp.create(inst.title + ' (responses)');
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, sheet.getId());
+  ScriptApp.newTrigger('onFormSubmit').forForm(form).onFormSubmit().create();
+  ids[key] = form.getId();
+  props.setProperty('FORM_IDS', JSON.stringify(ids));
+  installTimers_();
+  const msg = inst.title.toUpperCase() + ' READY\\n' + form.getPublishedUrl() + '\\n(edit: ' + form.getEditUrl() + ')\\nresponses: ' + sheet.getUrl();
+  Logger.log(msg);
+  return msg;
+}
+
+/** Run once: creates the Day 0 baseline, learning check, exit feedback and youth follow-up forms and emails the links. */
+function createAllInstruments() {
+  const made = Object.keys(INSTRUMENTS).map(createInstrumentForm_).filter(function (m) { return m; });
+  if (made.length) MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Elimu+ baseline, learning, exit and youth forms are ready', made.join('\\n\\n'));
+}
+function createBaselineForm() { createInstrumentForm_('baseline'); }
+function createLearningForm() { createInstrumentForm_('learning'); }
+function createExitForm() { createInstrumentForm_('exit'); }
+function createYouthFollowUpForm() { createInstrumentForm_('youth_followup'); }
+
+/** The adult follow-up gained questions (sold in 14 days, break-even, records and more). Run this once to replace the old form with the new one; old responses stay in the portal. */
+function recreateFollowUpForm() {
+  const props = PropertiesService.getScriptProperties();
+  const ids = JSON.parse(props.getProperty('FORM_IDS') || '{}');
+  if (ids.followup) {
+    const oldId = ids.followup;
+    const old = FormApp.openById(oldId);
+    old.setTitle('OLD ' + old.getTitle()).setAcceptingResponses(false);
+    ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getTriggerSourceId && t.getTriggerSourceId() === oldId) ScriptApp.deleteTrigger(t); });
+    delete ids.followup;
+    props.setProperty('FORM_IDS', JSON.stringify(ids));
+  }
+  createFollowUpForm();
+}
+
+/** One submitted baseline, learning check, exit form or youth visit goes to the portal as: the instrument, the chosen branch, and the answers by question text. */
+function onInstrumentSubmit_(e, key) {
+  const inst = INSTRUMENTS[key];
+  const answers = {};
+  var officer = '', ophone = '', cohort = '', pname = '', pphone = '', branch = '';
+  e.response.getItemResponses().forEach(function (ir) {
+    const title = ir.getItem().getTitle();
+    const v = Array.isArray(ir.getResponse()) ? ir.getResponse().join(', ') : String(ir.getResponse());
+    if (title === NAME_Q) officer = v;
+    else if (title === PHONE_Q) ophone = v;
+    else if (title === COHORT_Q) cohort = v;
+    else if (title === P_NAME_Q) pname = v;
+    else if (title === P_PHONE_Q) pphone = v;
+    else if (inst.branch && title === inst.branch.label) branch = v;
+    else answers[title] = v;
+  });
+  postRoster_({ kind: 'instrument', instrument: key, branch: branch, response_id: e.response.getId(), officer_name: officer, officer_phone: ophone,
+    participant_name: pname, participant_phone: pphone, cohort: cohort, answers: answers }, inst.title + ' for ' + pname);
 }
 
 /* ---------- cohort roster, attendance and two-observer notes ---------- */
@@ -588,7 +683,7 @@ function levelOf_(formId) {
 function concernLabel_(t) { return t.fields.filter(function (f) { return f.key === 'concern'; })[0].label; }
 
 function postJson_(payload) {
-  const path = payload.kind === 'followup' ? '/api/forms/followup' : (payload.kind === 'register' || payload.kind === 'attendance') ? '/api/forms/roster' : '/api/forms/report';
+  const path = payload.kind === 'followup' ? '/api/forms/followup' : payload.kind === 'instrument' ? '/api/forms/instrument' : (payload.kind === 'register' || payload.kind === 'attendance') ? '/api/forms/roster' : '/api/forms/report';
   try {
     const r = UrlFetchApp.fetch(PORTAL_URL + path, { method: 'post', contentType: 'application/json', headers: { 'x-forms-secret': WEBHOOK_SECRET }, payload: JSON.stringify(payload), muteHttpExceptions: true });
     if (r.getResponseCode() !== 200) return null;
@@ -602,7 +697,7 @@ function retryFailed() {
   const props = PropertiesService.getScriptProperties();
   const all = props.getProperties();
   Object.keys(all).filter(function (k) { return k.indexOf('F_') === 0; }).forEach(function (k) {
-    if (post_(JSON.parse(all[k]))) props.deleteProperty(k);
+    try { if (post_(JSON.parse(all[k]))) props.deleteProperty(k); } catch (err) { Logger.log('Skipped an unreadable queued report ' + k + ': ' + err); }
   });
 }
 `;

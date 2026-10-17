@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "identity": [
   {
    "key": "business_type",
@@ -120,6 +120,17 @@
      "type": "number"
     },
     {
+     "key": "a1_sold14",
+     "label": "Made at least one sale in the last 14 days?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ],
+     "required": true,
+     "help": "This is the main survival measure. Ask what she sold and when."
+    },
+    {
      "key": "a1_closed_why",
      "label": "If closed: since when and why?",
      "type": "longtext"
@@ -228,6 +239,16 @@
      ]
     },
     {
+     "key": "a4_knows_breakeven",
+     "label": "Can she say how much she must sell to cover her costs (break-even)?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Roughly",
+      "No"
+     ]
+    },
+    {
      "key": "a4_compare",
      "label": "Compared with before the training, takings are",
      "type": "choice",
@@ -276,6 +297,34 @@
     {
      "key": "a5_records_seen",
      "label": "Notebook or M-Pesa messages seen?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_separate",
+     "label": "Keeps business money separate from home money?",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "a5_key_number",
+     "label": "Follows one key number each week (sales, profit or stock)?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_used_calc",
+     "label": "In the last month, did she use a calculation to decide something (price, restock, spending)?",
      "type": "choice",
      "options": [
       "Yes",
@@ -342,6 +391,15 @@
       "Licence or permit",
       "Other"
      ]
+    },
+    {
+     "key": "a7_confidence",
+     "label": "How confident is she about running the business now? (1 = not at all, 5 = very)",
+     "type": "scale",
+     "min": 1,
+     "max": 5,
+     "minLabel": "Not at all",
+     "maxLabel": "Very"
     }
    ],
    "c": [
@@ -570,6 +628,17 @@
      "type": "number"
     },
     {
+     "key": "a1_sold14",
+     "label": "Made at least one sale in the last 14 days?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ],
+     "required": true,
+     "help": "This is the main survival measure. Ask what she sold and when."
+    },
+    {
      "key": "a1_closed_why",
      "label": "If closed: since when and why?",
      "type": "longtext"
@@ -678,6 +747,16 @@
      ]
     },
     {
+     "key": "a4_knows_breakeven",
+     "label": "Can she say how much she must sell to cover her costs (break-even)?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Roughly",
+      "No"
+     ]
+    },
+    {
      "key": "a4_compare",
      "label": "Compared with the last visit, takings are",
      "type": "choice",
@@ -726,6 +805,34 @@
     {
      "key": "a5_records_seen",
      "label": "Notebook or M-Pesa messages seen?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_separate",
+     "label": "Keeps business money separate from home money?",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "a5_key_number",
+     "label": "Follows one key number each week (sales, profit or stock)?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_used_calc",
+     "label": "In the last month, did she use a calculation to decide something (price, restock, spending)?",
      "type": "choice",
      "options": [
       "Yes",
@@ -792,6 +899,15 @@
       "Licence or permit",
       "Other"
      ]
+    },
+    {
+     "key": "a7_confidence",
+     "label": "How confident is she about running the business now? (1 = not at all, 5 = very)",
+     "type": "scale",
+     "min": 1,
+     "max": 5,
+     "minLabel": "Not at all",
+     "maxLabel": "Very"
     }
    ],
    "c": [
@@ -872,22 +988,26 @@
     {
      "key": "b2_d0_good",
      "label": "Then and now: customers on a good day at Day 0 (copy from the baseline form)",
-     "type": "number"
+     "type": "number",
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_slow",
      "label": "Customers on a slow day at Day 0",
-     "type": "number"
+     "type": "number",
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_days",
      "label": "Days open per week at Day 0",
-     "type": "number"
+     "type": "number",
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_sales",
      "label": "Sales in a week at Day 0 (range)",
-     "type": "text"
+     "type": "text",
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_records",
@@ -897,7 +1017,8 @@
       "Daily",
       "Sometimes",
       "No"
-     ]
+     ],
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_separate",
@@ -907,7 +1028,8 @@
       "Always",
       "Sometimes",
       "Not yet"
-     ]
+     ],
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_stock_level",
@@ -918,12 +1040,14 @@
       "Half",
       "Low",
       "Empty"
-     ]
+     ],
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b2_d0_stock_value",
      "label": "Stock value at Day 0 (Ksh)",
-     "type": "number"
+     "type": "number",
+     "help": "Optional. The portal already holds the Day 0 baseline; fill this only if there was no baseline form."
     },
     {
      "key": "b3_household",
@@ -1048,6 +1172,17 @@
      "type": "number"
     },
     {
+     "key": "a1_sold14",
+     "label": "Made at least one sale in the last 14 days?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ],
+     "required": true,
+     "help": "This is the main survival measure. Ask what she sold and when."
+    },
+    {
      "key": "a1_closed_why",
      "label": "If closed: since when and why?",
      "type": "longtext"
@@ -1156,6 +1291,16 @@
      ]
     },
     {
+     "key": "a4_knows_breakeven",
+     "label": "Can she say how much she must sell to cover her costs (break-even)?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Roughly",
+      "No"
+     ]
+    },
+    {
      "key": "a4_compare",
      "label": "Compared with the last visit, takings are",
      "type": "choice",
@@ -1204,6 +1349,34 @@
     {
      "key": "a5_records_seen",
      "label": "Notebook or M-Pesa messages seen?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_separate",
+     "label": "Keeps business money separate from home money?",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "a5_key_number",
+     "label": "Follows one key number each week (sales, profit or stock)?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_used_calc",
+     "label": "In the last month, did she use a calculation to decide something (price, restock, spending)?",
      "type": "choice",
      "options": [
       "Yes",
@@ -1270,6 +1443,15 @@
       "Licence or permit",
       "Other"
      ]
+    },
+    {
+     "key": "a7_confidence",
+     "label": "How confident is she about running the business now? (1 = not at all, 5 = very)",
+     "type": "scale",
+     "min": 1,
+     "max": 5,
+     "minLabel": "Not at all",
+     "maxLabel": "Very"
     }
    ],
    "c": [

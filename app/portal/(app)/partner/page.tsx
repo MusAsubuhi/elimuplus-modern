@@ -7,11 +7,15 @@ import { BarCard, Gauge, PieCard } from '@/components/charts';
 import { d, pct } from '@/lib/format';
 import { followupStats } from '@/lib/data';
 import { nominate } from '../../actions';
+import { loadImpact, totals } from '@/lib/impact';
+import { Outcomes } from '@/components/outcomes';
 
-export default async function Partner() {
+export default async function Partner({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
+  const sp = await searchParams;
   const me = await requireMe('org_admin');
-  const { orgs, cohorts, follow, roster, noms } = await asUser(me.id, async (q) => ({
+  const { orgs, cohorts, follow, roster, noms, impact } = await asUser(me.id, async (q) => ({
     ...(await partnerData(q)),
+    impact: await loadImpact(q),
     roster: await q(`select p.display_name, p.birth_year, e.status, e.track, c.name cohort_name,
         (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
         from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.start_date desc, p.display_name`),
@@ -22,6 +26,8 @@ export default async function Partner() {
   const total = cohorts.reduce((s, c) => s + c.n, 0), completed = cohorts.reduce((s, c) => s + c.completed, 0);
   const s90 = stats[2];
   const incomePie = ['higher', 'same', 'lower'].map((k) => ({ name: k, value: follow.filter((f) => f.income === k).length, color: k === 'higher' ? '#2E8B7A' : k === 'same' ? '#D4A843' : '#C8553D' })).filter((x) => x.value);
+  const shown = impact.find((c) => c.id === sp.c) ?? impact.find((c) => c.m.adult?.['30']?.n || c.m.baseline?.n) ?? impact[0];
+  const tt = totals(impact);
   const myOrg = orgs.find((o) => me.orgIds.includes(o.id)) ?? orgs[0];
   return (
     <>
@@ -39,6 +45,15 @@ export default async function Partner() {
         <Card title="Survival at 90 days"><Gauge value={s90.survival} target={75} label="of those reached" /></Card>
         <Card title="Income compared with before">{incomePie.length ? <PieCard data={incomePie} height={220} /> : <p className="text-sm text-slate-500">Appears after the first follow-up visits.</p>}</Card>
       </div>
+
+      {shown && (
+        <div className="mt-6">
+          <h2 className="mb-1 text-lg font-extrabold text-teal">Results for {shown.name}</h2>
+          <p className="mb-3 text-sm text-slate-600">Totals across {tt.enrolled} participants in your cohorts, {tt.female} women and {tt.male} men. Pick a cohort:{' '}
+            {impact.map((c) => <Link key={c.id} href={`/portal/partner?c=${c.id}`} className={`mr-2 underline ${c.id === shown.id ? 'font-bold text-teal' : 'text-slate-600'}`}>{c.name}</Link>)}</p>
+          <Outcomes m={shown.m} />
+        </div>
+      )}
 
       <Card title="Cohorts" className="mt-4">
         <Table head={['Cohort', 'Format', 'Dates', 'Enrolled', 'Completed', 'Status']} rows={cohorts.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', `${d(c.start_date)} to ${d(c.end_date)}`, c.n, c.completed, <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>])} />

@@ -4,6 +4,7 @@ import { validSecret } from '@/lib/forms-auth';
 import { normPhone } from '@/lib/accounts';
 import { notify } from '@/lib/mail';
 import tpl from '@/lib/followup-template.json';
+import { STORY, code, list, longText, yesNo } from '@/lib/forms-map';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,13 +59,29 @@ export async function POST(req: Request) {
     }
     const status = STATUS[String(answers.c_status ?? '')] ?? null;
     const operating = answers.a1_operating ? answers.a1_operating !== 'Closed' : null;
+    const A = answers;
+    const typed = {
+      sold_14_days: yesNo(A.a1_sold14), days_open: asNum(A.a1_days_open), good_day_customers: asNum(A.a2_good_day), slow_day_customers: asNum(A.a2_slow_day),
+      restock_range: A.a4_restock_range ?? null, exact_sales_kes: asNum(A.a4_exact_sales), weekly_profit_kes: asNum(A.a4_profit),
+      income_vs: code(A.a4_compare), keeps_records: code(A.a5_records), separates_money: code(A.a5_separate ?? A.habit_separate),
+      pays_self: code(A.a5_pays_self ?? A.habit_pays), set_aside: A.a4_set_aside === 'Yes' ? true : A.a4_set_aside === 'Not enough' ? false : null,
+      saves_weekly: code(A.habit_saves), home_use: code(A.a5_home_use), meal_skipped: code(A.a6_meal), knows_breakeven: code(A.a4_knows_breakeven),
+      tracks_key_number: yesNo(A.a5_key_number), used_calc: yesNo(A.a5_used_calc), confidence: asNum(A.a7_confidence),
+      referral_needed: yesNo(A.a6_referral), challenge_category: code(A.a7_category), challenge_words: longText(A.a7_words, 1000),
+      support_used: code(A.b4_used), can_continue: code(A.b1_continue), household_changes: list(A.b3_household),
+      in_savings_group: yesNo(A.b4_savings_group), recommend: yesNo(A.b5_recommend), story_consent: STORY(A.b6_story), next_step: longText(A.b6_next, 300),
+    };
+    const base = {
+      stage, cohort_id: cohort, enrolment_id: enrolment, officer_id: officer, officer_text: officer ? null : (officerText || 'Unknown Google Form respondent'),
+      participant_name: participant, participant_phone: pphone || null, visited_on: visited ?? new Date().toISOString().slice(0, 10),
+      business_status: status, urgent: answers.c_urgent === 'Yes', operating, sales_range: answers.a4_sales_range ?? null, stock_value_kes: asNum(answers.a3_stock_value),
+      answers: JSON.stringify({ ...answers, ...(rid ? { _response_id: rid } : {}) }), response_id: rid || null, routed_to: routed,
+      ...typed,
+    };
+    const cols = Object.keys(base);
     const row = (await q(
-      `insert into followup_forms(stage, cohort_id, enrolment_id, officer_id, officer_text, participant_name, participant_phone, visited_on,
-         business_status, urgent, operating, sales_range, stock_value_kes, answers, response_id, routed_to)
-       values ($1,$2,$3,$4,$5,$6,$7,coalesce($8::date, current_date),$9,$10,$11,$12,$13,$14,$15,$16) returning id`,
-      [stage, cohort, enrolment, officer, officer ? null : (officerText || 'Unknown Google Form respondent'), participant, pphone || null, visited,
-       status, answers.c_urgent === 'Yes', operating, answers.a4_sales_range ?? null, asNum(answers.a3_stock_value),
-       JSON.stringify({ ...answers, ...(rid ? { _response_id: rid } : {}) }), rid || null, routed]))[0];
+      `insert into followup_forms(${cols.join(', ')}) values (${cols.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+      cols.map((c) => (base as Record<string, unknown>)[c])))[0];
 
     let linked = false;
     if (enrolment) {
@@ -72,12 +89,16 @@ export async function POST(req: Request) {
       if (sched) {
         await q("select set_config('app.skip_alert', '1', true)");
         await q(
-          `insert into followup_visits(schedule_id, visited_on, still_operating, income_direction, weekly_sales_range, stock_cash_value_kes, challenges, notes, officer_id)
-           values ($1, coalesce($2::date, current_date), $3, $4, $5, $6, $7, $8, $9)
+          `insert into followup_visits(schedule_id, visited_on, still_operating, sold_within_14_days, income_direction, weekly_sales_range, stock_cash_value_kes,
+             knows_breakeven, tracks_key_metric, used_calc_for_decision, confidence, challenges, notes, officer_id)
+           values ($1, coalesce($2::date, current_date), $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            on conflict (schedule_id) do update set visited_on = excluded.visited_on, still_operating = excluded.still_operating,
-             income_direction = excluded.income_direction, weekly_sales_range = excluded.weekly_sales_range,
-             stock_cash_value_kes = excluded.stock_cash_value_kes, challenges = excluded.challenges, notes = excluded.notes`,
-          [sched, visited, operating, INCOME[String(answers.a4_compare ?? '')] ?? null, answers.a4_sales_range ?? null, asNum(answers.a3_stock_value),
+             sold_within_14_days = excluded.sold_within_14_days, income_direction = excluded.income_direction, weekly_sales_range = excluded.weekly_sales_range,
+             stock_cash_value_kes = excluded.stock_cash_value_kes, knows_breakeven = excluded.knows_breakeven, tracks_key_metric = excluded.tracks_key_metric,
+             used_calc_for_decision = excluded.used_calc_for_decision, confidence = excluded.confidence, challenges = excluded.challenges, notes = excluded.notes`,
+          [sched, visited, operating, typed.sold_14_days, INCOME[String(answers.a4_compare ?? '')] ?? null, answers.a4_sales_range ?? null, asNum(answers.a3_stock_value),
+           answers.a4_knows_breakeven ? answers.a4_knows_breakeven === 'Yes' : null, typed.tracks_key_number, typed.used_calc,
+           typed.confidence && typed.confidence >= 1 && typed.confidence <= 5 ? typed.confidence : null,
            answers.a7_category ? [String(answers.a7_category)] : [], String(answers.a7_words ?? '').slice(0, 2000) || null, officer]);
         await q("update followup_schedule set status = 'done', attempts = attempts + 1 where id = $1 and status <> 'done'", [sched]);
         linked = true;

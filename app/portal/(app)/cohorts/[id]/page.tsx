@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
@@ -47,6 +48,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   return (
     <>
       <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${d(c.start_date)} to ${d(c.end_date)} · ${c.venue ?? ''}`}>
+        <Link href={`/portal/cohorts/${id}/outcomes`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Outcomes</Link>
         {team.map((t) => <span key={t.display_name} className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{t.display_name} · {t.role}</span>)}
       </PageHeader>
 
@@ -82,7 +84,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       <Card title="Roster" className="mt-4" subtitle="Names are visible to trainers of this cohort only">
         <Table head={['Participant', 'Track', 'Status', 'Boxes filled', 'Business at entry']}
           rows={roster.map((r) => [
-            <div key="n"><b>{r.display_name}</b>{r.birth_year && new Date().getFullYear() - r.birth_year < 18 ? <span className="ml-2"><Badge tone="gold">under 18</Badge></span> : null}</div>,
+            <div key="n"><Link href={`/portal/cohorts/${id}/participants/${r.id}`} className="font-bold text-teal underline">{r.display_name}</Link>{r.birth_year && new Date().getFullYear() - r.birth_year < 18 ? <span className="ml-2"><Badge tone="gold">under 18</Badge></span> : null}</div>,
             <Badge key="t" tone={r.track === 'starter' ? 'gold' : 'teal'}>{r.track}</Badge>,
             <Badge key="s" tone={statusTone(r.status)}>{r.status}</Badge>,
             <div key="b" className="flex items-center gap-2"><div className="h-2 w-24 rounded bg-teal-50"><div className="h-2 rounded bg-teal" style={{ width: `${pct(r.boxes, 12)}%` }} /></div><span className="text-xs">{r.boxes}/12</span></div>,

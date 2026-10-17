@@ -296,3 +296,18 @@ export async function recordPayment(f: FormData) {
   revalidatePath('/portal', 'layout');
   back('/portal/finance', 'Payment recorded');
 }
+
+/* ---------- leaving or completing the programme ---------- */
+export async function recordExit(f: FormData) {
+  const me = await requireMe('facilitator', 'founder');
+  const eid = s(f, 'enrolment'), cohort = s(f, 'cohort');
+  const status = s(f, 'status') === 'dropped' ? 'dropped' : s(f, 'status') === 'completed' ? 'completed' : 'enrolled';
+  const path = `/portal/cohorts/${cohort}/participants/${eid}`;
+  if (status === 'dropped' && !s(f, 'reason')) back(path, 'Say why the participant left, so partners see a reason and not just a number.', 'err');
+  await asUser(me.id, (q) => q(
+    `update enrolments set status = $2, exit_reason = $3, exit_note = $4, exited_on = case when $2 = 'dropped' then coalesce($5::date, current_date) else null end where id = $1`,
+    [eid, status, status === 'dropped' ? s(f, 'reason') : null, s(f, 'note').slice(0, 1000) || null, s(f, 'date') || null]));
+  revalidatePath(path);
+  revalidatePath(`/portal/cohorts/${cohort}`);
+  back(path, 'Saved.');
+}
