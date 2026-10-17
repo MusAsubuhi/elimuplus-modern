@@ -106,5 +106,21 @@ for (const [pid, nm] of [[P(401), 'KE358 admin (aggregates)'], [P(402), 'school 
 pg = await page(`/portal/cohorts/${SEED_COHORT}/outcomes`, P(401));
 check('partners cannot open the facilitator outcomes page', pg.status !== 200 || !/Outcomes/.test(pg.text), pg.status);
 
+// ---- forms hub
+pg = await page('/portal/forms', F);
+check('forms page says nothing is listed before the script reports', pg.status === 200 && /No forms listed yet/.test(pg.text), pg.text.slice(0, 200));
+r = await post('/api/forms/links', { forms: [
+  { key: 'learning', title: 'Elimu+ Learning check', kind: 'start_end', fill_url: 'https://docs.google.com/forms/d/e/AAA/viewform', edit_url: 'https://docs.google.com/forms/d/AAA/edit', sheet_url: 'https://docs.google.com/spreadsheets/d/SSS/edit', google_responses: 9, last_response_at: '2026-10-18T08:00:00Z' },
+  { key: 'followup', title: 'Elimu+ Follow-up visit: Day 30, 60 and 90', kind: 'followup', fill_url: 'https://docs.google.com/forms/d/e/BBB/viewform', sheet_url: 'https://evil.example.com/x', google_responses: 0 },
+] });
+check('links webhook saves the forms', r.j.ok === true && r.j.saved === 2, JSON.stringify(r));
+pg = await page('/portal/forms', F);
+check('forms page lists both forms with an open-form and a responses link', /Learning check/.test(pg.text) && /Follow-up visit/.test(pg.text) && /Responses sheet/.test(pg.text) && pg.html.includes('https://docs.google.com/forms/d/e/AAA/viewform'));
+check('a link that is not a Google address is dropped', !pg.html.includes('evil.example.com'));
+check('forms page flags responses Google has but the portal does not', /not in portal/.test(pg.text), pg.text.slice(0, 500));
+check('forms page shows results together by cohort', /Results together, by cohort/.test(pg.text) && /Bandari Cohort A/.test(pg.text));
+pg = await page('/portal/forms', P(401));
+check('partners cannot open the forms page', pg.status !== 200 || !/Forms and responses/.test(pg.text), pg.status);
+
 console.log(bad ? `\n${bad} FAILED` : '\nall ok');
 process.exit(bad ? 1 : 0);

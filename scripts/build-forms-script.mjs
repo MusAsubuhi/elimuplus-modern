@@ -118,6 +118,7 @@ function refreshChoices() {
     });
   });
   refreshRosters();
+  try { publishFormLinks(); } catch (err) { Logger.log('Could not report form links: ' + err); }
 }
 
 function installTimers_() {
@@ -698,7 +699,7 @@ function levelOf_(formId) {
 function concernLabel_(t) { return t.fields.filter(function (f) { return f.key === 'concern'; })[0].label; }
 
 function postJson_(payload) {
-  const path = payload.kind === 'followup' ? '/api/forms/followup' : payload.kind === 'instrument' ? '/api/forms/instrument' : (payload.kind === 'register' || payload.kind === 'attendance') ? '/api/forms/roster' : '/api/forms/report';
+  const path = payload.kind === 'links' ? '/api/forms/links' : payload.kind === 'followup' ? '/api/forms/followup' : payload.kind === 'instrument' ? '/api/forms/instrument' : (payload.kind === 'register' || payload.kind === 'attendance') ? '/api/forms/roster' : '/api/forms/report';
   try {
     const r = UrlFetchApp.fetch(PORTAL_URL + path, { method: 'post', contentType: 'application/json', headers: { 'x-forms-secret': WEBHOOK_SECRET }, payload: JSON.stringify(payload), muteHttpExceptions: true });
     if (r.getResponseCode() !== 200) return null;
@@ -714,7 +715,29 @@ function retryFailed() {
   Object.keys(all).filter(function (k) { return k.indexOf('F_') === 0; }).forEach(function (k) {
     try { if (post_(JSON.parse(all[k]))) props.deleteProperty(k); } catch (err) { Logger.log('Skipped an unreadable queued report ' + k + ': ' + err); }
   });
+  try { publishFormLinks(); } catch (err) { Logger.log('Could not report form links: ' + err); }
 }
+
+/** Tells the portal where every form and its response sheet live and how many responses Google holds, so the portal's Forms and responses page is always current. Runs every hour. */
+function publishFormLinks() {
+  const ids = J_('FORM_IDS', {});
+  const forms = [];
+  Object.keys(ids).forEach(function (key) {
+    try {
+      const form = FormApp.openById(ids[key]);
+      const rs = form.getResponses();
+      var sheet = '';
+      try { sheet = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch (x) { sheet = ''; }
+      const kind = key === 'followup' || key === 'youth_followup' ? 'followup' : (key === 'baseline' || key === 'learning' || key === 'exit') ? 'start_end'
+        : (key === 'register' || key.indexOf('att_') === 0 || key.indexOf('obs_') === 0) ? 'cohort' : /^[0-9]$/.test(key) ? 'report' : 'other';
+      forms.push({ key: key, title: form.getTitle(), kind: kind, fill_url: form.getPublishedUrl(), edit_url: form.getEditUrl(), sheet_url: sheet,
+        google_responses: rs.length, last_response_at: rs.length ? rs[rs.length - 1].getTimestamp().toISOString() : null });
+    } catch (err) { Logger.log('Could not read form ' + key + ': ' + err); }
+  });
+  if (forms.length) postJson_({ kind: 'links', forms: forms });
+  return forms.length;
+}
+
 `;
 mkdirSync(path.dirname(out), { recursive: true });
 writeFileSync(out, code);

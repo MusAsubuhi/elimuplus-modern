@@ -13,7 +13,7 @@ const FormApp = {
   create(title) { const id = 'form' + ++n; const items = []; const f = { id, title, items,
     getId: () => id, getPublishedUrl: () => 'https://forms/' + id, getEditUrl: () => 'https://edit/' + id,
     setDescription() { return f; }, setCollectEmail() { return f; }, setProgressBar() { return f; }, setAllowResponseEdits() { return f; }, setShowLinkToRespondAgain() { return f; }, setConfirmationMessage() { return f; },
-    setDestination() {}, getItems: () => items.filter((i) => i.type === 'LIST').map((i) => ({ asListItem: () => i })),
+    setDestination() {}, getDestinationId: () => 'sheet' + id, getTitle: () => f.title, getResponses: () => [{ getTimestamp: () => new Date('2026-10-18T09:00:00Z') }], getItems: () => items.filter((i) => i.type === 'LIST').map((i) => ({ asListItem: () => i })),
   };
   for (const [m, t] of [['addListItem', 'LIST'], ['addTextItem', 'TEXT'], ['addParagraphTextItem', 'PARA'], ['addMultipleChoiceItem', 'CHOICE'], ['addScaleItem', 'SCALE'], ['addCheckboxItem', 'CHECKBOX'], ['addDateItem', 'DATE'], ['addPageBreakItem', 'PAGE']]) f[m] = () => { const it = { type: t, getTitle: () => it.title, setChoiceValues(v) { it.choices = v; return it; }, setTitle(x) { it.title = x; return it; }, setRequired(x) { it.required = x; return it; }, setHelpText() { return it; }, setValidation() { return it; }, setBounds() { return it; }, setLabels() { return it; }, setGoToPage() { return it; }, setChoices(c) { it.choices = c; return it; }, createChoice(l) { return l; }, setPoints() { return it; }, setRequired2() { return it; } }; items.push(it); return it; };
   forms[id] = f; return f; },
@@ -80,4 +80,11 @@ check('submitting the learning check posts an instrument payload', lastPayload &
 const r = await fetch(base + '/api/forms/report', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forms-secret': SECRET }, body: JSON.stringify(reportPayload) });
 const j = await r.json();
 check('the portal accepts it and matches the person and the cohort', r.status === 200 && j.ok && j.matchedPerson && j.matchedCohort, JSON.stringify(j));
+// ---- the hourly report of form links
+vm.runInContext('publishFormLinks()', ctx);
+check('the script reports every form with its links and response count', lastPayload && lastPayload.kind === 'links' && lastPayload.forms.length >= 8 && lastPayload.forms.every((f) => /^https:\/\/docs\.google\.com\/spreadsheets/.test(f.sheet_url) && f.google_responses === 1), JSON.stringify(lastPayload).slice(0, 300));
+const rl = await (await fetch(base + '/api/forms/links', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forms-secret': SECRET }, body: JSON.stringify(lastPayload) })).json();
+check('the portal saves them', rl.ok && rl.saved === lastPayload.forms.length, JSON.stringify(rl));
+const rb = await fetch(base + '/api/forms/links', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forms-secret': 'wrong' }, body: '{}' });
+check('a wrong secret is refused', rb.status === 401, rb.status);
 console.log(bad ? `\n${bad} FAILED` : '\nall ok'); process.exit(bad ? 1 : 0);
