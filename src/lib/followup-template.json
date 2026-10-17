@@ -1,0 +1,1330 @@
+{
+ "version": 1,
+ "identity": [
+  {
+   "key": "business_type",
+   "label": "Business type",
+   "type": "text"
+  },
+  {
+   "key": "location",
+   "label": "Location",
+   "type": "text"
+  },
+  {
+   "key": "visited_on",
+   "label": "Date of visit",
+   "type": "date",
+   "required": true
+  },
+  {
+   "key": "days_since",
+   "label": "Days since support was given",
+   "type": "number"
+  }
+ ],
+ "stages": {
+  "30": {
+   "name": "Day 30",
+   "title": "Start-up and fixing",
+   "question": "Is it working at all, and what needs fixing now?",
+   "b": [
+    {
+     "key": "b1_overall",
+     "label": "Overall, did the support match what was promised?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Partly",
+      "No"
+     ],
+     "help": "Compare with the items promised on the Day 0 form."
+    },
+    {
+     "key": "b1_items",
+     "label": "Items promised, whether each was received, and quality or what is missing",
+     "type": "longtext"
+    },
+    {
+     "key": "b1_missing",
+     "label": "Anything she asked for but did not get",
+     "type": "longtext"
+    },
+    {
+     "key": "b2_used",
+     "label": "Which parts of the training has she used?",
+     "type": "checkbox",
+     "options": [
+      "Wrote down sales and expenses",
+      "Separated business money from home money",
+      "Set or checked prices",
+      "Asked customers what they want",
+      "Used her SEE Canvas or plan",
+      "Tried a new way to get customers",
+      "None yet"
+     ]
+    },
+    {
+     "key": "b2_idea",
+     "label": "Which one idea from the training has she used most?",
+     "type": "text"
+    },
+    {
+     "key": "b2_first_sale",
+     "label": "Date of first sale after support",
+     "type": "date"
+    },
+    {
+     "key": "b3_risks",
+     "label": "Early risk scan (officer ticks what is seen)",
+     "type": "checkbox",
+     "options": [
+      "Capital used at home",
+      "Stock not selling",
+      "Few or no customers",
+      "Health or childcare",
+      "Safety",
+      "Location",
+      "Permit or licence",
+      "Equipment problem",
+      "None seen"
+     ]
+    },
+    {
+     "key": "b4_fixes",
+     "label": "Quick fixes the officer did or advised today",
+     "type": "longtext"
+    },
+    {
+     "key": "b4_hope",
+     "label": "What does she hope will have changed by the 60-day visit? (her own words)",
+     "type": "longtext"
+    }
+   ],
+   "a": [
+    {
+     "key": "a1_operating",
+     "label": "Is the business operating?",
+     "type": "choice",
+     "options": [
+      "Open normally",
+      "Open but irregularly",
+      "Closed"
+     ],
+     "required": true,
+     "help": "Part A is the same at every visit so progress can be compared. Start with her story and her stock; ask about money last."
+    },
+    {
+     "key": "a1_days_open",
+     "label": "Days open in the last 7 days",
+     "type": "number"
+    },
+    {
+     "key": "a1_closed_why",
+     "label": "If closed: since when and why?",
+     "type": "longtext"
+    },
+    {
+     "key": "a2_good_day",
+     "label": "Customers on a good day",
+     "type": "number"
+    },
+    {
+     "key": "a2_slow_day",
+     "label": "Customers on a slow day",
+     "type": "number"
+    },
+    {
+     "key": "a2_new_customers",
+     "label": "New customers since the last visit",
+     "type": "choice",
+     "options": [
+      "Many",
+      "A few",
+      "None",
+      "Not sure"
+     ]
+    },
+    {
+     "key": "a3_stock_list",
+     "label": "Stock counted together with her (item, quantity, selling price each; one item per line)",
+     "type": "longtext"
+    },
+    {
+     "key": "a3_stock_value",
+     "label": "Total stock value (Ksh)",
+     "type": "number",
+     "help": "Officer calculates: quantity times selling price, added up."
+    },
+    {
+     "key": "a3_stock_level",
+     "label": "Stock level overall",
+     "type": "choice",
+     "options": [
+      "Full",
+      "Half",
+      "Low",
+      "Empty"
+     ]
+    },
+    {
+     "key": "a3_right_stock",
+     "label": "Is it the right kind of stock for what customers ask?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Partly",
+      "No"
+     ]
+    },
+    {
+     "key": "a3_missing",
+     "label": "Customers ask for, but she does not have",
+     "type": "longtext"
+    },
+    {
+     "key": "a4_sales_range",
+     "label": "Sales in the last 7 days (money received from customers, before costs)",
+     "type": "choice",
+     "options": [
+      "Under 1,000",
+      "1,000 to 2,999",
+      "3,000 to 5,999",
+      "6,000 to 9,999",
+      "10,000 to 19,999",
+      "20,000 or more"
+     ],
+     "help": "Ask money last. Ranges are fine; do not push."
+    },
+    {
+     "key": "a4_restock_range",
+     "label": "Spent on restocking in the last 7 days",
+     "type": "choice",
+     "options": [
+      "None",
+      "Under 1,000",
+      "1,000 to 2,999",
+      "3,000 to 5,999",
+      "6,000 or more"
+     ]
+    },
+    {
+     "key": "a4_exact_sales",
+     "label": "Exact sales, if she can say (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "a4_profit",
+     "label": "Rough weekly profit worked out together with her (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "a4_set_aside",
+     "label": "Enough set aside for the next restock?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Not enough"
+     ]
+    },
+    {
+     "key": "a4_compare",
+     "label": "Compared with before the training, takings are",
+     "type": "choice",
+     "options": [
+      "Higher",
+      "About the same",
+      "Lower",
+      "Not sure"
+     ]
+    },
+    {
+     "key": "a5_home_use",
+     "label": "Last week, money taken from the business for home needs",
+     "type": "choice",
+     "options": [
+      "None",
+      "A little",
+      "A lot"
+     ]
+    },
+    {
+     "key": "a5_home_use_for",
+     "label": "What was it for?",
+     "type": "text"
+    },
+    {
+     "key": "a5_pays_self",
+     "label": "Does she pay herself?",
+     "type": "choice",
+     "options": [
+      "Regularly",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "a5_records",
+     "label": "Keeps written records?",
+     "type": "choice",
+     "options": [
+      "Daily",
+      "Sometimes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_records_seen",
+     "label": "Notebook or M-Pesa messages seen?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a6_meal",
+     "label": "In the past week, did the household go without a meal or something needed because of money?",
+     "type": "choice",
+     "options": [
+      "No",
+      "Sometimes",
+      "Often"
+     ],
+     "help": "Private. Ask gently."
+    },
+    {
+     "key": "a6_other",
+     "label": "Anything else affecting her or the business (health, childcare, safety)?",
+     "type": "choice",
+     "options": [
+      "Nothing",
+      "Yes"
+     ]
+    },
+    {
+     "key": "a6_other_what",
+     "label": "If yes, what?",
+     "type": "longtext"
+    },
+    {
+     "key": "a6_referral",
+     "label": "Referral needed?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a6_referred_to",
+     "label": "Referred to (name or office)",
+     "type": "text"
+    },
+    {
+     "key": "a7_words",
+     "label": "The one biggest challenge now, in her own words",
+     "type": "longtext"
+    },
+    {
+     "key": "a7_category",
+     "label": "Which kind of challenge is it?",
+     "type": "choice",
+     "options": [
+      "Customers",
+      "Stock",
+      "Capital",
+      "Prices",
+      "Location",
+      "Health",
+      "Family",
+      "Safety",
+      "Licence or permit",
+      "Other"
+     ]
+    }
+   ],
+   "c": [
+    {
+     "key": "c_status",
+     "label": "Officer assessment: the business is",
+     "type": "choice",
+     "options": [
+      "Growing",
+      "Stable",
+      "Struggling",
+      "Closed"
+     ],
+     "required": true
+    },
+    {
+     "key": "c_urgent",
+     "label": "Needs urgent attention?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ],
+     "required": true
+    },
+    {
+     "key": "c_why",
+     "label": "Why (one line)",
+     "type": "text"
+    },
+    {
+     "key": "c_support",
+     "label": "What support should be given?",
+     "type": "longtext"
+    },
+    {
+     "key": "c_next",
+     "label": "Next actions (action required, person responsible, date)",
+     "type": "longtext"
+    },
+    {
+     "key": "c_shared",
+     "label": "Summary shared with participant?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    }
+   ]
+  },
+  "60": {
+   "name": "Day 60",
+   "title": "Habits and customers",
+   "question": "Are the habits and fixes holding, and are customers coming?",
+   "b": [
+    {
+     "key": "habit_records",
+     "label": "Writes down sales and expenses daily",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "habit_separate",
+     "label": "Keeps business money separate from home money",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "habit_pays",
+     "label": "Pays herself regularly",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "habit_prices",
+     "label": "Sets prices from her costs",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "habit_restock",
+     "label": "Restocks from profit (not from her capital)",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "habit_saves",
+     "label": "Puts something aside each week",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "b2_find",
+     "label": "How do new customers find her?",
+     "type": "checkbox",
+     "options": [
+      "Walk past",
+      "Word of mouth",
+      "WhatsApp or social media",
+      "Offers or promotions",
+      "Regulars bring others",
+      "Other"
+     ]
+    },
+    {
+     "key": "b2_tried",
+     "label": "One thing she tried in the last month to attract customers",
+     "type": "text"
+    },
+    {
+     "key": "b2_worked",
+     "label": "Did it work?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "A bit",
+      "No",
+      "Not tried"
+     ]
+    },
+    {
+     "key": "b2_different",
+     "label": "What makes her business different from others nearby?",
+     "type": "longtext"
+    },
+    {
+     "key": "b3_good",
+     "label": "Positive signs seen",
+     "type": "checkbox",
+     "options": [
+      "Added stock",
+      "Expanded space",
+      "New product or service",
+      "Hired help",
+      "Saving regularly"
+     ]
+    },
+    {
+     "key": "b3_warn",
+     "label": "Warning signs seen",
+     "type": "checkbox",
+     "options": [
+      "Business closed often",
+      "Selling below cost",
+      "Borrowing to restock",
+      "Relocated",
+      "Stock or capital used at home"
+     ]
+    },
+    {
+     "key": "b4_support",
+     "label": "Support still needed",
+     "type": "checkbox",
+     "options": [
+      "Advice",
+      "Training",
+      "Stock support",
+      "Mentorship",
+      "Market linkage",
+      "Equipment or tools",
+      "Other"
+     ]
+    },
+    {
+     "key": "b4_training_topic",
+     "label": "If training: which topic?",
+     "type": "text"
+    },
+    {
+     "key": "b4_change",
+     "label": "If she could change one thing in the business this month, what would it be?",
+     "type": "longtext"
+    },
+    {
+     "key": "b4_used",
+     "label": "Has the support been used as intended?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Partly",
+      "No"
+     ]
+    }
+   ],
+   "a": [
+    {
+     "key": "a1_operating",
+     "label": "Is the business operating?",
+     "type": "choice",
+     "options": [
+      "Open normally",
+      "Open but irregularly",
+      "Closed"
+     ],
+     "required": true,
+     "help": "Part A is the same at every visit so progress can be compared. Start with her story and her stock; ask about money last."
+    },
+    {
+     "key": "a1_days_open",
+     "label": "Days open in the last 7 days",
+     "type": "number"
+    },
+    {
+     "key": "a1_closed_why",
+     "label": "If closed: since when and why?",
+     "type": "longtext"
+    },
+    {
+     "key": "a2_good_day",
+     "label": "Customers on a good day",
+     "type": "number"
+    },
+    {
+     "key": "a2_slow_day",
+     "label": "Customers on a slow day",
+     "type": "number"
+    },
+    {
+     "key": "a2_new_customers",
+     "label": "New customers since the last visit",
+     "type": "choice",
+     "options": [
+      "Many",
+      "A few",
+      "None",
+      "Not sure"
+     ]
+    },
+    {
+     "key": "a3_stock_list",
+     "label": "Stock counted together with her (item, quantity, selling price each; one item per line)",
+     "type": "longtext"
+    },
+    {
+     "key": "a3_stock_value",
+     "label": "Total stock value (Ksh)",
+     "type": "number",
+     "help": "Officer calculates: quantity times selling price, added up."
+    },
+    {
+     "key": "a3_stock_level",
+     "label": "Stock level overall",
+     "type": "choice",
+     "options": [
+      "Full",
+      "Half",
+      "Low",
+      "Empty"
+     ]
+    },
+    {
+     "key": "a3_right_stock",
+     "label": "Is it the right kind of stock for what customers ask?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Partly",
+      "No"
+     ]
+    },
+    {
+     "key": "a3_missing",
+     "label": "Customers ask for, but she does not have",
+     "type": "longtext"
+    },
+    {
+     "key": "a4_sales_range",
+     "label": "Sales in the last 7 days (money received from customers, before costs)",
+     "type": "choice",
+     "options": [
+      "Under 1,000",
+      "1,000 to 2,999",
+      "3,000 to 5,999",
+      "6,000 to 9,999",
+      "10,000 to 19,999",
+      "20,000 or more"
+     ],
+     "help": "Ask money last. Ranges are fine; do not push."
+    },
+    {
+     "key": "a4_restock_range",
+     "label": "Spent on restocking in the last 7 days",
+     "type": "choice",
+     "options": [
+      "None",
+      "Under 1,000",
+      "1,000 to 2,999",
+      "3,000 to 5,999",
+      "6,000 or more"
+     ]
+    },
+    {
+     "key": "a4_exact_sales",
+     "label": "Exact sales, if she can say (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "a4_profit",
+     "label": "Rough weekly profit worked out together with her (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "a4_set_aside",
+     "label": "Enough set aside for the next restock?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Not enough"
+     ]
+    },
+    {
+     "key": "a4_compare",
+     "label": "Compared with the last visit, takings are",
+     "type": "choice",
+     "options": [
+      "Higher",
+      "About the same",
+      "Lower",
+      "Not sure"
+     ]
+    },
+    {
+     "key": "a5_home_use",
+     "label": "Last week, money taken from the business for home needs",
+     "type": "choice",
+     "options": [
+      "None",
+      "A little",
+      "A lot"
+     ]
+    },
+    {
+     "key": "a5_home_use_for",
+     "label": "What was it for?",
+     "type": "text"
+    },
+    {
+     "key": "a5_pays_self",
+     "label": "Does she pay herself?",
+     "type": "choice",
+     "options": [
+      "Regularly",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "a5_records",
+     "label": "Keeps written records?",
+     "type": "choice",
+     "options": [
+      "Daily",
+      "Sometimes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_records_seen",
+     "label": "Notebook or M-Pesa messages seen?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a6_meal",
+     "label": "In the past week, did the household go without a meal or something needed because of money?",
+     "type": "choice",
+     "options": [
+      "No",
+      "Sometimes",
+      "Often"
+     ],
+     "help": "Private. Ask gently."
+    },
+    {
+     "key": "a6_other",
+     "label": "Anything else affecting her or the business (health, childcare, safety)?",
+     "type": "choice",
+     "options": [
+      "Nothing",
+      "Yes"
+     ]
+    },
+    {
+     "key": "a6_other_what",
+     "label": "If yes, what?",
+     "type": "longtext"
+    },
+    {
+     "key": "a6_referral",
+     "label": "Referral needed?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a6_referred_to",
+     "label": "Referred to (name or office)",
+     "type": "text"
+    },
+    {
+     "key": "a7_words",
+     "label": "The one biggest challenge now, in her own words",
+     "type": "longtext"
+    },
+    {
+     "key": "a7_category",
+     "label": "Which kind of challenge is it?",
+     "type": "choice",
+     "options": [
+      "Customers",
+      "Stock",
+      "Capital",
+      "Prices",
+      "Location",
+      "Health",
+      "Family",
+      "Safety",
+      "Licence or permit",
+      "Other"
+     ]
+    }
+   ],
+   "c": [
+    {
+     "key": "c1_actions",
+     "label": "Actions agreed at the last visit, and whether each was done (Done, Partly, Not yet), with what helped or got in the way",
+     "type": "longtext"
+    },
+    {
+     "key": "c_status",
+     "label": "Officer assessment: the business is",
+     "type": "choice",
+     "options": [
+      "Growing",
+      "Stable",
+      "Struggling",
+      "Closed"
+     ],
+     "required": true
+    },
+    {
+     "key": "c_urgent",
+     "label": "Needs urgent attention?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ],
+     "required": true
+    },
+    {
+     "key": "c_why",
+     "label": "Why (one line)",
+     "type": "text"
+    },
+    {
+     "key": "c_support",
+     "label": "What support should be given?",
+     "type": "longtext"
+    },
+    {
+     "key": "c_next",
+     "label": "Next actions (action required, person responsible, date)",
+     "type": "longtext"
+    },
+    {
+     "key": "c_shared",
+     "label": "Summary shared with participant?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    }
+   ]
+  },
+  "90": {
+   "name": "Day 90",
+   "title": "Outcomes and next step",
+   "question": "Can the business stand without us, and what is the next step?",
+   "b": [
+    {
+     "key": "b1_continue",
+     "label": "Could the business continue at this level without more support?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Probably",
+      "Not sure",
+      "No"
+     ]
+    },
+    {
+     "key": "b1_why",
+     "label": "Why?",
+     "type": "longtext"
+    },
+    {
+     "key": "b2_d0_good",
+     "label": "Then and now: customers on a good day at Day 0 (copy from the baseline form)",
+     "type": "number"
+    },
+    {
+     "key": "b2_d0_slow",
+     "label": "Customers on a slow day at Day 0",
+     "type": "number"
+    },
+    {
+     "key": "b2_d0_days",
+     "label": "Days open per week at Day 0",
+     "type": "number"
+    },
+    {
+     "key": "b2_d0_sales",
+     "label": "Sales in a week at Day 0 (range)",
+     "type": "text"
+    },
+    {
+     "key": "b2_d0_records",
+     "label": "Kept written records at Day 0?",
+     "type": "choice",
+     "options": [
+      "Daily",
+      "Sometimes",
+      "No"
+     ]
+    },
+    {
+     "key": "b2_d0_separate",
+     "label": "Kept business and home money separate at Day 0?",
+     "type": "choice",
+     "options": [
+      "Always",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "b2_d0_stock_level",
+     "label": "Stock level at Day 0",
+     "type": "choice",
+     "options": [
+      "Full",
+      "Half",
+      "Low",
+      "Empty"
+     ]
+    },
+    {
+     "key": "b2_d0_stock_value",
+     "label": "Stock value at Day 0 (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "b3_household",
+     "label": "The household since the training",
+     "type": "checkbox",
+     "options": [
+      "More regular meals",
+      "School or other needs easier to meet",
+      "Medical or childcare easier",
+      "Able to save",
+      "No change",
+      "Harder than before"
+     ]
+    },
+    {
+     "key": "b3_words",
+     "label": "In her words",
+     "type": "longtext"
+    },
+    {
+     "key": "b4_plans",
+     "label": "Plans for the next three months",
+     "type": "checkbox",
+     "options": [
+      "Restock more",
+      "Add a product",
+      "Hire help",
+      "Save",
+      "Join a savings group or SACCO",
+      "Change location",
+      "Not sure",
+      "Other"
+     ]
+    },
+    {
+     "key": "b4_savings_group",
+     "label": "Already in a savings group?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "b4_plan_words",
+     "label": "Her plan in her own words",
+     "type": "longtext"
+    },
+    {
+     "key": "b5_most",
+     "label": "Most useful session",
+     "type": "text"
+    },
+    {
+     "key": "b5_least",
+     "label": "Least useful session",
+     "type": "text"
+    },
+    {
+     "key": "b5_change",
+     "label": "One thing to add or change in the training",
+     "type": "longtext"
+    },
+    {
+     "key": "b5_recommend",
+     "label": "Would she recommend it to a friend?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "b6_story",
+     "label": "Willing to share her story",
+     "type": "choice",
+     "options": [
+      "Yes, with her name",
+      "Yes, without her name",
+      "No"
+     ],
+     "help": "Check that her answers match the consent she gave on the Day 0 form."
+    },
+    {
+     "key": "b6_photos",
+     "label": "Photos",
+     "type": "choice",
+     "options": [
+      "OK",
+      "Not OK"
+     ]
+    },
+    {
+     "key": "b6_next",
+     "label": "Recommended next step",
+     "type": "choice",
+     "options": [
+      "No further follow-up needed",
+      "Link to savings group or SACCO",
+      "Further training",
+      "Referral",
+      "Other"
+     ]
+    }
+   ],
+   "a": [
+    {
+     "key": "a1_operating",
+     "label": "Is the business operating?",
+     "type": "choice",
+     "options": [
+      "Open normally",
+      "Open but irregularly",
+      "Closed"
+     ],
+     "required": true,
+     "help": "Part A is the same at every visit so progress can be compared. Start with her story and her stock; ask about money last."
+    },
+    {
+     "key": "a1_days_open",
+     "label": "Days open in the last 7 days",
+     "type": "number"
+    },
+    {
+     "key": "a1_closed_why",
+     "label": "If closed: since when and why?",
+     "type": "longtext"
+    },
+    {
+     "key": "a2_good_day",
+     "label": "Customers on a good day",
+     "type": "number"
+    },
+    {
+     "key": "a2_slow_day",
+     "label": "Customers on a slow day",
+     "type": "number"
+    },
+    {
+     "key": "a2_new_customers",
+     "label": "New customers since the last visit",
+     "type": "choice",
+     "options": [
+      "Many",
+      "A few",
+      "None",
+      "Not sure"
+     ]
+    },
+    {
+     "key": "a3_stock_list",
+     "label": "Stock counted together with her (item, quantity, selling price each; one item per line)",
+     "type": "longtext"
+    },
+    {
+     "key": "a3_stock_value",
+     "label": "Total stock value (Ksh)",
+     "type": "number",
+     "help": "Officer calculates: quantity times selling price, added up."
+    },
+    {
+     "key": "a3_stock_level",
+     "label": "Stock level overall",
+     "type": "choice",
+     "options": [
+      "Full",
+      "Half",
+      "Low",
+      "Empty"
+     ]
+    },
+    {
+     "key": "a3_right_stock",
+     "label": "Is it the right kind of stock for what customers ask?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Partly",
+      "No"
+     ]
+    },
+    {
+     "key": "a3_missing",
+     "label": "Customers ask for, but she does not have",
+     "type": "longtext"
+    },
+    {
+     "key": "a4_sales_range",
+     "label": "Sales in the last 7 days (money received from customers, before costs)",
+     "type": "choice",
+     "options": [
+      "Under 1,000",
+      "1,000 to 2,999",
+      "3,000 to 5,999",
+      "6,000 to 9,999",
+      "10,000 to 19,999",
+      "20,000 or more"
+     ],
+     "help": "Ask money last. Ranges are fine; do not push."
+    },
+    {
+     "key": "a4_restock_range",
+     "label": "Spent on restocking in the last 7 days",
+     "type": "choice",
+     "options": [
+      "None",
+      "Under 1,000",
+      "1,000 to 2,999",
+      "3,000 to 5,999",
+      "6,000 or more"
+     ]
+    },
+    {
+     "key": "a4_exact_sales",
+     "label": "Exact sales, if she can say (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "a4_profit",
+     "label": "Rough weekly profit worked out together with her (Ksh)",
+     "type": "number"
+    },
+    {
+     "key": "a4_set_aside",
+     "label": "Enough set aside for the next restock?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "Not enough"
+     ]
+    },
+    {
+     "key": "a4_compare",
+     "label": "Compared with the last visit, takings are",
+     "type": "choice",
+     "options": [
+      "Higher",
+      "About the same",
+      "Lower",
+      "Not sure"
+     ]
+    },
+    {
+     "key": "a5_home_use",
+     "label": "Last week, money taken from the business for home needs",
+     "type": "choice",
+     "options": [
+      "None",
+      "A little",
+      "A lot"
+     ]
+    },
+    {
+     "key": "a5_home_use_for",
+     "label": "What was it for?",
+     "type": "text"
+    },
+    {
+     "key": "a5_pays_self",
+     "label": "Does she pay herself?",
+     "type": "choice",
+     "options": [
+      "Regularly",
+      "Sometimes",
+      "Not yet"
+     ]
+    },
+    {
+     "key": "a5_records",
+     "label": "Keeps written records?",
+     "type": "choice",
+     "options": [
+      "Daily",
+      "Sometimes",
+      "No"
+     ]
+    },
+    {
+     "key": "a5_records_seen",
+     "label": "Notebook or M-Pesa messages seen?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a6_meal",
+     "label": "In the past week, did the household go without a meal or something needed because of money?",
+     "type": "choice",
+     "options": [
+      "No",
+      "Sometimes",
+      "Often"
+     ],
+     "help": "Private. Ask gently."
+    },
+    {
+     "key": "a6_other",
+     "label": "Anything else affecting her or the business (health, childcare, safety)?",
+     "type": "choice",
+     "options": [
+      "Nothing",
+      "Yes"
+     ]
+    },
+    {
+     "key": "a6_other_what",
+     "label": "If yes, what?",
+     "type": "longtext"
+    },
+    {
+     "key": "a6_referral",
+     "label": "Referral needed?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    },
+    {
+     "key": "a6_referred_to",
+     "label": "Referred to (name or office)",
+     "type": "text"
+    },
+    {
+     "key": "a7_words",
+     "label": "The one biggest challenge now, in her own words",
+     "type": "longtext"
+    },
+    {
+     "key": "a7_category",
+     "label": "Which kind of challenge is it?",
+     "type": "choice",
+     "options": [
+      "Customers",
+      "Stock",
+      "Capital",
+      "Prices",
+      "Location",
+      "Health",
+      "Family",
+      "Safety",
+      "Licence or permit",
+      "Other"
+     ]
+    }
+   ],
+   "c": [
+    {
+     "key": "c1_actions",
+     "label": "Actions agreed at the last visit, and whether each was done (Done, Partly, Not yet), with what helped or got in the way",
+     "type": "longtext"
+    },
+    {
+     "key": "c_status",
+     "label": "Officer assessment: the business is",
+     "type": "choice",
+     "options": [
+      "Growing",
+      "Stable",
+      "Struggling",
+      "Closed"
+     ],
+     "required": true
+    },
+    {
+     "key": "c_urgent",
+     "label": "Needs urgent attention?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ],
+     "required": true
+    },
+    {
+     "key": "c_why",
+     "label": "Why (one line)",
+     "type": "text"
+    },
+    {
+     "key": "c_support",
+     "label": "What support should be given?",
+     "type": "longtext"
+    },
+    {
+     "key": "c_next",
+     "label": "Next actions (action required, person responsible, date)",
+     "type": "longtext"
+    },
+    {
+     "key": "c_shared",
+     "label": "Summary shared with participant?",
+     "type": "choice",
+     "options": [
+      "Yes",
+      "No"
+     ]
+    }
+   ]
+  }
+ }
+}

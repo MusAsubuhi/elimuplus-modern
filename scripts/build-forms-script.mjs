@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 const tpl = JSON.parse(readFileSync(new URL('../src/lib/report-templates.json', import.meta.url), 'utf8'));
+const fu = JSON.parse(readFileSync(new URL('../src/lib/followup-template.json', import.meta.url), 'utf8'));
 const out = process.argv[2] || 'forms-kit/ElimuPlusForms.gs';
 const secret = process.env.FORMS_WEBHOOK_SECRET || 'PASTE_THE_SECRET_HERE';
 const portal = process.env.PORTAL_URL || 'https://elimuplus.com';
@@ -25,12 +26,16 @@ const PORTAL_URL = ${JSON.stringify(portal)};
 const WEBHOOK_SECRET = ${JSON.stringify(secret)};
 const TEMPLATES = ${JSON.stringify(tpl.levels)};
 const PHASES = ${JSON.stringify(phases)};
+const FOLLOWUP = ${JSON.stringify(fu)};
 
 const ROUTE_Q = 'Send this report to';
 const NAME_Q = 'Your full name';
 const PHONE_Q = 'Your phone number (the one you sign in to Elimu+ with)';
 const COHORT_Q = 'Which cohort is this about';
 const PHASE_Q = 'This report is about';
+const P_NAME_Q = 'Participant name';
+const P_PHONE_Q = 'Participant phone number';
+const STAGE_Q = 'Which follow-up visit is this?';
 
 function createAllForms() {
   const props = PropertiesService.getScriptProperties();
@@ -73,6 +78,8 @@ function addQuestion_(form, f) {
     item.setValidation(FormApp.createTextValidation().requireNumber().build());
   }
   else if (f.type === 'choice') item = form.addMultipleChoiceItem().setChoiceValues(f.options);
+  else if (f.type === 'checkbox') item = form.addCheckboxItem().setChoiceValues(f.options);
+  else if (f.type === 'date') item = form.addDateItem();
   else if (f.type === 'scale') {
     item = form.addScaleItem().setBounds(f.min || 1, f.max || 5);
     if (f.minLabel || f.maxLabel) item.setLabels(f.minLabel || '', f.maxLabel || '');
@@ -120,6 +127,7 @@ function installTimers_() {
 function onFormSubmit(e) {
   const form = e.source;
   const level = levelOf_(form.getId());
+  if (level === 'followup') return onFollowUpSubmit_(e);
   const t = TEMPLATES[level];
   const answers = {};
   var routeLabel = '', name = '', phone = '', cohort = '', phaseLabel = '';
@@ -155,6 +163,90 @@ function onFormSubmit(e) {
   }
 }
 
+/* ---------- Day 30, 60 and 90 follow-up visits: one form, the stage is chosen first ---------- */
+function createFollowUpForm() {
+  const props = PropertiesService.getScriptProperties();
+  const ids = JSON.parse(props.getProperty('FORM_IDS') || '{}');
+  if (ids.followup) { Logger.log('Follow-up form already created: ' + FormApp.openById(ids.followup).getPublishedUrl()); return; }
+  const lists = fetchLists_();
+  const form = FormApp.create('Elimu+ Follow-up Visit: Day 30, 60 and 90');
+  form.setDescription('Complete this at the business. Part A is the same at every visit so progress can be compared; Part B changes by stage; Part C closes the visit. Start with her story and her stock, and ask about money last.\\n\\nTell her that her answers will not reduce her support and may increase it.');
+  form.setCollectEmail(false).setProgressBar(true).setAllowResponseEdits(false).setShowLinkToRespondAgain(true);
+  form.setConfirmationMessage('Thank you. The visit has been recorded.');
+
+  form.addListItem().setTitle(ROUTE_Q).setHelpText('The person who should read this first.').setChoiceValues(routeLabels_(lists)).setRequired(true);
+  form.addTextItem().setTitle(NAME_Q).setHelpText('The officer doing the visit.').setRequired(true);
+  form.addTextItem().setTitle(PHONE_Q).setRequired(true);
+  form.addListItem().setTitle(COHORT_Q).setChoiceValues(cohortLabels_(lists)).setRequired(true);
+  form.addTextItem().setTitle(P_NAME_Q).setRequired(true);
+  form.addTextItem().setTitle(P_PHONE_Q).setHelpText('The number she is registered with in Elimu+, so the visit links to her record.').setRequired(true);
+  FOLLOWUP.identity.forEach(function (f) { addQuestion_(form, f); });
+  const stageItem = form.addMultipleChoiceItem().setTitle(STAGE_Q).setRequired(true);
+
+  const firstPage = {};
+  ['30', '60', '90'].forEach(function (k) {
+    const st = FOLLOWUP.stages[k];
+    var last;
+    [['A', 'Part A: every visit', st.a, 'Same questions at 30, 60 and 90 days, so progress can be compared.'],
+     ['B', 'Part B: ' + st.name + ' only, ' + st.title, st.b, st.question],
+     ['C', 'Part C: close the visit', st.c, '']].forEach(function (sec) {
+      const pb = form.addPageBreakItem().setTitle(st.name + ' follow-up. ' + sec[1]);
+      if (sec[3]) pb.setHelpText(sec[3]);
+      if (sec[0] === 'A') firstPage[k] = pb;
+      last = pb;
+      sec[2].forEach(function (f) { addQuestion_(form, f); });
+    });
+    last.setGoToPage(FormApp.PageNavigationType.SUBMIT);
+  });
+  stageItem.setChoices(['30', '60', '90'].map(function (k) { return stageItem.createChoice('Day ' + k, firstPage[k]); }));
+
+  const sheet = SpreadsheetApp.create('Elimu+ Follow-up Visits (responses)');
+  form.setDestination(FormApp.DestinationType.SPREADSHEET, sheet.getId());
+  ScriptApp.newTrigger('onFormSubmit').forForm(form).onFormSubmit().create();
+  ids.followup = form.getId();
+  props.setProperty('FORM_IDS', JSON.stringify(ids));
+  installTimers_();
+  const msg = 'FOLLOW-UP FORM READY\\n' + form.getPublishedUrl() + '\\n(edit: ' + form.getEditUrl() + ')\\nresponses: ' + sheet.getUrl();
+  Logger.log(msg);
+  MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Elimu+ follow-up form is ready', msg);
+}
+
+function onFollowUpSubmit_(e) {
+  const answers = {};
+  var routeLabel = '', officer = '', ophone = '', cohort = '', pname = '', pphone = '', stageLabel = '';
+  e.response.getItemResponses().forEach(function (ir) {
+    const title = ir.getItem().getTitle();
+    const v = Array.isArray(ir.getResponse()) ? ir.getResponse().join(', ') : String(ir.getResponse());
+    if (title === ROUTE_Q) routeLabel = v;
+    else if (title === NAME_Q) officer = v;
+    else if (title === PHONE_Q) ophone = v;
+    else if (title === COHORT_Q) cohort = v;
+    else if (title === P_NAME_Q) pname = v;
+    else if (title === P_PHONE_Q) pphone = v;
+    else if (title === STAGE_Q) stageLabel = v;
+    else answers[title] = v;
+  });
+  const stage = Number((/\\d+/.exec(stageLabel) || ['0'])[0]);
+  const lists = JSON.parse(PropertiesService.getScriptProperties().getProperty('LISTS') || '{"leaders":[]}');
+  const leader = lists.leaders.filter(function (x) { return x.label === routeLabel; })[0];
+  const payload = { kind: 'followup', stage: stage, response_id: e.response.getId(), officer_name: officer, officer_phone: ophone,
+    participant_name: pname, participant_phone: pphone, cohort: cohort, routed_email: leader ? leader.email : '', answers: answers };
+  if (!post_(payload)) PropertiesService.getScriptProperties().setProperty('F_' + payload.response_id, JSON.stringify(payload).slice(0, 8500));
+
+  if (leader && leader.email) {
+    const st = FOLLOWUP.stages[String(stage)];
+    const label = function (key) { const f = st.a.concat(st.b, st.c).filter(function (x) { return x.key === key; })[0]; return f ? answers[f.label] : ''; };
+    const urgent = label('c_urgent') === 'Yes';
+    MailApp.sendEmail({
+      to: leader.email,
+      subject: (urgent ? 'URGENT: ' : '') + 'Elimu+ Day ' + stage + ' follow-up: ' + pname + (label('c_status') ? ' (' + label('c_status') + ')' : ''),
+      body: [officer + ' (' + ophone + ') visited ' + pname + ' for the Day ' + stage + ' follow-up.', 'Cohort: ' + cohort,
+        'Business is: ' + (label('c_status') || 'not stated'), 'Biggest challenge: ' + (label('a7_words') || 'not stated'), 'Support to give: ' + (label('c_support') || 'not stated'), '',
+        'Everything she and the officer answered is in the portal under the cohort: ' + PORTAL_URL + '/portal/cohorts'].join('\\n')
+    });
+  }
+}
+
 function levelOf_(formId) {
   const ids = JSON.parse(PropertiesService.getScriptProperties().getProperty('FORM_IDS') || '{}');
   return Object.keys(ids).filter(function (k) { return ids[k] === formId; })[0];
@@ -163,7 +255,7 @@ function concernLabel_(t) { return t.fields.filter(function (f) { return f.key =
 
 function post_(payload) {
   try {
-    const r = UrlFetchApp.fetch(PORTAL_URL + '/api/forms/report', { method: 'post', contentType: 'application/json', headers: { 'x-forms-secret': WEBHOOK_SECRET }, payload: JSON.stringify(payload), muteHttpExceptions: true });
+    const r = UrlFetchApp.fetch(PORTAL_URL + (payload.kind === 'followup' ? '/api/forms/followup' : '/api/forms/report'), { method: 'post', contentType: 'application/json', headers: { 'x-forms-secret': WEBHOOK_SECRET }, payload: JSON.stringify(payload), muteHttpExceptions: true });
     return r.getResponseCode() === 200;
   } catch (e) { Logger.log('Post failed: ' + e); return false; }
 }

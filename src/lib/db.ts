@@ -34,6 +34,7 @@ async function makeDemo(): Promise<Driver> {
   await db.exec(sql('migrations/0004_function_search_path.sql'));
   await db.exec(sql('migrations/0006_team_suggestions_journey.sql'));
   await db.exec(sql('migrations/0007_levels_crm_reports_alerts.sql'));
+  await db.exec(sql('migrations/0008_followup_forms.sql'));
   await db.exec(sql('seed.sql'));
   await db.exec(`
     create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;

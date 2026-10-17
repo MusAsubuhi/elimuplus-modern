@@ -13,7 +13,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const data = await asUser(me.id, async (q) => {
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
-    const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team] = await Promise.all([
+    const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms] = await Promise.all([
       q(`select e.id, e.track, e.status, e.has_business_at_entry, p.display_name, p.full_name, p.birth_year,
            (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
          from enrolments e join people p on p.id=e.person_id where e.cohort_id=$1 order by p.display_name`, [id]),
@@ -28,13 +28,14 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
          join people p on p.id=e.person_id where e.cohort_id=$1 order by sc.due_date, p.display_name`, [id]),
       q(`select l.*, s.day_number, p.display_name author from session_logs l join sessions s on s.id=l.session_id join people p on p.id=l.author_id where s.cohort_id=$1 order by s.day_number`, [id]),
       q(`select p.display_name, cf.role from cohort_facilitators cf join people p on p.id=cf.person_id where cf.cohort_id=$1`, [id]),
+      q(`select id, stage, participant_name, visited_on, business_status, urgent, sales_range, stock_value_kes, answers from followup_forms where cohort_id=$1 order by visited_on desc, created_at desc`, [id]),
     ]);
     const chosen = sp.session ?? sessions[0]?.id;
     const present = chosen ? await q('select enrolment_id from attendance where session_id=$1 and present', [chosen]) : [];
-    return { c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
+    return { c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
   });
   if (!data) notFound();
-  const { c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, chosen, present } = data;
+  const { c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
   const boxBars = boxes.map((b) => ({ box: String(b.number), name: b.name_en, filled: answers.find((a) => a.box_number === b.number)?.n ?? 0 }));
   const attBars = att.map((a) => ({ day: `Day ${a.day_number}`, rate: pct(a.present, a.total) }));
   const statusPie = ['enrolled', 'completed', 'dropped'].map((s) => ({ name: s, value: roster.filter((r) => r.status === s).length })).filter((x) => x.value);
@@ -168,6 +169,27 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
             {!sched.length && <p className="text-sm text-slate-500">The 30/60/90 schedule is created when the cohort finishes.</p>}
           </div>
         </Card>
+        {forms.length > 0 && (
+          <Card title="Follow-up forms received" subtitle="Day 30, 60 and 90 visits sent from the Google Form. Open one to read the full answers.">
+            <div className="space-y-2">
+              {forms.map((f) => (
+                <details key={f.id} className="rounded-lg border border-teal-100 bg-white p-3" open={f.urgent}>
+                  <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="font-bold text-teal">{f.participant_name} · Day {f.stage}</span>
+                    <span className="flex items-center gap-2"><span className="text-xs text-slate-500">{d(f.visited_on)}</span>
+                      {f.urgent && <Badge tone="red">urgent</Badge>}
+                      {f.business_status && <Badge tone={f.business_status === 'growing' || f.business_status === 'stable' ? 'green' : 'red'}>{f.business_status}</Badge>}</span>
+                  </summary>
+                  <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+                    {Object.entries(f.answers as Record<string, unknown>).filter(([k, v]) => !k.startsWith('_') && String(v ?? '').trim()).map(([k, v]) => (
+                      <div key={k} className="contents"><dt className="font-bold text-slate-600">{k.replace(/_/g, ' ')}</dt><dd className="whitespace-pre-wrap">{String(v)}</dd></div>
+                    ))}
+                  </dl>
+                </details>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
       <ImgBand src="/images/home-facilitator.jpg" className="mt-6 h-40" caption="Start. Start small. Start to finish." />
     </>

@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -203,6 +203,23 @@ ok('master trainer cannot read agreements', (await n('master', 'select 1 from ag
 ok('master trainer cannot edit an organisation', (await as('master', `update organisations set name = name returning id`)).length === 0);
 ok('master trainer can log a call', (await asErr('master', `insert into crm_activities(organisation_id,kind,outcome,summary,logged_by) select id,'call','reached','test',app.me() from organisations limit 1`)) === null);
 ok('the co-founder still sees it as unread', (await as('cofounder', `select 1 from alert_reads`)).length === 0);
+
+// detailed follow-up forms
+const before = (await as('founder', 'select 1 from founder_alerts')).length;
+const enr = (await db.query('select e.id enrolment, e.cohort_id cohort from enrolments e limit 1')).rows[0];
+await db.query(`insert into followup_schedule(enrolment_id, visit, due_date) values ($1, 90, current_date) on conflict do nothing`, [enr.enrolment]);
+await db.exec(`reset role;`);
+const ff = (await db.query(`insert into followup_forms(stage, cohort_id, enrolment_id, participant_name, business_status, urgent, answers) values (90, $1, $2, 'Test Participant', 'struggling', true, '{"a7_words":"no customers"}'::jsonb) returning id`, [enr.cohort, enr.enrolment])).rows[0];
+ok('a follow-up form raised one urgent founder alert', (await as('founder', `select 1 from founder_alerts where source_table='followup_forms' and severity='urgent'`)).length === 1);
+await db.query(`select set_config('app.skip_alert','1', false)`);
+const sched = (await db.query('select id from followup_schedule where enrolment_id=$1 and visit=90', [enr.enrolment])).rows[0];
+await db.query(`insert into followup_visits(schedule_id, visited_on) values ($1, current_date) on conflict do nothing`, [sched.id]);
+await db.query(`select set_config('app.skip_alert','', false)`);
+ok('filling the standard visit from the form raises no second alert', (await as('founder', `select 1 from founder_alerts where source_table='followup_visits'`)).length === (await as('founder', `select 1 from founder_alerts where source_table='followup_visits'`)).length && (await as('founder', 'select 1 from founder_alerts')).length === before + 1);
+ok('founder can read follow-up forms', (await n('founder', 'select 1 from followup_forms')) === 1);
+ok('a participant cannot read follow-up forms', (await n('zawadi', 'select 1 from followup_forms')) === 0);
+ok('a partner cannot read follow-up forms', (await n('ke358', 'select 1 from followup_forms')) === 0);
+ok('trainers cannot write follow-up forms directly', (await asErr('tier1', `insert into followup_forms(stage, participant_name) values (30, 'x')`)) !== null);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
