@@ -2,7 +2,7 @@ import { asAdmin } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
 import { ANGLES, PLATFORMS, angleLabel } from '@/lib/social';
-import { submitIdea, saveDrafts, sendForApproval, approveIdea, returnIdea, markPosted } from '../../social-actions';
+import { submitIdea, editMyIdea, saveDrafts, sendForApproval, approveIdea, returnIdea, markPosted } from '../../social-actions';
 
 export const dynamic = 'force-dynamic';
 const ghost = 'rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal';
@@ -54,6 +54,23 @@ export default async function Social() {
             <p className="text-xs text-slate-500">By {i.author ?? 'the team'}{i.partner_name ? ` · with ${i.partner_name}` : ''} · {new Date(i.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' })}</p>
             <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{i.material}</p>
             {i.return_note && <p className="mt-2 rounded-lg bg-[#FFF3EF] p-2 text-sm text-[#C8553D]">Founders asked: {i.return_note}</p>}
+            {i.author_id === me.id && (i.status === 'idea' || i.status === 'returned') && (
+              <details className="mt-3 rounded-lg border border-teal-100 p-3">
+                <summary className="cursor-pointer text-sm font-bold text-teal">Edit my idea</summary>
+                <form action={editMyIdea} className="mt-3 space-y-3">
+                  <input type="hidden" name="id" value={i.id} />
+                  <input name="title" required defaultValue={i.title} className={inputCls} />
+                  <select name="angle" defaultValue={i.angle} className={inputCls}>{ANGLES.map((a) => <option key={a.key} value={a.key}>{a.label}: {a.hint}</option>)}</select>
+                  <textarea name="material" required rows={5} defaultValue={i.material} className={inputCls} />
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <input name="partner_name" defaultValue={i.partner_name ?? ''} placeholder="Partner organisation" className={inputCls} />
+                    <input name="partner_logo_url" defaultValue={i.partner_logo_url ?? ''} placeholder="Partner logo address" className={inputCls} />
+                    <input name="image_url" defaultValue={i.image_url ?? ''} placeholder="Picture address" className={inputCls} />
+                  </div>
+                  <button className={submitCls}>Save my changes</button>
+                </form>
+              </details>
+            )}
             {isFounder ? (
               <>
                 <form action={saveDrafts} className="mt-4 space-y-3 border-t border-teal-50 pt-4">

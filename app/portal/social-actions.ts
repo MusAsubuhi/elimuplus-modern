@@ -88,3 +88,20 @@ export async function markPosted(f: FormData) {
   revalidatePath(P);
   back('Marked as posted.');
 }
+
+/** Authors can fix their own idea while it is in the bank or after it was returned; it goes back to the founders as a fresh idea. */
+export async function editMyIdea(f: FormData) {
+  const me = await requireMe('founder', 'facilitator');
+  const id = s(f, 'id', 40), title = s(f, 'title', 160), angle = s(f, 'angle', 20), material = s(f, 'material', 4000);
+  if (!title || !material || !ANGLES.some((a) => a.key === angle)) back('Please keep a title, an angle and the real material.', 'err');
+  const logo = s(f, 'partner_logo_url', 300), image = s(f, 'image_url', 300);
+  if (!isUrl(logo) || !isUrl(image)) back('Picture and logo addresses must start with https://', 'err');
+  const done = await asAdmin((q) => q(
+    `update social_ideas set title=$3, angle=$4, material=$5, partner_name=$6, partner_logo_url=$7, image_url=$8, status='idea', return_note=null
+     where id=$1 and author_id=$2 and status in ('idea','returned') returning id`,
+    [id, me.id, title, angle, material, s(f, 'partner_name', 120) || null, logo || null, image || null]));
+  if (!done.length) back('That idea can no longer be edited because it is already with the founders for approval.', 'err');
+  await audit(me.id, 'social idea edited', 'social_ideas');
+  revalidatePath(P);
+  back('Saved. The founders will see your updated idea.');
+}
