@@ -16,3 +16,5 @@ create table if not exists public.form_registry (
 alter table public.form_registry enable row level security;
 drop policy if exists fr_read on public.form_registry;
 create policy fr_read on public.form_registry for select using (app.is_staff() or app.is_master_trainer());
+
+grant select on public.form_registry to authenticated;
