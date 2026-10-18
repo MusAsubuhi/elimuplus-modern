@@ -133,7 +133,8 @@ export async function broadcastDays(): Promise<Set<string>> {
 
 /** Makes sure Brevo tells the portal about unsubscribes, hard bounces and spam complaints. Safe to run twice. */
 export async function ensureWebhook(url: string): Promise<'created' | 'exists'> {
-  const j = await call('/webhooks?type=marketing', 'GET');
+  // Brevo answers 400 "Webhook record does not exist" when the account has no webhooks yet, which just means none are set up.
+  const j = await call('/webhooks?type=marketing', 'GET').catch((e) => (/does not exist|document_not_found/i.test(String(e.message)) ? { webhooks: [] } : Promise.reject(e)));
   if ((j.webhooks ?? []).some((w: any) => w.url === url)) return 'exists';
   await call('/webhooks', 'POST', { url, description: 'Elimu+ portal: unsubscribes and bounces', events: ['unsubscribed', 'hardBounce', 'spam'], type: 'marketing' });
   return 'created';
