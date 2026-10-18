@@ -72,9 +72,11 @@ function render(src: string): { hero: string; rows: string } {
 }
 
 /** One shared look for every automatic email, matching the Elimu+ newsletter: teal header with the logo, gold stripe, optional banner picture, headline, body, dark footer. */
-function wrap(opts: { greeting: string; headline: string; kicker?: string; body: string; button?: { label: string; url: string }; unsubscribeUrl?: string }): Pick<Mail, 'html' | 'text'> {
-  const { greeting, headline, kicker, body, button, unsubscribeUrl } = opts;
-  const { hero, rows } = render(body);
+function wrap(opts: { greeting: string; headline: string; kicker?: string; body: string; banner?: { image: string; alt: string }; button?: { label: string; url: string }; unsubscribeUrl?: string }): Pick<Mail, 'html' | 'text'> {
+  const { greeting, headline, kicker, body, button, unsubscribeUrl, banner } = opts;
+  const r = render(body);
+  const rows = r.rows;
+  const hero = r.hero || (banner ? `<tr><td><img src="${SITE}/images/${banner.image}" width="600" alt="${esc(banner.alt)}" style="width:100%;height:auto;display:block;border:0"></td></tr>` : '');
   const month = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'Africa/Nairobi' });
   const foot = unsubscribeUrl
     ? `You are receiving this because you joined the Elimu+ mailing list. We use your details only to send you our letters.<br><a href="${unsubscribeUrl}" style="color:${GOLD}">Unsubscribe</a> in one click &middot; <a href="${SITE}/privacy.html" style="color:${GOLD}">Privacy notice</a>`
@@ -111,7 +113,7 @@ export function welcomeEmail(name: string | undefined, unsubscribeUrl: string): 
     'Every so often we will send you something short and useful: what we are learning with participants, how to think about work and income, and news of our monthly seminars. If a message is not useful to you, you can unsubscribe with one click at the bottom of any email.',
     'You can reply to this email at any time; it comes straight to the team.',
   ];
-  return { subject: 'Welcome to Elimu+', ...wrap({ greeting: hi(name), headline: first(name) ? `Karibu, ${first(name)}. You are on the list.` : 'Karibu. You are on the list.', kicker: 'Welcome', body: paragraphs.join('\n\n'), button: { label: 'Visit elimuplus.com', url: 'https://elimuplus.com' }, unsubscribeUrl }) };
+  return { subject: 'Welcome to Elimu+', ...wrap({ greeting: hi(name), headline: first(name) ? `Karibu, ${first(name)}. You are on the list.` : 'Karibu. You are on the list.', kicker: 'Welcome', banner: { image: 'home-community.jpg', alt: 'The Elimu+ community in Likoni' }, body: paragraphs.join('\n\n'), button: { label: 'Visit elimuplus.com', url: 'https://elimuplus.com' }, unsubscribeUrl }) };
 }
 
 export function orgConfirmEmail(name: string | undefined, organisation: string | undefined): Mail {
@@ -120,7 +122,7 @@ export function orgConfirmEmail(name: string | undefined, organisation: string |
     `Thank you for registering your interest${who} with Elimu+. We have received your details.`,
     'One of our team will review them and be in touch within a few working days to talk about the next step. If anything changes in the meantime, simply reply to this email.',
   ];
-  return { subject: 'We have received your Elimu+ registration', ...wrap({ greeting: hi(name), headline: 'We have received your registration', kicker: 'Organisation registration', body: paragraphs.join('\n\n') }) };
+  return { subject: 'We have received your Elimu+ registration', ...wrap({ greeting: hi(name), headline: 'We have received your registration', kicker: 'Organisation registration', banner: { image: 'partner-church-hall.jpg', alt: 'Elimu+ training in a community hall' }, body: paragraphs.join('\n\n') }) };
 }
 
 export function trainerConfirmEmail(name: string | undefined): Mail {
@@ -128,7 +130,7 @@ export function trainerConfirmEmail(name: string | undefined): Mail {
     'Thank you for your interest in training with Elimu+. We have received your expression of interest.',
     'We review every one carefully and will be in touch. If you would like to add anything, simply reply to this email.',
   ];
-  return { subject: 'We have received your Elimu+ trainer interest', ...wrap({ greeting: hi(name), headline: 'Thank you for your interest in training', kicker: 'Trainer interest', body: paragraphs.join('\n\n') }) };
+  return { subject: 'We have received your Elimu+ trainer interest', ...wrap({ greeting: hi(name), headline: 'Thank you for your interest in training', kicker: 'Trainer interest', banner: { image: 'trainer-coaching.jpg', alt: 'An Elimu+ trainer coaching participants' }, body: paragraphs.join('\n\n') }) };
 }
 
 /** A weekly letter written in the portal: the body is plain text and a blank line starts a new paragraph. */
