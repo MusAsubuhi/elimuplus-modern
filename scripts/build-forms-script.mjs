@@ -719,6 +719,15 @@ function retryFailed() {
 }
 
 /** Tells the portal where every form and its response sheet live and how many responses Google holds, so the portal's Forms and responses page is always current. Runs every hour. */
+function linkTitle_(key) {
+  const L = { followup: 'Adult follow-up (Day 30, 60, 90)', youth_followup: 'Youth follow-up (Day 30, 60, 90)', baseline: 'Day 0 baseline', learning: 'Learning check', exit: 'Exit feedback', register: 'Participant registration' };
+  if (L[key]) return L[key];
+  if (key.indexOf('att_') === 0) return 'Attendance register (' + key.slice(4) + ')';
+  if (key.indexOf('obs_') === 0) return 'Observer form (' + key.slice(4) + ')';
+  if (TEMPLATES[key]) return TEMPLATES[key].name + ' day report';
+  return key;
+}
+
 function publishFormLinks() {
   const ids = J_('FORM_IDS', {});
   const forms = [];
@@ -730,7 +739,7 @@ function publishFormLinks() {
       try { sheet = 'https://docs.google.com/spreadsheets/d/' + form.getDestinationId() + '/edit'; } catch (x) { sheet = ''; }
       const kind = key === 'followup' || key === 'youth_followup' ? 'followup' : (key === 'baseline' || key === 'learning' || key === 'exit') ? 'start_end'
         : (key === 'register' || key.indexOf('att_') === 0 || key.indexOf('obs_') === 0) ? 'cohort' : /^[0-9]$/.test(key) ? 'report' : 'other';
-      forms.push({ key: key, title: form.getTitle(), kind: kind, fill_url: form.getPublishedUrl(), edit_url: form.getEditUrl(), sheet_url: sheet,
+      forms.push({ key: key, title: form.getTitle() || linkTitle_(key), kind: kind, fill_url: form.getPublishedUrl(), edit_url: form.getEditUrl(), sheet_url: sheet,
         google_responses: rs.length, last_response_at: rs.length ? rs[rs.length - 1].getTimestamp().toISOString() : null });
     } catch (err) { Logger.log('Could not read form ' + key + ': ' + err); }
   });
