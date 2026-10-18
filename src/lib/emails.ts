@@ -43,27 +43,8 @@ export function trainerConfirmEmail(name: string | undefined): Mail {
   return { subject: 'We have received your Elimu+ trainer interest', ...wrap({ greeting: hi(name), paragraphs }) };
 }
 
-/**
- * Evergreen letters, sent one per week in order to each new subscriber.
- * These are placeholders built only from what Elimu+ already says publicly; the founders should edit the wording before switching the sequence on.
- */
-export const SEQUENCE: { subject: string; paragraphs: string[] }[] = [
-  { subject: 'Start small: one problem worth solving', paragraphs: [
-    'Elimu+ begins with a simple idea: start small. Before a business plan or a job application, look around you for one real problem that people already pay money, time or effort to solve.',
-    'This week, write down three problems you saw in your own neighbourhood. Next to each, note who has it and what they do about it today. That short list is the beginning of every idea we work on with participants.' ] },
-  { subject: 'Turning your skills into value', paragraphs: [
-    'Most young people know more than they give themselves credit for. A skill becomes value when someone else can name the result it gives them.',
-    'Pick one skill you have and finish this sentence: "I help ___ to ___ so that ___." If you cannot finish it yet, that is useful to know, and it is where we start.' ] },
-  { subject: 'Thinking clearly about income', paragraphs: [
-    'Income thinking is about sustainability: what comes in, what goes out, and what is left to keep going. It applies whether you choose employment, entrepreneurship, or both.',
-    'Try tracking everything you spend and earn for one week. You do not need a spreadsheet; a notebook is enough. Patterns appear quickly.' ] },
-  { subject: 'Finishing what you start', paragraphs: [
-    'Many good ideas stop at the planning stage. Finishing is a habit, and habits grow from small, visible commitments.',
-    'Choose one small thing you can complete in three days and tell someone you trust that you will do it. Then report back to them. Accountability is the simplest system there is.' ] },
-];
-
-export function sequenceEmail(index: number, name: string | undefined, unsubscribeUrl: string): Mail | null {
-  const e = SEQUENCE[index];
-  if (!e) return null;
-  return { subject: e.subject, ...wrap({ greeting: hi(name), paragraphs: e.paragraphs, unsubscribeUrl }) };
+/** A weekly letter written in the portal: the body is plain text and a blank line starts a new paragraph. */
+export function letterEmail(subject: string, body: string, name: string | undefined, unsubscribeUrl: string): Mail {
+  const paragraphs = body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  return { subject, ...wrap({ greeting: hi(name), paragraphs, unsubscribeUrl }) };
 }

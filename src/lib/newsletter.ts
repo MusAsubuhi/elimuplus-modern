@@ -2,7 +2,7 @@ import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { asAdmin } from './db';
 import { sendTransactional, removeFromList, broadcastDays } from './brevo';
-import { welcomeEmail, orgConfirmEmail, trainerConfirmEmail, sequenceEmail, SEQUENCE } from './emails';
+import { welcomeEmail, orgConfirmEmail, trainerConfirmEmail, letterEmail } from './emails';
 
 const PORTAL = () => (process.env.PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '');
 const secret = () => process.env.NEWSLETTER_SECRET || process.env.CRON_SECRET || process.env.FORMS_WEBHOOK_SECRET || '';
@@ -107,15 +107,18 @@ export async function runSequence(): Promise<{ sent: number; skipped?: string }>
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' });
   try { if ((await broadcastDays()).has(today)) return { sent: 0, skipped: 'a campaign goes out today' }; }
   catch (e) { return { sent: 0, skipped: 'could not check Brevo campaigns' }; }
+  const letters = await asAdmin((q) => q('select subject, body from newsletter_letters order by position, created_at'));
+  if (!letters.length) return { sent: 0, skipped: 'there are no letters yet' };
   const due = await asAdmin((q) => q(
     `select email, name, seq_sent from newsletter_subscribers
      where unsubscribed_at is null and welcomed_at is not null and seq_sent < $1
        and coalesce(seq_last_sent_at, welcomed_at) <= now() - interval '7 days'
-     order by welcomed_at limit 50`, [SEQUENCE.length]));
+     order by welcomed_at limit 50`, [letters.length]));
   let sent = 0;
   for (const s of due) {
-    const m = sequenceEmail(s.seq_sent, (s.name || '').split(' ')[0] || undefined, unsubscribeUrl(s.email));
-    if (!m) continue;
+    const l = letters[s.seq_sent];
+    if (!l) continue;
+    const m = letterEmail(l.subject, l.body, (s.name || '').split(' ')[0] || undefined, unsubscribeUrl(s.email));
     try {
       await sendTransactional({ to: s.email, name: s.name || undefined, subject: m.subject, html: m.html, text: m.text, headers: listHeaders(s.email), tags: ['sequence'] });
       await asAdmin((q) => q('update newsletter_subscribers set seq_sent = seq_sent + 1, seq_last_sent_at = now() where email=$1', [s.email]));
@@ -124,4 +127,10 @@ export async function runSequence(): Promise<{ sent: number; skipped?: string }>
     } catch (err: any) { await log('sequence', s.email, `letter ${s.seq_sent + 1}`, String(err.message).slice(0, 200)); }
   }
   return { sent };
+}
+
+/** Sends one letter to a single address so a founder can see exactly how it will look. */
+export async function sendLetterTest(to: string, subject: string, body: string) {
+  const m = letterEmail(`[Test] ${subject}`, body, 'there', unsubscribeUrl(to));
+  await sendTransactional({ to, subject: m.subject, html: m.html, text: m.text, tags: ['letter-test'] });
 }

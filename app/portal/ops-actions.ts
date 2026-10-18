@@ -6,7 +6,7 @@ import { requireMe } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { notify, flushAlerts } from '@/lib/mail';
 import { checkKey, syncNewsletter, ensureWebhook } from '@/lib/brevo';
-import { setSequenceOn, sequenceOn } from '@/lib/newsletter';
+import { setSequenceOn, sequenceOn, sendLetterTest } from '@/lib/newsletter';
 import { CONCERN_FROM_TEXT, reportLevelOf, templateFor } from '@/lib/levels';
 
 const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never =>
@@ -218,4 +218,48 @@ export async function connectBrevoWebhook() {
     if (e?.digest) throw e;
     back('/portal/alerts', String(e.message).slice(0, 160), 'err');
   }
+}
+
+const trim = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
+
+export async function saveLetter(f: FormData) {
+  const me = await requireMe('founder');
+  const id = trim(f, 'id'), subject = trim(f, 'subject').slice(0, 150), body = trim(f, 'body').slice(0, 8000);
+  if (!subject || !body) back('/portal/newsletter', 'A letter needs a subject and some text.', 'err');
+  if (id) await asAdmin((q) => q('update newsletter_letters set subject=$2, body=$3 where id=$1', [id, subject, body]));
+  else await asAdmin((q) => q('insert into newsletter_letters (position, subject, body) values ((select coalesce(max(position),0)+1 from newsletter_letters), $1, $2)', [subject, body]));
+  await audit(me.id, id ? 'weekly letter edited' : 'weekly letter added', 'newsletter_letters');
+  revalidatePath('/portal/newsletter');
+  back('/portal/newsletter', id ? 'Letter saved.' : 'Letter added at the end of the sequence.');
+}
+
+export async function deleteLetter(f: FormData) {
+  const me = await requireMe('founder');
+  await asAdmin((q) => q('delete from newsletter_letters where id=$1', [trim(f, 'id')]));
+  await audit(me.id, 'weekly letter deleted', 'newsletter_letters');
+  revalidatePath('/portal/newsletter');
+  back('/portal/newsletter', 'Letter deleted.');
+}
+
+export async function moveLetter(f: FormData) {
+  await requireMe('founder');
+  const id = trim(f, 'id'), dir = trim(f, 'dir') === 'up' ? -1 : 1;
+  await asAdmin(async (q) => {
+    const rows = await q('select id from newsletter_letters order by position, created_at');
+    const i = rows.findIndex((r) => r.id === id), j = i + dir;
+    if (i < 0 || j < 0 || j >= rows.length) return;
+    [rows[i], rows[j]] = [rows[j], rows[i]];
+    for (let n = 0; n < rows.length; n++) await q('update newsletter_letters set position=$2 where id=$1', [rows[n].id, n + 1]);
+  });
+  revalidatePath('/portal/newsletter');
+  redirect('/portal/newsletter');
+}
+
+export async function testLetter(f: FormData) {
+  const me = await requireMe('founder');
+  const to = (await asAdmin((q) => q('select lower(email) e from people where id=$1', [me.id])))[0]?.e;
+  if (!to || !to.includes('@')) back('/portal/newsletter', 'Save your email on the Alerts page first.', 'err');
+  try { await sendLetterTest(to, trim(f, 'subject'), trim(f, 'body')); }
+  catch (e: any) { back('/portal/newsletter', String(e.message).slice(0, 160), 'err'); }
+  back('/portal/newsletter', `Test sent to ${to}.`);
 }
