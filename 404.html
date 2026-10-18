@@ -131,6 +131,25 @@
           </div>
         </div>
       </div>
+      <div class="subscribe">
+        <div class="subscribe__text">
+          <h4>Get the Elimu+ letter</h4>
+          <p>Short, honest updates on what we teach, what we are learning and what is coming. Unsubscribe any time. <span class="sw">Pata barua ya Elimu+.</span></p>
+        </div>
+        <form class="subscribe__form js-form" action="https://portal.elimuplus.com/api/newsletter/subscribe" method="POST" novalidate>
+          <div class="subscribe__row">
+            <label class="visually-hidden" for="sub-name">First name</label>
+            <input type="text" id="sub-name" name="name" placeholder="First name" autocomplete="given-name">
+            <label class="visually-hidden" for="sub-email">Email</label>
+            <input type="email" id="sub-email" name="email" placeholder="Your email" required autocomplete="email">
+            <button type="submit" class="btn btn--primary">Subscribe</button>
+          </div>
+          <div class="field--honeypot" aria-hidden="true"><label for="sub-gotcha">Leave this blank</label><input type="text" id="sub-gotcha" name="_gotcha" tabindex="-1" autocomplete="off"></div>
+          <label class="subscribe__consent"><input type="checkbox" name="consent" value="yes" required> I agree to receive the Elimu+ newsletter by email. <a href="privacy.html">Privacy notice</a></label>
+          <div class="form-feedback form-feedback--success" role="status">Asante! You are on the list.</div>
+          <div class="form-feedback form-feedback--error" role="alert">That did not work. Please check your email address, or message us on WhatsApp.</div>
+        </form>
+      </div>
       <div class="footer__bottom">
         <span>© 2026 Elimu+. All rights reserved. <a href="/privacy.html" class="footer__legal">Privacy notice</a></span>
         <span>Built for the entrepreneurs of Likoni.</span>
