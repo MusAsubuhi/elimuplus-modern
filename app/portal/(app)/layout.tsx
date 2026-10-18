@@ -18,6 +18,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/reports', label: 'Day reports', icon: '✎' },
     { href: '/portal/requests', label: 'My requests', icon: '₭' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
+    { href: '/portal/social', label: 'Social ideas', icon: '✦' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer', items: [
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
@@ -25,6 +26,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/forms', label: 'Forms and responses', icon: '▤' },
     { href: '/portal/seminars', label: 'Monthly seminars', icon: '☼' },
     { href: '/portal/newsletter', label: 'Weekly letters', icon: '✉' },
+    { href: '/portal/social', label: 'Social ideas', icon: '✦' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   org_admin: { title: 'Partner', items: [
@@ -38,6 +40,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/forms', label: 'Forms and responses', icon: '▤' },
     { href: '/portal/seminars', label: 'Monthly seminars', icon: '☼' },
     { href: '/portal/newsletter', label: 'Weekly letters', icon: '✉' },
+    { href: '/portal/social', label: 'Social ideas', icon: '✦' },
     { href: '/portal/alerts', label: 'Alerts', icon: '⚑' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/finance', label: 'Finance', icon: '₭' },
