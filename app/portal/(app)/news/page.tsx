@@ -16,9 +16,9 @@ export default async function News({ searchParams }: { searchParams: Promise<{ r
   const region = REGIONS.some((x) => x.key === r) ? (r as string) : 'local';
   const { items, counts, follow } = await asAdmin(async (q) => ({
     items: await q(`select n.*, (select count(*)::int from news_followups f where f.item_id=n.id and f.status='open') open_follow
-                    from news_items n where n.region=$1 and not n.hidden and coalesce(n.published_on, n.created_at::date) > current_date - 21
+                    from news_items n where n.region=$1 and not n.hidden and coalesce(n.published_on, n.created_at::date) > current_date - 60
                     order by (n.origin='curated') desc, coalesce(n.published_on, n.created_at::date) desc, n.created_at desc limit 40`, [region]),
-    counts: await q(`select region, count(*)::int n from news_items where not hidden and coalesce(published_on, created_at::date) > current_date - 21 group by region`),
+    counts: await q(`select region, count(*)::int n from news_items where not hidden and coalesce(published_on, created_at::date) > current_date - 60 group by region`),
     follow: await q(`select f.*, n.title, n.region, p.full_name who from news_followups f join news_items n on n.id=f.item_id left join people p on p.id=f.person_id
                      where f.status='open' order by f.created_at desc limit 20`),
   }));
@@ -43,7 +43,7 @@ export default async function News({ searchParams }: { searchParams: Promise<{ r
           </ul>
         </Card>)}
 
-      {items.length === 0 ? <Card><p className="text-sm text-slate-600">Nothing in this region in the last three weeks. The morning digest and feed fill this in.</p></Card> : items.map((i: any) => (
+      {items.length === 0 ? <Card><p className="text-sm text-slate-600">Nothing in this region in the last two months. The morning digest and feed fill this in.</p></Card> : items.map((i: any) => (
         <Card key={i.id} title={i.title} className="mb-4" action={<div className="flex gap-2"><Badge tone={i.origin === 'curated' ? 'green' : 'grey'}>{i.origin === 'curated' ? 'Curated' : 'Feed'}</Badge>{i.open_follow > 0 && <Badge tone="gold">Follow-up open</Badge>}</div>}>
           <p className="text-xs text-slate-500">{[i.source_name, d(i.published_on)].filter(Boolean).join(' · ')}</p>
           {i.summary && <p className="mt-2 text-sm text-slate-700">{i.summary}</p>}
