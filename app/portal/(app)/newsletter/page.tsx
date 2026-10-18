@@ -18,6 +18,32 @@ export default async function Letters() {
         <p className="text-sm text-slate-700">Status: <b>{on ? 'ON' : 'OFF'}</b>. {letters.length} letter{letters.length === 1 ? '' : 's'}. After the last letter a subscriber stops receiving the sequence, so keep adding. The sequence skips any day a Brevo campaign goes out.</p>
         <form action={toggleSequence} className="mt-3"><button className={ghost}>{on ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
       </Card>
+      <Card title="How to format a letter" subtitle="Write plain text; these little codes turn into pictures, buttons and links, the same look as the Brevo newsletter." className="mb-6">
+        <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-[#F5FAF8] p-3 text-xs leading-relaxed text-slate-700">{`A blank line starts a new paragraph.
+
+## A section heading
+
+![Caption under the picture](https://elimuplus.com/images/home-canvas-hands.jpg)
+   (a picture on its own; the first one at the top becomes the banner)
+
+Words in **bold** and a [live link](https://elimuplus.com/calculator.html).
+
+- A bullet point
+- Another bullet point
+
+[button: Register your organisation](https://elimuplus.com/join.html)
+[button2: Become a trainer](https://elimuplus.com/trainer.html)
+   (buttons on neighbouring lines sit side by side; use [gold: ...] for a gold one)
+
+stat: 8 of 10 | businesses confirmed operating
+stat: 5 of 10 | women reporting rising income
+   (up to three number cards in a row)
+
+> Box title
+> A line of text inside the dark box
+> [gold: Button inside the box](https://elimuplus.com/calculator.html)`}</pre>
+        <p className="mt-3 text-xs text-slate-600">Pictures must be public web addresses. Anything already on the website works, for example https://elimuplus.com/images/ followed by home-canvas-hands.jpg, home-follow-up-visit.jpg, programme-mwanahamisi.jpg, programme-adult-session.jpg, partner-church-hall.jpg or trainer-coaching.jpg. Links back to elimuplus.com are tagged automatically so you can see the clicks in analytics. The test button shows exactly how it will look.</p>
+      </Card>
       {letters.map((l: any, i: number) => (
         <Card key={l.id} title={`Letter ${i + 1}`} className="mb-4" action={<Badge tone="grey">{`week ${i + 1}`}</Badge>}>
           <form action={saveLetter} className="space-y-3">
