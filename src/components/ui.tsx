@@ -98,3 +98,15 @@ export function Btn({ href, children, variant = 'primary' }: { href: string; chi
 }
 export const submitCls = 'rounded-lg bg-teal px-4 py-2 text-sm font-bold text-white hover:bg-teal-700 disabled:opacity-50';
 export const inputCls = 'w-full rounded-lg border border-teal-100 bg-white px-3 py-2 text-sm focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal';
+
+
+/** Wraps a section for people who may look but not change: shows a note and switches every form control off. */
+export function ViewOnly({ view, children }: { view: boolean; children: ReactNode }) {
+  if (!view) return <>{children}</>;
+  return (
+    <>
+      <div className="mb-4 rounded-lg border border-gold bg-gold-100 px-4 py-2 text-xs font-semibold text-gold-600">View only: you can read everything here, but changes are switched off for your account. Ask a founder if you need to edit.</div>
+      <fieldset disabled className="m-0 min-w-0 border-0 p-0 opacity-95">{children}</fieldset>
+    </>
+  );
+}

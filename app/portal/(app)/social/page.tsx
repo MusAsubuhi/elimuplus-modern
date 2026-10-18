@@ -1,6 +1,6 @@
 import { asAdmin } from '@/lib/db';
-import { requireFeature } from '@/lib/access';
-import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
+import { requireFeature, featureLevel } from '@/lib/access';
+import { Badge, Card, PageHeader, inputCls, submitCls , ViewOnly } from '@/components/ui';
 import { ANGLES, PLATFORMS, angleLabel } from '@/lib/social';
 import { submitIdea, editMyIdea, saveDrafts, sendForApproval, approveIdea, returnIdea } from '../../social-actions';
 
@@ -11,6 +11,7 @@ const LABEL: Record<string, string> = { idea: 'In the bank', pending: 'Awaiting 
 
 export default async function Social() {
   const me = await requireFeature('social');
+  const view = (await featureLevel(me, 'social')) !== 'edit';
   const isFounder = me.roles.includes('founder');
   const ideas = await asAdmin((q) => q(
     `select i.*, p.full_name author, (select coalesce(json_agg(a.person_id),'[]') from social_approvals a where a.idea_id=i.id) approvals
@@ -22,6 +23,7 @@ export default async function Social() {
   return (
     <>
       <PageHeader title="Social ideas" subtitle="Our content is built by the whole team. Share a real idea; the founders turn it into posts, both approve, and you are credited." />
+      <ViewOnly view={view}>
       <Card title="Not sure what to share? Examples of the four angles" subtitle="Write as much as you like, in your own words, in English or Swahili. Length does not matter: the founders adapt it for WhatsApp, Facebook, Instagram and LinkedIn." className="mb-6">
         <div className="grid gap-4 md:grid-cols-2">
           {[
@@ -124,6 +126,7 @@ export default async function Social() {
           </Card>
         );
       })}
+      </ViewOnly>
     </>
   );
 }

@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requireFeature } from '@/lib/access';
 import { loadImpact, totals } from '@/lib/impact';
 import { Outcomes } from '@/components/outcomes';
 import { Badge, Card, PageHeader, Stat, Table, statusTone } from '@/components/ui';
 import { d, kes, pct } from '@/lib/format';
 
 export default async function Impact({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
-  const me = await requireMe('founder', 'master');
+  const me = await requireFeature('impact');
   const sp = await searchParams;
   const list = await asUser(me.id, (q) => loadImpact(q));
   const t = totals(list);

@@ -13,7 +13,7 @@ const s = (f: FormData, k: string, n = 2000) => String(f.get(k) ?? '').trim().sl
 const isUrl = (u: string) => !u || /^https:\/\/\S+$/.test(u);
 
 export async function submitIdea(f: FormData) {
-  const me = await requireFeature('social');
+  const me = await requireFeature('social', 'edit');
   const title = s(f, 'title', 160), angle = s(f, 'angle', 20), material = s(f, 'material', 4000);
   if (!title || !material || !ANGLES.some((a) => a.key === angle)) back('Please give a title, an angle and the real material behind the idea.', 'err');
   if (f.get('consent') !== 'on') back('Please confirm that nobody is named or shown without their consent.', 'err');
@@ -96,7 +96,7 @@ export async function markPosted(f: FormData) {
 
 /** Authors can fix their own idea while it is in the bank or after it was returned; it goes back to the founders as a fresh idea. */
 export async function editMyIdea(f: FormData) {
-  const me = await requireFeature('social');
+  const me = await requireFeature('social', 'edit');
   const id = s(f, 'id', 40), title = s(f, 'title', 160), angle = s(f, 'angle', 20), material = s(f, 'material', 4000);
   if (!title || !material || !ANGLES.some((a) => a.key === angle)) back('Please keep a title, an angle and the real material.', 'err');
   const logo = s(f, 'partner_logo_url', 300), image = s(f, 'image_url', 300);
@@ -118,7 +118,7 @@ const num = (f: FormData, k: string) => { const v = String(f.get(k) ?? '').trim(
 
 /** Founder records that an approved post went out on one platform. */
 export async function recordPosted(f: FormData) {
-  const me = await requireFeature('social_publish');
+  const me = await requireFeature('social_publish', 'edit');
   const id = s(f, 'id', 40), platform = s(f, 'platform', 20), url = s(f, 'post_url', 300);
   if (!PLATFORM_KEYS.includes(platform)) redirect(`${CAL}?err=${encodeURIComponent('Unknown platform.')}`);
   if (url && !/^https:\/\/\S+$/.test(url)) redirect(`${CAL}?err=${encodeURIComponent('The post address must start with https://')}`);
@@ -137,7 +137,7 @@ export async function recordPosted(f: FormData) {
 }
 
 export async function saveMetrics(f: FormData) {
-  const me = await requireFeature('social_insights');
+  const me = await requireFeature('social_insights', 'edit');
   const id = s(f, 'post', 40);
   await asAdmin((q) => q(
     `update social_posts set reach=$2, reactions=$3, comments=$4, shares=$5, saves=$6, replies=$7, followers_gained=$8, note=$9, metrics_updated_at=now() where id=$1`,
@@ -149,7 +149,7 @@ export async function saveMetrics(f: FormData) {
 
 /** Makes a short tracked link for one idea and platform; clicks on it are counted by the portal. */
 export async function createLink(f: FormData) {
-  const me = await requireFeature('social_publish');
+  const me = await requireFeature('social_publish', 'edit');
   const id = s(f, 'id', 40), platform = s(f, 'platform', 20), target = s(f, 'target', 400) || 'https://elimuplus.com';
   if (!PLATFORM_KEYS.includes(platform) || !/^https:\/\/\S+$/.test(target)) redirect(`${CAL}?err=${encodeURIComponent('Check the platform and that the address starts with https://')}`);
   const code = (await import('node:crypto')).randomBytes(4).toString('base64url').replace(/[-_]/g, 'x').slice(0, 6).toLowerCase();

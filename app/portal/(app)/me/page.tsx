@@ -8,10 +8,10 @@ import { BarCard, Gauge } from '@/components/charts';
 import { d } from '@/lib/format';
 
 export default async function MyJourney() {
-  const me = await requireMe('participant', 'founder');
+  const me = await requireMe('participant', 'founder', 'master', 'facilitator');
   const lang = await getLang(me);
   const ctx = await asUser(me.id, (q) => participantContext(q, me.id));
-  if (!ctx) return <Card title="No cohort yet">{me.roles.includes('founder') ? <>You have not started the participant journey. <Link href="/portal/journey" className="font-bold text-teal underline">Start it here</Link>.</> : 'You are not enrolled in a cohort yet. Your facilitator will add you.'}</Card>;
+  if (!ctx) return <Card title="No cohort yet">{!me.roles.includes('participant') ? <>You have not started the participant journey. <Link href="/portal/journey" className="font-bold text-teal underline">Start it here</Link>.</> : 'You are not enrolled in a cohort yet. Your facilitator will add you.'}</Card>;
   const { en, boxes, unlocked, filled, schedule, canvas } = ctx;
   const nameOf = (n: number) => boxes.find((b) => b.number === n)?.[lang === 'sw' ? 'name_sw' : 'name_en'];
   const pct = Math.round((filled.size / 12) * 100);

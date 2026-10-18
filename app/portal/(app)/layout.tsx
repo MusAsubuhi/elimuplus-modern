@@ -23,8 +23,6 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer', items: [
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
-    { href: '/portal/impact', label: 'Impact', icon: '▲' },
-    { href: '/portal/forms', label: 'Forms and responses', icon: '▤' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   org_admin: { title: 'Partner', items: [

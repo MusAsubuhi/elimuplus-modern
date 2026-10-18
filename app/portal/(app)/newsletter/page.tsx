@@ -1,19 +1,21 @@
 import { asAdmin } from '@/lib/db';
-import { requireFeature } from '@/lib/access';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { sequenceOn } from '@/lib/newsletter';
-import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
+import { Badge, Card, PageHeader, inputCls, submitCls , ViewOnly } from '@/components/ui';
 import { saveLetter, deleteLetter, moveLetter, testLetter, toggleSequence } from '../../ops-actions';
 
 export const dynamic = 'force-dynamic';
 const ghost = 'rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal';
 
 export default async function Letters() {
-  await requireFeature('newsletter');
+  const me = await requireFeature('newsletter');
+  const view = (await featureLevel(me, 'newsletter')) !== 'edit';
   const letters = await asAdmin((q) => q('select * from newsletter_letters order by position, created_at'));
   const on = await sequenceOn();
   return (
     <>
       <PageHeader title="Weekly letters" subtitle="Each new subscriber receives these one a week, in this order, starting a week after their welcome email." />
+      <ViewOnly view={view}>
       <Card title="Sequence" className="mb-6">
         <p className="text-sm text-slate-700">Status: <b>{on ? 'ON' : 'OFF'}</b>. {letters.length} letter{letters.length === 1 ? '' : 's'}. After the last letter a subscriber stops receiving the sequence, so keep adding. The sequence skips any day a Brevo campaign goes out.</p>
         <form action={toggleSequence} className="mt-3"><input type="hidden" name="back" value="/portal/newsletter" /><button className={ghost}>{on ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
@@ -67,6 +69,7 @@ stat: 5 of 10 | women reporting rising income
           <div className="flex gap-2"><button className={submitCls}>Add letter</button><button formAction={testLetter} className={ghost}>Send me a test</button></div>
         </form>
       </Card>
+      </ViewOnly>
     </>
   );
 }

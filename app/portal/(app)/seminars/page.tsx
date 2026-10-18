@@ -1,6 +1,6 @@
 import { asAdmin } from '@/lib/db';
-import { requireFeature } from '@/lib/access';
-import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
+import { requireFeature, featureLevel } from '@/lib/access';
+import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls , ViewOnly } from '@/components/ui';
 import { FEEDBACK_SCALES, FEEDBACK_TEXT, HOST_FIELDS } from '@/lib/seminar';
 import { createSeminar, saveHostReport, setSeminarStatus } from '../../seminar-actions';
 
@@ -9,7 +9,8 @@ const day = (x: any) => new Date(x).toLocaleDateString('en-GB', { weekday: 'shor
 const avg = (rows: any[], k: string) => { const v = rows.map((r) => Number(r.answers?.[k])).filter((n) => n > 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '–'; };
 
 export default async function Seminars() {
-  await requireFeature('seminars');
+  const me = await requireFeature('seminars');
+  const view = (await featureLevel(me, 'seminars')) !== 'edit';
   const { seminars, entries } = await asAdmin(async (q) => ({
     seminars: await q('select * from seminars order by held_on desc limit 24'),
     entries: await q('select seminar_id, kind, name, phone, email, group_label, newsletter_consent, answers, created_at from seminar_entries order by created_at'),
@@ -18,6 +19,7 @@ export default async function Seminars() {
   return (
     <>
       <PageHeader title="Monthly seminars" subtitle="Create a seminar, share its sign-in and feedback links, then record the host report once the day is over." />
+      <ViewOnly view={view}>
       <Card title="New seminar" className="mb-6">
         <form action={createSeminar} className="grid gap-3 sm:grid-cols-4">
           <input name="title" required placeholder="Title, e.g. October participants' forum" className={`${inputCls} sm:col-span-2`} />
@@ -69,6 +71,7 @@ export default async function Seminars() {
           </Card>
         );
       })}
+      </ViewOnly>
     </>
   );
 }

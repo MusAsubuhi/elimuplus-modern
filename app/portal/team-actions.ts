@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { asAdmin, asUser, dbMode, type Q } from '@/lib/db';
 import { requireMe } from '@/lib/session';
+import { requireFeature } from '@/lib/access';
 import { normPhone, provisionLogin, tempPin } from '@/lib/accounts';
 import { audit } from '@/lib/audit';
 import { notify } from '@/lib/mail';
@@ -149,28 +150,31 @@ export async function issueCertificate(f: FormData) {
 
 /* ---------- founders go through the journey they teach ---------- */
 export async function startJourney(f: FormData) {
-  const me = await requireMe('founder');
+  const me = await requireFeature('journey', 'edit');
   const kind = s(f, 'kind');
+  // Writes are limited to the signed-in person's own id, so a trainer can only ever start their own journey.
   try {
-    await asUser(me.id, async (q) => {
+    await asAdmin(async (q) => {
       if (kind === 'facilitator') {
+        if (!me.roles.includes('founder')) return; // trainers already hold a facilitator role
         const has = await q("select 1 from role_assignments where person_id=$1 and role='facilitator' and status='active'", [me.id]);
         if (!has.length) await q("insert into role_assignments(person_id, role, tier) values ($1,'facilitator',1)", [me.id]);
         return;
       }
       let org = (await q('select id from organisations where is_internal limit 1'))[0];
       if (!org) org = (await q(
-        `insert into organisations(name,type,status,county,ward,is_internal) values ('Elimu+ founders'' own cohort','other','active','Mombasa','Likoni',true) returning id`))[0];
+        `insert into organisations(name,type,status,county,ward,is_internal) values ('Elimu+ team''s own cohort','other','active','Mombasa','Likoni',true) returning id`))[0];
       let cohort = (await q("select id from cohorts where organisation_id=$1 and status <> 'closed' order by created_at limit 1", [org.id]))[0];
       if (!cohort) cohort = (await q(
         `insert into cohorts(organisation_id,name,format,language,audience,start_date,venue,status)
-         values ($1,'Founders'' cohort','5-day','en','Founders take the journey they teach',current_date,'Self-paced','delivering') returning id`, [org.id]))[0];
+         values ($1,'Team cohort','5-day','en','The team takes the journey it teaches',current_date,'Self-paced','delivering') returning id`, [org.id]))[0];
       const has = await q("select 1 from role_assignments where person_id=$1 and role='participant' and status='active'", [me.id]);
       if (!has.length) await q("insert into role_assignments(person_id, role, organisation_id) values ($1,'participant',$2)", [me.id, org.id]);
       await enrol(q, cohort.id, me.id);
       await q('insert into canvas_unlocks(cohort_id, box_number) select $1, number from canvas_boxes on conflict do nothing', [cohort.id]);
     });
   } catch (e) { console.error("[portal action]", e); back('/portal/journey', 'Could not start that journey.', 'err'); }
+  await audit(me.id, `started the ${kind} journey`, 'role_assignments');
   revalidatePath('/portal', 'layout');
   back('/portal/journey', kind === 'facilitator' ? 'Your facilitator pathway has started at Tier 1.' : 'Your participant journey has started. All twelve canvas boxes are open for you.');
 }

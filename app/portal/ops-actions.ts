@@ -199,7 +199,7 @@ export async function syncNewsletterNow() {
 }
 
 export async function toggleSequence(f: FormData) {
-  const me = await requireFeature('newsletter');
+  const me = await requireFeature('newsletter', 'edit');
   const to = String(f.get('back') ?? '') === '/portal/newsletter' ? '/portal/newsletter' : '/portal/alerts';
   const next = !(await sequenceOn());
   await setSequenceOn(next);
@@ -225,7 +225,7 @@ export async function connectBrevoWebhook() {
 const trim = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 
 export async function saveLetter(f: FormData) {
-  const me = await requireFeature('newsletter');
+  const me = await requireFeature('newsletter', 'edit');
   const id = trim(f, 'id'), subject = trim(f, 'subject').slice(0, 150), body = trim(f, 'body').slice(0, 8000);
   if (!subject || !body) back('/portal/newsletter', 'A letter needs a subject and some text.', 'err');
   if (id) await asAdmin((q) => q('update newsletter_letters set subject=$2, body=$3 where id=$1', [id, subject, body]));
@@ -236,7 +236,7 @@ export async function saveLetter(f: FormData) {
 }
 
 export async function deleteLetter(f: FormData) {
-  const me = await requireFeature('newsletter');
+  const me = await requireFeature('newsletter', 'edit');
   await asAdmin((q) => q('delete from newsletter_letters where id=$1', [trim(f, 'id')]));
   await audit(me.id, 'weekly letter deleted', 'newsletter_letters');
   revalidatePath('/portal/newsletter');
@@ -244,7 +244,7 @@ export async function deleteLetter(f: FormData) {
 }
 
 export async function moveLetter(f: FormData) {
-  await requireFeature('newsletter');
+  await requireFeature('newsletter', 'edit');
   const id = trim(f, 'id'), dir = trim(f, 'dir') === 'up' ? -1 : 1;
   await asAdmin(async (q) => {
     const rows = await q('select id from newsletter_letters order by position, created_at');
@@ -258,7 +258,7 @@ export async function moveLetter(f: FormData) {
 }
 
 export async function testLetter(f: FormData) {
-  const me = await requireFeature('newsletter');
+  const me = await requireFeature('newsletter', 'edit');
   const to = (await asAdmin((q) => q('select lower(email) e from people where id=$1', [me.id])))[0]?.e;
   if (!to || !to.includes('@')) back('/portal/newsletter', 'Save your email on the Alerts page first.', 'err');
   try { await sendLetterTest(to, trim(f, 'subject'), trim(f, 'body')); }

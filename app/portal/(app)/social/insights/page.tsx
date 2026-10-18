@@ -1,6 +1,6 @@
 import { asAdmin } from '@/lib/db';
-import { requireFeature } from '@/lib/access';
-import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
+import { requireFeature, featureLevel } from '@/lib/access';
+import { Badge, Card, PageHeader, inputCls, submitCls , ViewOnly } from '@/components/ui';
 import { PLATFORMS, angleLabel } from '@/lib/social';
 import { saveMetrics } from '../../../social-actions';
 
@@ -12,7 +12,8 @@ const nums = ['reach', 'reactions', 'comments', 'shares', 'saves', 'replies', 'f
 const label: Record<string, string> = { reach: 'Reach', reactions: 'Reactions', comments: 'Comments', shares: 'Shares', saves: 'Saves', replies: 'Replies', followers_gained: 'New followers' };
 
 export default async function Insights() {
-  await requireFeature('social_insights');
+  const me = await requireFeature('social_insights');
+  const view = (await featureLevel(me, 'social_insights')) !== 'edit';
   const { rows, links } = await asAdmin(async (q) => ({
     rows: await q(`select sp.*, i.title, i.angle, i.pillar, i.scheduled_for from social_posts sp join social_ideas i on i.id=sp.idea_id order by sp.posted_at desc`),
     links: await q(`select l.code, l.platform, l.idea_id, i.title,
@@ -37,6 +38,7 @@ export default async function Insights() {
   return (
     <>
       <PageHeader title="Social insights" subtitle="What is working. Link clicks are counted automatically; reactions, comments and the rest are typed in from each platform." />
+      <ViewOnly view={view}>
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
         {[['Posts recorded', rows.length], ['Reach', sum(rows, 'reach')], ['Comments', sum(rows, 'comments')], ['Link clicks (people)', totalClicks], ['Engagement rate', rate(rows.reduce((a: number, r: any) => a + eng(r), 0), sum(rows, 'reach'))]].map(([k, v]) => (
           <div key={String(k)} className="rounded-xl border border-teal-50 bg-white p-3"><div className="text-xs text-slate-500">{k}</div><div className="text-2xl font-extrabold text-teal">{v}</div></div>))}
@@ -88,6 +90,7 @@ export default async function Insights() {
             {links.map((l: any) => <tr key={l.code}><td className={td}>{l.title}</td><td className={td}>{PLATFORMS.find((p) => p.key === l.platform)?.label}</td><td className={td}>/go/{l.code}</td><td className={td}><b>{l.human}</b></td><td className={td}>{l.bots}</td></tr>)}
           </tbody></table>)}
       </Card>
+      </ViewOnly>
     </>
   );
 }

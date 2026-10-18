@@ -1,6 +1,6 @@
 import { asAdmin } from '@/lib/db';
-import { requireFeature } from '@/lib/access';
-import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
+import { requireFeature, featureLevel } from '@/lib/access';
+import { Badge, Card, PageHeader, inputCls, submitCls , ViewOnly } from '@/components/ui';
 import { PLATFORMS, angleLabel } from '@/lib/social';
 import { createLink, recordPosted } from '../../../social-actions';
 
@@ -10,7 +10,8 @@ const day = (d: any) => new Date(d).toLocaleDateString('en-GB', { weekday: 'shor
 const iso = (d: any) => new Date(d).toISOString().slice(0, 10);
 
 export default async function Calendar() {
-  await requireFeature('social_publish');
+  const me = await requireFeature('social_publish');
+  const view = (await featureLevel(me, 'social_publish')) !== 'edit';
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Africa/Nairobi' });
   const { ideas, posts, links } = await asAdmin(async (q) => ({
     ideas: await q(`select i.*, p.full_name author from social_ideas i left join people p on p.id=i.author_id
@@ -67,6 +68,7 @@ export default async function Calendar() {
   return (
     <>
       <PageHeader title="Social calendar and posting" subtitle="What goes out today and in the coming weeks. Copy each version, post it on the platform, then record it here." />
+      <ViewOnly view={view}>
       {unscheduled > 0 && <p className="mb-4 rounded-lg bg-[#FFF8E6] p-3 text-sm">{unscheduled} approved post{unscheduled === 1 ? ' has' : 's have'} no date yet. Give {unscheduled === 1 ? 'it' : 'them'} a date on the Social ideas page.</p>}
       <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-gold">Today, {day(today)}</h2>
       {todays.length === 0 ? <p className="mb-6 text-sm text-slate-500">Nothing scheduled for today.</p> : todays.map((i: any) => card(i, true))}
@@ -74,6 +76,7 @@ export default async function Calendar() {
       {upcoming.length === 0 ? <p className="mb-6 text-sm text-slate-500">Nothing scheduled.</p> : upcoming.map((i: any) => card(i))}
       <h2 className="mb-2 mt-6 text-sm font-bold uppercase tracking-wide text-gold">Last two weeks</h2>
       {past.length === 0 ? <p className="text-sm text-slate-500">Nothing yet.</p> : past.map((i: any) => card(i))}
+      </ViewOnly>
     </>
   );
 }

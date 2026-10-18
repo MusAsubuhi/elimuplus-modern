@@ -7,11 +7,11 @@ import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
 import { saveCanvas, submitCanvas } from '../../actions';
 
 export default async function CanvasBuilder({ searchParams }: { searchParams: Promise<{ phase?: string }> }) {
-  const me = await requireMe('participant', 'founder');
+  const me = await requireMe('participant', 'founder', 'master', 'facilitator');
   const lang = await getLang(me);
   const { phase } = await searchParams;
   const ctx = await asUser(me.id, (q) => participantContext(q, me.id));
-  if (!ctx || !ctx.canvas) return <Card title="No canvas yet">{me.roles.includes('founder') ? <>Start the participant journey to get your canvas. <Link href="/portal/journey" className="font-bold text-teal underline">Start it here</Link>.</> : 'Your canvas is created when you are enrolled in a cohort.'}</Card>;
+  if (!ctx || !ctx.canvas) return <Card title="No canvas yet">{!me.roles.includes('participant') ? <>Start the participant journey to get your canvas. <Link href="/portal/journey" className="font-bold text-teal underline">Start it here</Link>.</> : 'Your canvas is created when you are enrolled in a cohort.'}</Card>;
   const { boxes, unlocked, answers, canvas, filled } = ctx;
   const am = answerMap(answers);
   const active = Number(phase) || (PHASES.find((p) => p.boxes.some((b) => unlocked.has(b) && !filled.has(b)))?.n ?? 1);

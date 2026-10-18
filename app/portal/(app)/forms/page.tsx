@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, statusTone } from '@/components/ui';
 import { d } from '@/lib/format';
 
@@ -24,7 +24,8 @@ const GROUPS: { kind: string; title: string; note: string }[] = [
 const when = (x: any) => (x ? new Date(x).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 
 export default async function Forms() {
-  const me = await requireMe('founder', 'master');
+  const me = await requireFeature('forms');
+  const canEdit = (await featureLevel(me, 'forms')) === 'edit';
   const { forms, portal, cohorts } = await asUser(me.id, async (q) => {
     const forms = await q(`select key, title, kind, fill_url, edit_url, sheet_url, google_responses, last_response_at, checked_at from form_registry order by kind, title`);
     const portal: Record<string, number> = {};
@@ -46,7 +47,7 @@ export default async function Forms() {
 
   return (
     <>
-      <PageHeader title="Forms and responses" subtitle="Every Google Form and its response sheet in one place, and what the portal has received from each." />
+      <PageHeader title="Forms and responses" subtitle={canEdit ? 'Every Google Form and its response sheet in one place, and what the portal has received from each.' : 'Every Google Form and what the portal has received from each, for the cohorts you work with.'} />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Forms" value={forms.length} sub={forms.length ? 'Links refresh every hour' : 'Waiting for the Forms script to report'} />
         <Stat tone={missing.length ? 'red' : 'green'} label="Responses not yet in the portal" value={missing.reduce((s: number, f: any) => s + (f.google_responses - portal[f.key]), 0)} sub={missing.length ? `${missing.length} form${missing.length > 1 ? 's' : ''} behind` : 'Google and the portal agree'} />
@@ -69,8 +70,8 @@ export default async function Forms() {
                 <span key="t" className="font-semibold text-ink">{f.title}</span>,
                 <span key="l" className="flex flex-wrap gap-x-3 gap-y-1">
                   {f.fill_url && <a className="font-bold text-teal underline" href={f.fill_url} target="_blank" rel="noreferrer">Form</a>}
-                  {f.sheet_url && <a className="font-bold text-teal underline" href={f.sheet_url} target="_blank" rel="noreferrer">Responses sheet</a>}
-                  {f.edit_url && <a className="text-slate-500 underline" href={f.edit_url} target="_blank" rel="noreferrer">Edit</a>}
+                  {canEdit && f.sheet_url && <a className="font-bold text-teal underline" href={f.sheet_url} target="_blank" rel="noreferrer">Responses sheet</a>}
+                  {canEdit && f.edit_url && <a className="text-slate-500 underline" href={f.edit_url} target="_blank" rel="noreferrer">Edit</a>}
                 </span>,
                 f.google_responses ?? '—',
                 p ?? <span className="text-slate-400">n/a</span>,
