@@ -1,6 +1,5 @@
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
-import Flash from '@/components/flash';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { FEEDBACK_SCALES, FEEDBACK_TEXT, HOST_FIELDS } from '@/lib/seminar';
 import { createSeminar, saveHostReport, setSeminarStatus } from '../../seminar-actions';
@@ -19,7 +18,6 @@ export default async function Seminars() {
   return (
     <>
       <PageHeader title="Monthly seminars" subtitle="Create a seminar, share its sign-in and feedback links, then record the host report once the day is over." />
-      <Flash />
       <Card title="New seminar" className="mb-6">
         <form action={createSeminar} className="grid gap-3 sm:grid-cols-4">
           <input name="title" required placeholder="Title, e.g. October participants' forum" className={`${inputCls} sm:col-span-2`} />
