@@ -16,9 +16,9 @@ export default async function News({ searchParams }: { searchParams: Promise<{ r
   const region = REGIONS.some((x) => x.key === r) ? (r as string) : 'local';
   const { items, counts, follow } = await asAdmin(async (q) => ({
     items: await q(`select n.*, (select count(*)::int from news_followups f where f.item_id=n.id and f.status='open') open_follow
-                    from news_items n where n.region=$1 and not n.hidden and coalesce(n.published_on, n.created_at::date) > current_date - 60
+                    from news_items n where n.region=$1 and not n.hidden and n.created_at > now() - interval '60 days'
                     order by (n.origin='curated') desc, coalesce(n.published_on, n.created_at::date) desc, n.created_at desc limit 40`, [region]),
-    counts: await q(`select region, count(*)::int n from news_items where not hidden and coalesce(published_on, created_at::date) > current_date - 60 group by region`),
+    counts: await q(`select region, count(*)::int n from news_items where not hidden and created_at > now() - interval '60 days' group by region`),
     follow: await q(`select f.*, n.title, n.region, p.full_name who from news_followups f join news_items n on n.id=f.item_id left join people p on p.id=f.person_id
                      where f.status='open' order by f.created_at desc limit 20`),
   }));
