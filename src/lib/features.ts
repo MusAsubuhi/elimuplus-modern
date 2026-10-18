@@ -23,6 +23,7 @@ export const FEATURES: Feature[] = [
   { key: 'impact', label: 'Impact', section: 'Programme', href: '/portal/impact', icon: '▲', delegable: false, roles: ['founder', 'master'], note: 'Participant business numbers.' },
   { key: 'forms', label: 'Forms and responses', section: 'Programme', href: '/portal/forms', icon: '▤', delegable: false, roles: ['founder', 'master'], note: 'Participant form responses.' },
   { key: 'seminars', label: 'Monthly seminars', section: 'Programme', href: '/portal/seminars', icon: '☼', delegable: true, roles: ['founder', 'master'] },
+  { key: 'news', label: 'News and signals', section: 'Programme', href: '/portal/news', icon: '◉', delegable: true, roles: ['founder', 'master', 'facilitator'] },
   { key: 'crm', label: 'Partners: call, visit, check', section: 'Programme', href: '/portal/crm', icon: '☎', delegable: false, roles: ['founder', 'master'], note: 'Partner contact records.' },
   { key: 'newsletter', label: 'Weekly letters', section: 'Marketing', href: '/portal/newsletter', icon: '✉', delegable: true, roles: ['founder'] },
   { key: 'social', label: 'Social ideas', section: 'Marketing', href: '/portal/social', icon: '✦', delegable: true, roles: ['founder', 'master', 'facilitator'] },
