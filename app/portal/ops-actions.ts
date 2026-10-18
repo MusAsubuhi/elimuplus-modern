@@ -5,7 +5,8 @@ import { asAdmin, asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { notify, flushAlerts } from '@/lib/mail';
-import { checkKey, syncNewsletter } from '@/lib/brevo';
+import { checkKey, syncNewsletter, ensureWebhook } from '@/lib/brevo';
+import { setSequenceOn, sequenceOn } from '@/lib/newsletter';
 import { CONCERN_FROM_TEXT, reportLevelOf, templateFor } from '@/lib/levels';
 
 const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never =>
@@ -194,4 +195,27 @@ export async function syncNewsletterNow() {
   await audit(me.id, `newsletter sync: ${r.synced} sent, ${r.failed} failed`, 'people');
   revalidatePath('/portal/alerts');
   back('/portal/alerts', `${k.message} ${r.synced} sent to the list${r.failed ? `, ${r.failed} failed (see the person's record)` : ''}.`, r.failed ? 'err' : 'ok');
+}
+
+export async function toggleSequence() {
+  const me = await requireMe('founder');
+  const next = !(await sequenceOn());
+  await setSequenceOn(next);
+  await audit(me.id, `weekly newsletter sequence ${next ? 'switched on' : 'switched off'}`, 'newsletter_settings');
+  revalidatePath('/portal/alerts');
+  back('/portal/alerts', next ? 'Weekly sequence is ON. Subscribers receive one letter a week.' : 'Weekly sequence is OFF.');
+}
+
+export async function connectBrevoWebhook() {
+  const me = await requireMe('founder');
+  if (!process.env.CRON_SECRET) back('/portal/alerts', 'CRON_SECRET is not set.', 'err');
+  const base = (process.env.PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '');
+  try {
+    const r = await ensureWebhook(`${base}/api/newsletter/brevo-webhook?k=${encodeURIComponent(process.env.CRON_SECRET!)}`);
+    await audit(me.id, `brevo unsubscribe webhook ${r}`, 'newsletter_settings');
+    back('/portal/alerts', r === 'created' ? 'Brevo will now tell the portal about unsubscribes.' : 'Brevo was already connected.');
+  } catch (e: any) {
+    if (e?.digest) throw e;
+    back('/portal/alerts', String(e.message).slice(0, 160), 'err');
+  }
 }

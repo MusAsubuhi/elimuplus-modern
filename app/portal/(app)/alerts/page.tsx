@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { asUser, asAdmin } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, inputCls, submitCls } from '@/components/ui';
-import { markAlertsRead, sendAlertsNow, setMyEmail, syncNewsletterNow } from '../../ops-actions';
+import { markAlertsRead, sendAlertsNow, setMyEmail, syncNewsletterNow, toggleSequence, connectBrevoWebhook } from '../../ops-actions';
+import { sequenceOn } from '@/lib/newsletter';
 
 const tone = (s: string) => (s === 'urgent' ? 'red' : s === 'attention' ? 'gold' : 'grey');
 const when = (t: string) => new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi' });
@@ -16,6 +17,7 @@ export default async function Alerts() {
   const founders = await asAdmin((q) => q("select distinct p.display_name, p.email from people p join role_assignments r on r.person_id=p.id where r.role='founder' and r.status='active' order by 1"));
   const unread = alerts.filter((a) => !a.read);
   const waiting = alerts.filter((a) => !a.emailed_at).length;
+  const seqOn = await sequenceOn();
   const nl = (await asAdmin((q) => q(
     `select (select count(*)::int from people where newsletter_consent) consented,
             (select count(*)::int from people where newsletter_consent and brevo_synced_at is null and email like '%@%') pending,
@@ -41,7 +43,12 @@ export default async function Alerts() {
         </Card>
         <Card title="Newsletter list" subtitle="People who agreed to the Elimu+ letter are added to Brevo automatically each day.">
           <p className="text-sm text-slate-700">{nl.consented} agreed · {nl.pending} waiting to be added{nl.errors ? <> · <b className="text-[#C8553D]">{nl.errors} failed</b></> : null}</p>
-          <form action={syncNewsletterNow} className="mt-3"><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">Check connection and sync now</button></form>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <form action={syncNewsletterNow}><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">Check connection and sync now</button></form>
+            <form action={connectBrevoWebhook}><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">Connect Brevo unsubscribes</button></form>
+          </div>
+          <p className="mt-4 text-sm text-slate-700">Weekly letters: <b>{seqOn ? 'ON' : 'OFF'}</b>. When on, each subscriber gets one letter a week, and the portal steps aside on any day a Brevo campaign goes out.</p>
+          <form action={toggleSequence} className="mt-2"><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">{seqOn ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
         </Card>
         <Card title="Inbox" className="lg:col-span-2" action={unread.length > 0 ? <form action={markAlertsRead}><button className="rounded-lg border border-teal px-3 py-1 text-xs font-bold text-teal">Mark all seen</button></form> : undefined}>
           {alerts.length === 0 ? <p className="text-sm text-slate-600">Nothing yet.</p> : (

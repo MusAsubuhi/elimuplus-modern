@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { upsertContact } from '@/lib/brevo';
+import { recordSubscriber, sendWelcomeIfDue } from '@/lib/newsletter';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,8 @@ export async function POST(req: Request) {
   const name = String(f.get('name') ?? '').trim().replace(/\s+/g, ' ').slice(0, 60);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ ok: false, error: 'Please enter a valid email address.' }, { status: 400, headers: h });
   if (String(f.get('consent') ?? '') !== 'yes') return NextResponse.json({ ok: false, error: 'Please tick the box to agree.' }, { status: 400, headers: h });
-  try { await upsertContact(email, name ? { FIRSTNAME: name } : {}); }
+  try { await upsertContact(email, name ? { FIRSTNAME: name } : {}, true); await recordSubscriber(email, name, 'website', true); }
   catch (e) { console.error('[newsletter subscribe]', e); return NextResponse.json({ ok: false, error: 'Could not subscribe right now.' }, { status: 502, headers: h }); }
+  try { await sendWelcomeIfDue(email); } catch (e) { console.error('[welcome]', e); }
   return NextResponse.json({ ok: true }, { headers: h });
 }
