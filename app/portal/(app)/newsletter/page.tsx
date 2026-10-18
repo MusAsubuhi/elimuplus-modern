@@ -1,5 +1,5 @@
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature } from '@/lib/access';
 import { sequenceOn } from '@/lib/newsletter';
 import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
 import { saveLetter, deleteLetter, moveLetter, testLetter, toggleSequence } from '../../ops-actions';
@@ -8,15 +8,15 @@ export const dynamic = 'force-dynamic';
 const ghost = 'rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal';
 
 export default async function Letters() {
-  const me = await requireMe('founder');
-  const letters = await asUser(me.id, (q) => q('select * from newsletter_letters order by position, created_at'));
+  await requireFeature('newsletter');
+  const letters = await asAdmin((q) => q('select * from newsletter_letters order by position, created_at'));
   const on = await sequenceOn();
   return (
     <>
       <PageHeader title="Weekly letters" subtitle="Each new subscriber receives these one a week, in this order, starting a week after their welcome email." />
       <Card title="Sequence" className="mb-6">
         <p className="text-sm text-slate-700">Status: <b>{on ? 'ON' : 'OFF'}</b>. {letters.length} letter{letters.length === 1 ? '' : 's'}. After the last letter a subscriber stops receiving the sequence, so keep adding. The sequence skips any day a Brevo campaign goes out.</p>
-        <form action={toggleSequence} className="mt-3"><button className={ghost}>{on ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
+        <form action={toggleSequence} className="mt-3"><input type="hidden" name="back" value="/portal/newsletter" /><button className={ghost}>{on ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
       </Card>
       <Card title="How to format a letter" subtitle="Write plain text; these little codes turn into pictures, buttons and links, the same look as the Brevo newsletter." className="mb-6">
         <pre className="overflow-x-auto whitespace-pre-wrap rounded-lg bg-[#F5FAF8] p-3 text-xs leading-relaxed text-slate-700">{`A blank line starts a new paragraph.

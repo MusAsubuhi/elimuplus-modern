@@ -1,5 +1,5 @@
 import { asAdmin } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
 import { ANGLES, PLATFORMS, angleLabel } from '@/lib/social';
 import { submitIdea, editMyIdea, saveDrafts, sendForApproval, approveIdea, returnIdea, markPosted } from '../../social-actions';
@@ -10,7 +10,7 @@ const TONE: Record<string, string> = { idea: 'grey', pending: 'gold', approved: 
 const LABEL: Record<string, string> = { idea: 'In the bank', pending: 'Awaiting approval', approved: 'Approved, ready to post', posted: 'Posted', returned: 'Returned to author' };
 
 export default async function Social() {
-  const me = await requireMe('founder', 'facilitator');
+  const me = await requireFeature('social');
   const isFounder = me.roles.includes('founder');
   const ideas = await asAdmin((q) => q(
     `select i.*, p.full_name author, (select coalesce(json_agg(a.person_id),'[]') from social_approvals a where a.idea_id=i.id) approvals

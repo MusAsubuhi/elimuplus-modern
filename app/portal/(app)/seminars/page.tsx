@@ -1,5 +1,5 @@
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { FEEDBACK_SCALES, FEEDBACK_TEXT, HOST_FIELDS } from '@/lib/seminar';
 import { createSeminar, saveHostReport, setSeminarStatus } from '../../seminar-actions';
@@ -9,8 +9,8 @@ const day = (x: any) => new Date(x).toLocaleDateString('en-GB', { weekday: 'shor
 const avg = (rows: any[], k: string) => { const v = rows.map((r) => Number(r.answers?.[k])).filter((n) => n > 0); return v.length ? (v.reduce((a, b) => a + b, 0) / v.length).toFixed(1) : '–'; };
 
 export default async function Seminars() {
-  const me = await requireMe('founder', 'master');
-  const { seminars, entries } = await asUser(me.id, async (q) => ({
+  await requireFeature('seminars');
+  const { seminars, entries } = await asAdmin(async (q) => ({
     seminars: await q('select * from seminars order by held_on desc limit 24'),
     entries: await q('select seminar_id, kind, name, phone, email, group_label, newsletter_consent, answers, created_at from seminar_entries order by created_at'),
   }));

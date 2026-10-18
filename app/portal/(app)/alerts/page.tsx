@@ -48,7 +48,7 @@ export default async function Alerts() {
             <form action={connectBrevoWebhook}><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">Connect Brevo unsubscribes</button></form>
           </div>
           <p className="mt-4 text-sm text-slate-700">Weekly letters: <b>{seqOn ? 'ON' : 'OFF'}</b>. When on, each subscriber gets one letter a week, and the portal steps aside on any day a Brevo campaign goes out.</p>
-          <form action={toggleSequence} className="mt-2"><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">{seqOn ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
+          <form action={toggleSequence} className="mt-2"><input type="hidden" name="back" value="/portal/alerts" /><button className="rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal">{seqOn ? 'Switch weekly letters off' : 'Switch weekly letters on'}</button></form>
         </Card>
         <Card title="Inbox" className="lg:col-span-2" action={unread.length > 0 ? <form action={markAlertsRead}><button className="rounded-lg border border-teal px-3 py-1 text-xs font-bold text-teal">Mark all seen</button></form> : undefined}>
           {alerts.length === 0 ? <p className="text-sm text-slate-600">Nothing yet.</p> : (

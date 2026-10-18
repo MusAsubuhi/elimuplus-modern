@@ -6,6 +6,8 @@ import { logout, setLang, demoLogin } from '../actions';
 import Flash from '@/components/flash';
 import { t } from '@/lib/i18n';
 import { levelName } from '@/lib/levels';
+import { allowedFeatures } from '@/lib/access';
+import { FEATURES, SECTIONS } from '@/lib/features';
 
 type Item = { href: string; label: string; icon: string };
 const NAV: Record<Role, { title: string; items: Item[] }> = {
@@ -18,15 +20,11 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/reports', label: 'Day reports', icon: '✎' },
     { href: '/portal/requests', label: 'My requests', icon: '₭' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
-    { href: '/portal/social', label: 'Social ideas', icon: '✦' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer', items: [
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
     { href: '/portal/impact', label: 'Impact', icon: '▲' },
     { href: '/portal/forms', label: 'Forms and responses', icon: '▤' },
-    { href: '/portal/seminars', label: 'Monthly seminars', icon: '☼' },
-    { href: '/portal/newsletter', label: 'Weekly letters', icon: '✉' },
-    { href: '/portal/social', label: 'Social ideas', icon: '✦' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   org_admin: { title: 'Partner', items: [
@@ -34,21 +32,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/partner/request', label: 'Request training', icon: '✎' },
     { href: '/portal/partner/billing', label: 'Invoices and payments', icon: '₭' },
     { href: '/portal/partner/library', label: 'Reports and documents', icon: '▤' }] },
-  founder: { title: 'Founders', items: [
-    { href: '/portal/command', label: 'Command view', icon: '★' },
-    { href: '/portal/impact', label: 'Impact', icon: '▲' },
-    { href: '/portal/forms', label: 'Forms and responses', icon: '▤' },
-    { href: '/portal/seminars', label: 'Monthly seminars', icon: '☼' },
-    { href: '/portal/newsletter', label: 'Weekly letters', icon: '✉' },
-    { href: '/portal/social', label: 'Social ideas', icon: '✦' },
-    { href: '/portal/alerts', label: 'Alerts', icon: '⚑' },
-    { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
-    { href: '/portal/finance', label: 'Finance', icon: '₭' },
-    { href: '/portal/approvals', label: 'Approvals', icon: '✔' },
-    { href: '/portal/team', label: 'Team and people', icon: '☺' },
-    { href: '/portal/people', label: 'Suggestions and partners', icon: '☰' },
-    { href: '/portal/journey', label: 'My journeys', icon: '➜' },
-    { href: '/portal/audit', label: 'Audit log', icon: '⌕' }] },
+  founder: { title: 'Founders', items: [] },
 };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -59,7 +43,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // founders and master trainers also see the facilitator and QA areas
   const groups: Role[] = me.roles.includes('founder') ? ['founder', 'master', 'facilitator', ...(me.roles.includes('participant') ? (['participant'] as Role[]) : [])] : me.roles;
   const unread = me.roles.includes('founder') ? Number((await asUser(me.id, (q) => q('select count(*)::int n from founder_alerts a where not exists (select 1 from alert_reads r where r.alert_id=a.id and r.person_id=$1)', [me.id])).catch(() => [{ n: 0 }]))[0].n) : 0;
+  const allowed = await allowedFeatures(me);
+  const isFounder = me.roles.includes('founder');
   const seen = new Set<string>();
+  const shared = FEATURES.filter((f) => f.delegable && allowed.has(f.key) && !isFounder);
   return (
     <div className="min-h-screen md:flex">
       <aside className="no-print bg-teal text-white md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto">
@@ -69,16 +56,40 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <span className="text-xs font-bold uppercase tracking-widest text-gold">Portal</span>
         </div>
         <nav className="px-3 pb-6">
-          {groups.map((g) => (
+          {isFounder && SECTIONS.map((s) => {
+            const items = FEATURES.filter((f) => f.section === s);
+            items.forEach((f) => seen.add(f.href));
+            return (
+              <div key={s} className="mb-4">
+                <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{s}</div>
+                {items.map((i) => (
+                  <Link key={i.href} href={i.href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-50 hover:bg-white/10">
+                    <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}{i.href === '/portal/alerts' && unread > 0 && <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold text-teal">{unread}</span>}
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
+          {groups.filter((g) => g !== 'founder').map((g) => (
             <div key={g} className="mb-4">
               <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{NAV[g].title}</div>
               {NAV[g].items.filter((i) => !seen.has(i.href) && seen.add(i.href)).map((i) => (
                 <Link key={i.href} href={i.href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-50 hover:bg-white/10">
-                  <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}{i.href === '/portal/alerts' && unread > 0 && <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold text-teal">{unread}</span>}
+                  <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
                 </Link>
               ))}
             </div>
           ))}
+          {shared.length > 0 && (
+            <div className="mb-4">
+              <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">Shared with you</div>
+              {shared.map((i) => (
+                <Link key={i.href} href={i.href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-50 hover:bg-white/10">
+                  <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </nav>
       </aside>
       <div className="min-w-0 flex-1">

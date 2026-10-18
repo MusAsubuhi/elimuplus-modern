@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { asAdmin, asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
+import { requireFeature } from '@/lib/access';
 import { audit } from '@/lib/audit';
 import { notify, flushAlerts } from '@/lib/mail';
 import { checkKey, syncNewsletter, ensureWebhook } from '@/lib/brevo';
@@ -197,13 +198,14 @@ export async function syncNewsletterNow() {
   back('/portal/alerts', `${k.message} ${r.synced} sent to the list${r.failed ? `, ${r.failed} failed (see the person's record)` : ''}.`, r.failed ? 'err' : 'ok');
 }
 
-export async function toggleSequence() {
-  const me = await requireMe('founder');
+export async function toggleSequence(f: FormData) {
+  const me = await requireFeature('newsletter');
+  const to = String(f.get('back') ?? '') === '/portal/newsletter' ? '/portal/newsletter' : '/portal/alerts';
   const next = !(await sequenceOn());
   await setSequenceOn(next);
   await audit(me.id, `weekly newsletter sequence ${next ? 'switched on' : 'switched off'}`, 'newsletter_settings');
-  revalidatePath('/portal/alerts');
-  back('/portal/alerts', next ? 'Weekly sequence is ON. Subscribers receive one letter a week.' : 'Weekly sequence is OFF.');
+  revalidatePath(to);
+  back(to, next ? 'Weekly sequence is ON. Subscribers receive one letter a week.' : 'Weekly sequence is OFF.');
 }
 
 export async function connectBrevoWebhook() {
@@ -223,7 +225,7 @@ export async function connectBrevoWebhook() {
 const trim = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 
 export async function saveLetter(f: FormData) {
-  const me = await requireMe('founder');
+  const me = await requireFeature('newsletter');
   const id = trim(f, 'id'), subject = trim(f, 'subject').slice(0, 150), body = trim(f, 'body').slice(0, 8000);
   if (!subject || !body) back('/portal/newsletter', 'A letter needs a subject and some text.', 'err');
   if (id) await asAdmin((q) => q('update newsletter_letters set subject=$2, body=$3 where id=$1', [id, subject, body]));
@@ -234,7 +236,7 @@ export async function saveLetter(f: FormData) {
 }
 
 export async function deleteLetter(f: FormData) {
-  const me = await requireMe('founder');
+  const me = await requireFeature('newsletter');
   await asAdmin((q) => q('delete from newsletter_letters where id=$1', [trim(f, 'id')]));
   await audit(me.id, 'weekly letter deleted', 'newsletter_letters');
   revalidatePath('/portal/newsletter');
@@ -242,7 +244,7 @@ export async function deleteLetter(f: FormData) {
 }
 
 export async function moveLetter(f: FormData) {
-  await requireMe('founder');
+  await requireFeature('newsletter');
   const id = trim(f, 'id'), dir = trim(f, 'dir') === 'up' ? -1 : 1;
   await asAdmin(async (q) => {
     const rows = await q('select id from newsletter_letters order by position, created_at');
@@ -256,7 +258,7 @@ export async function moveLetter(f: FormData) {
 }
 
 export async function testLetter(f: FormData) {
-  const me = await requireMe('founder');
+  const me = await requireFeature('newsletter');
   const to = (await asAdmin((q) => q('select lower(email) e from people where id=$1', [me.id])))[0]?.e;
   if (!to || !to.includes('@')) back('/portal/newsletter', 'Save your email on the Alerts page first.', 'err');
   try { await sendLetterTest(to, trim(f, 'subject'), trim(f, 'body')); }

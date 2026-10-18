@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { asAdmin } from '@/lib/db';
 import { requireMe } from '@/lib/session';
+import { requireFeature } from '@/lib/access';
 import { audit } from '@/lib/audit';
 import { ANGLES, PLATFORMS } from '@/lib/social';
 
@@ -12,7 +13,7 @@ const s = (f: FormData, k: string, n = 2000) => String(f.get(k) ?? '').trim().sl
 const isUrl = (u: string) => !u || /^https:\/\/\S+$/.test(u);
 
 export async function submitIdea(f: FormData) {
-  const me = await requireMe('founder', 'facilitator');
+  const me = await requireFeature('social');
   const title = s(f, 'title', 160), angle = s(f, 'angle', 20), material = s(f, 'material', 4000);
   if (!title || !material || !ANGLES.some((a) => a.key === angle)) back('Please give a title, an angle and the real material behind the idea.', 'err');
   if (f.get('consent') !== 'on') back('Please confirm that nobody is named or shown without their consent.', 'err');
@@ -91,7 +92,7 @@ export async function markPosted(f: FormData) {
 
 /** Authors can fix their own idea while it is in the bank or after it was returned; it goes back to the founders as a fresh idea. */
 export async function editMyIdea(f: FormData) {
-  const me = await requireMe('founder', 'facilitator');
+  const me = await requireFeature('social');
   const id = s(f, 'id', 40), title = s(f, 'title', 160), angle = s(f, 'angle', 20), material = s(f, 'material', 4000);
   if (!title || !material || !ANGLES.some((a) => a.key === angle)) back('Please keep a title, an angle and the real material.', 'err');
   const logo = s(f, 'partner_logo_url', 300), image = s(f, 'image_url', 300);
