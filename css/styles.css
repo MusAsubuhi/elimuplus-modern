@@ -1151,9 +1151,15 @@ header {
   padding-bottom: var(--space-lg);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .footer__grid {
-    grid-template-columns: 1.2fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 992px) {
+  .footer__grid {
+    grid-template-columns: 1.3fr 1fr 1fr 1fr;
   }
 }
 
@@ -1177,7 +1183,7 @@ header {
   margin-bottom: 0.4rem;
 }
 
-.footer h4 {
+.site-footer h4 {
   color: var(--antique-gold);
   font-size: 0.85rem;
   text-transform: uppercase;
