@@ -67,6 +67,7 @@ export function AddPersonForm({ orgs, cohorts }: { orgs: { id: string; name: str
       </label>
       <label className="block font-bold">Occupation<input name="occupation" placeholder="e.g. tailor, student, teacher" className={inputCls} /></label>
       <label className="block font-bold">Email (optional)<input name="email" type="email" className={inputCls} /></label>
+      <label className="flex items-start gap-2 text-sm"><input name="newsletter" type="checkbox" className="mt-1" /><span>They agreed to receive the Elimu+ newsletter by email (needs an email address)</span></label>
       <label className="block font-bold">County<input name="county" defaultValue="Mombasa" className={inputCls} /></label>
       <label className="block font-bold">Ward or area<input name="ward" placeholder="e.g. Likoni" className={inputCls} /></label>
       <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="guardian" />Guardian consent obtained (required under 18)</label>

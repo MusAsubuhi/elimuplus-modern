@@ -5,6 +5,7 @@ import { asAdmin, asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { audit } from '@/lib/audit';
 import { notify, flushAlerts } from '@/lib/mail';
+import { checkKey, syncNewsletter } from '@/lib/brevo';
 import { CONCERN_FROM_TEXT, reportLevelOf, templateFor } from '@/lib/levels';
 
 const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never =>
@@ -183,4 +184,14 @@ export async function sendAlertsNow() {
   await requireMe('founder');
   const r = await flushAlerts();
   back('/portal/alerts', r.sent ? `Sent ${r.sent} alert${r.sent === 1 ? '' : 's'} by email` : r.reason ?? 'Nothing waiting to be sent', r.sent || !r.queued ? 'ok' : 'err');
+}
+
+export async function syncNewsletterNow() {
+  const me = await requireMe('founder');
+  const k = await checkKey();
+  if (!k.ok) back('/portal/alerts', k.message, 'err');
+  const r = await syncNewsletter();
+  await audit(me.id, `newsletter sync: ${r.synced} sent, ${r.failed} failed`, 'people');
+  revalidatePath('/portal/alerts');
+  back('/portal/alerts', `${k.message} ${r.synced} sent to the list${r.failed ? `, ${r.failed} failed (see the person's record)` : ''}.`, r.failed ? 'err' : 'ok');
 }

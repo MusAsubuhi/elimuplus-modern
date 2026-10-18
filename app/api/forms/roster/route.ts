@@ -3,6 +3,7 @@ import { asAdmin } from '@/lib/db';
 import { validSecret } from '@/lib/forms-auth';
 import { normPhone } from '@/lib/accounts';
 import { notify } from '@/lib/mail';
+import { syncNewsletter } from '@/lib/brevo';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ async function cohortFrom(q: Q, label: unknown) {
 }
 
 /** Finds the person by phone or creates them, then enrols them in the cohort with a canvas. Never overwrites what is already on record. */
-async function enrolPerson(q: Q, cohort: { id: string; organisation_id: string }, name: string, phone: string, email: string, hasBusiness: boolean | null, note: string) {
+async function enrolPerson(q: Q, cohort: { id: string; organisation_id: string }, name: string, phone: string, email: string, hasBusiness: boolean | null, note: string, newsletter = false) {
   let created = false;
   let p = (await phoneRows(q, phone))[0];
   if (!p) {
@@ -30,6 +31,7 @@ async function enrolPerson(q: Q, cohort: { id: string; organisation_id: string }
     if (email && !p.email) await q('update people set email = $2 where id = $1', [p.id, email]);
     if (note && !p.occupation) await q('update people set occupation = $2 where id = $1', [p.id, note]);
   }
+  if (newsletter && (email || p.email)) await q('update people set newsletter_consent = true, newsletter_consent_at = coalesce(newsletter_consent_at, now()) where id = $1 and not newsletter_consent', [p.id]);
   const had = (await q('select id from enrolments where cohort_id = $1 and person_id = $2', [cohort.id, p.id])).length > 0;
   const en = (await q(
     `insert into enrolments(cohort_id, person_id, has_business_at_entry, track) values ($1,$2,$3,$4)
@@ -63,7 +65,9 @@ export async function POST(req: Request) {
       if (!phone) return { ok: false, rejected: `${name}: the phone number is not a valid Kenyan number, so they could not be added.` };
       const st = String(b.business_status ?? '');
       const hasBusiness = /already/i.test(st) ? true : /want to start|not started/i.test(st) ? false : null;
-      const r = await enrolPerson(q, cohort, name, phone, clean(b.email, 120).toLowerCase(), hasBusiness, clean(b.business_note, 300));
+      const wantsLetter = /yes|subscribe|agree|true/i.test(String(b.newsletter ?? ''));
+      const r = await enrolPerson(q, cohort, name, phone, clean(b.email, 120).toLowerCase(), hasBusiness, clean(b.business_note, 300), wantsLetter);
+      if (wantsLetter) syncNewsletter().catch((e) => console.error('[newsletter sync]', e));
       return { ok: true, ...r };
     }
 

@@ -59,10 +59,11 @@ export async function addPerson(_prev: PinState, f: FormData): Promise<PinState>
   try {
     personId = await asUser(me.id, async (q) => {
       const p = (await q(
-        `insert into people(full_name, display_name, phone, email, preferred_language, birth_year, education_level, occupation, county, ward)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
+        `insert into people(full_name, display_name, phone, email, preferred_language, birth_year, education_level, occupation, county, ward, newsletter_consent, newsletter_consent_at)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, case when $11 then now() end) returning id`,
         [name, s(f, 'display') || name.split(/\s+/)[0], phone, s(f, 'email') || null, s(f, 'lang') === 'en' ? 'en' : 'sw',
-         age ? birthFromAge(age) : null, s(f, 'education') || null, s(f, 'occupation') || null, s(f, 'county') || null, s(f, 'ward') || null]))[0];
+         age ? birthFromAge(age) : null, s(f, 'education') || null, s(f, 'occupation') || null, s(f, 'county') || null, s(f, 'ward') || null,
+         !!s(f, 'email') && f.get('newsletter') === 'on']))[0];
       await q('insert into role_assignments(person_id, role, tier, organisation_id) values ($1,$2,$3,$4)',
         [p.id, role.role, role.tier, role.role === 'participant' || needsOrg(role) ? orgId : null]);
       if (role.role === 'participant' && s(f, 'cohort')) await enrol(q, s(f, 'cohort'), p.id);

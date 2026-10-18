@@ -367,6 +367,8 @@ const REG_CONSENT = 'The participant agrees that Elimu+ and the partner organisa
 const NOT_LISTED = 'Not listed here (type its name below)';
 const TYPED_COHORT_Q = 'If the cohort is not in the list above, type its name';
 const EMAIL_Q = 'Participant email (only if they have one)';
+const NEWS_Q = 'Newsletter';
+const NEWS_YES = 'Yes, send the participant the Elimu+ newsletter by email (needs an email above; they can unsubscribe any time)';
 const BUS_Q = 'Business status';
 const NOTE_Q = 'What is the business, or the idea they want to start?';
 const DAY_Q = 'Which day of the programme is this?';
@@ -448,6 +450,7 @@ function createRegistrationForm() {
   form.addTextItem().setTitle(P_NAME_Q).setHelpText('Full name as they want it on their certificate.').setRequired(true);
   form.addTextItem().setTitle(P_PHONE_Q).setHelpText('A number that reaches them directly. It becomes their record and follow-up contact.').setRequired(true);
   form.addTextItem().setTitle(EMAIL_Q).setValidation(FormApp.createTextValidation().requireTextIsEmail().build());
+  form.addCheckboxItem().setTitle(NEWS_Q).setChoiceValues([NEWS_YES]);
   form.addMultipleChoiceItem().setTitle(BUS_Q).setChoiceValues(REG_BUSINESS).setRequired(true);
   form.addParagraphTextItem().setTitle(NOTE_Q).setHelpText('A few words are enough, for example: sells vegetables at the roadside, or wants to open a salon.');
   form.addCheckboxItem().setTitle('Consent').setChoiceValues([REG_CONSENT]).setRequired(true);
@@ -480,7 +483,7 @@ function onRegisterSubmit_(e) {
     return;
   }
   postRoster_({ kind: 'register', response_id: e.response.getId(), officer_name: a[NAME_Q], officer_phone: a[PHONE_Q], cohort: listed,
-    participant_name: a[P_NAME_Q], participant_phone: a[P_PHONE_Q], email: a[EMAIL_Q] || '', business_status: a[BUS_Q] || '', business_note: a[NOTE_Q] || '' },
+    participant_name: a[P_NAME_Q], participant_phone: a[P_PHONE_Q], email: a[EMAIL_Q] || '', newsletter: a[NEWS_Q] ? 'yes' : '', business_status: a[BUS_Q] || '', business_note: a[NOTE_Q] || '' },
     'Registration of ' + a[P_NAME_Q]);
 }
 
