@@ -59,6 +59,17 @@ export async function syncNewsletter(): Promise<{ synced: number; failed: number
       failed++;
     }
   }
+  const guests = await asAdmin((q) => q(
+    `select id, coalesce(name, '') who, lower(email) email from seminar_entries
+     where newsletter_consent and email like '%@%' and brevo_synced_at is null limit 200`));
+  for (const g of guests) {
+    try {
+      if (!isEmail(g.email)) throw new Error('not a valid email address');
+      await upsertContact(g.email, names(g.who));
+      await asAdmin((q) => q('update seminar_entries set brevo_synced_at = now() where id = $1', [g.id]));
+      synced++;
+    } catch { failed++; }
+  }
   return { synced, failed };
 }
 
