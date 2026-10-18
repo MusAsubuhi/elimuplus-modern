@@ -2,7 +2,7 @@ import { asAdmin } from '@/lib/db';
 import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader, inputCls, submitCls } from '@/components/ui';
 import { ANGLES, PLATFORMS, angleLabel } from '@/lib/social';
-import { submitIdea, editMyIdea, saveDrafts, sendForApproval, approveIdea, returnIdea, markPosted } from '../../social-actions';
+import { submitIdea, editMyIdea, saveDrafts, sendForApproval, approveIdea, returnIdea } from '../../social-actions';
 
 export const dynamic = 'force-dynamic';
 const ghost = 'rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal';
@@ -97,11 +97,13 @@ export default async function Social() {
                       <textarea name={p.key} rows={4} defaultValue={d[p.key] ?? ''} className={`${inputCls} mt-1 font-normal`} />
                     </label>
                   ))}
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <input name="image_url" defaultValue={i.image_url ?? ''} placeholder="Picture address" className={inputCls} />
-                    <input name="partner_name" defaultValue={i.partner_name ?? ''} placeholder="Partner organisation" className={inputCls} />
-                    <input name="partner_logo_url" defaultValue={i.partner_logo_url ?? ''} placeholder="Partner logo address" className={inputCls} />
+                  <div className="grid gap-3 sm:grid-cols-4">
+                    <label className="text-xs font-bold text-teal">Post on<input type="date" name="scheduled_for" defaultValue={i.scheduled_for ? new Date(i.scheduled_for).toISOString().slice(0, 10) : ''} className={`${inputCls} mt-1 font-normal`} /></label>
+                    <label className="text-xs font-bold text-teal">Pillar<select name="pillar" defaultValue={i.pillar ?? ''} className={`${inputCls} mt-1 font-normal`}><option value="">None</option><option>Real businesses</option><option>Follow-through</option><option>Community</option><option>Partners</option><option>Behind the build</option></select></label>
+                    <input name="image_url" defaultValue={i.image_url ?? ''} placeholder="Picture address" className={`${inputCls} self-end`} />
+                    <input name="partner_name" defaultValue={i.partner_name ?? ''} placeholder="Partner organisation" className={`${inputCls} self-end`} />
                   </div>
+                  <input name="partner_logo_url" defaultValue={i.partner_logo_url ?? ''} placeholder="Partner logo address" className={inputCls} />
                   <p className="text-xs text-slate-600">Add this credit at the end of each post: <b>{credit(i)}</b></p>
                   <button className={submitCls}>Save drafts</button>
                 </form>
@@ -113,7 +115,7 @@ export default async function Social() {
                     {iApproved && <Badge tone="green">You approved</Badge>}
                     <form action={returnIdea} className="flex gap-2"><input type="hidden" name="id" value={i.id} /><input name="note" placeholder="What is missing?" className={`${inputCls} w-56`} /><button className={ghost}>Return to author</button></form>
                   </>}
-                  {i.status === 'approved' && <form action={markPosted}><input type="hidden" name="id" value={i.id} /><button className={submitCls}>I have posted this</button></form>}
+                  {(i.status === 'approved' || i.status === 'posted') && <a href="/portal/social/calendar" className={ghost}>Open in the calendar to post it</a>}
                 </div>
               </>
             ) : (
