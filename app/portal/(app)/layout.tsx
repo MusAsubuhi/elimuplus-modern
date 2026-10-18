@@ -4,6 +4,7 @@ import { getLang, requireMe, type Role } from '@/lib/session';
 import { asAdmin, asUser } from '@/lib/db';
 import { logout, setLang, demoLogin } from '../actions';
 import Flash from '@/components/flash';
+import NavLink from '@/components/nav-link';
 import { t } from '@/lib/i18n';
 import { levelName } from '@/lib/levels';
 import { allowedFeatures } from '@/lib/access';
@@ -61,9 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <div key={s} className="mb-4">
                 <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{s}</div>
                 {items.map((i) => (
-                  <Link key={i.href} href={i.href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-50 hover:bg-white/10">
-                    <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}{i.href === '/portal/alerts' && unread > 0 && <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold text-teal">{unread}</span>}
-                  </Link>
+                  <NavLink key={i.href} href={i.href} icon={i.icon} label={i.label} badge={i.href === '/portal/alerts' ? unread : 0} />
                 ))}
               </div>
             );
@@ -72,9 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div key={g} className="mb-4">
               <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{NAV[g].title}</div>
               {NAV[g].items.filter((i) => !seen.has(i.href) && seen.add(i.href)).map((i) => (
-                <Link key={i.href} href={i.href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-50 hover:bg-white/10">
-                  <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
-                </Link>
+                <NavLink key={i.href} href={i.href} icon={i.icon} label={i.label} />
               ))}
             </div>
           ))}
@@ -82,9 +79,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <div className="mb-4">
               <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">Shared with you</div>
               {shared.map((i) => (
-                <Link key={i.href} href={i.href} className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold text-teal-50 hover:bg-white/10">
-                  <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
-                </Link>
+                <NavLink key={i.href} href={i.href} icon={i.icon} label={i.label} />
               ))}
             </div>
           )}
