@@ -108,6 +108,21 @@ function initFormspreeForms() {
       })
         .then(function (response) {
           if (response.ok) {
+            var kind = form.getAttribute('data-confirm');
+            if (kind) {
+              /* Fire-and-forget acknowledgement email; the form itself has already succeeded. */
+              var emailEl = form.querySelector('input[name="email"]');
+              var nameEl = form.querySelector('input[name="contact_person"], input[name="full_name"]');
+              var orgEl = form.querySelector('input[name="organisation_name"]');
+              if (emailEl && emailEl.value) {
+                var c = new FormData();
+                c.append('kind', kind);
+                c.append('email', emailEl.value);
+                c.append('name', nameEl ? nameEl.value : '');
+                c.append('organisation', orgEl ? orgEl.value : '');
+                fetch('https://portal.elimuplus.com/api/notify/confirm', { method: 'POST', body: c }).catch(function () {});
+              }
+            }
             if (successEl) successEl.classList.add('visible');
             form.reset();
           } else {
