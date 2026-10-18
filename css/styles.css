@@ -334,6 +334,7 @@ p {
 
 .diagonal-stripe--footer {
   height: 6px;
+  margin-bottom: var(--space-lg);
 }
 
 /* RAW image placeholder — deliberately unstyled/un-designed so it is
