@@ -22,6 +22,23 @@ export default async function Social() {
   return (
     <>
       <PageHeader title="Social ideas" subtitle="Our content is built by the whole team. Share a real idea; the founders turn it into posts, both approve, and you are credited." />
+      <Card title="Not sure what to share? Examples of the four angles" subtitle="Write as much as you like, in your own words, in English or Swahili. Length does not matter: the founders adapt it for WhatsApp, Facebook, Instagram and LinkedIn." className="mb-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          {[
+            ['Actionable', 'Here is how', 'Idea: How to work out your break-even before you sell anything.', 'Post: "Before you stock up, answer three questions. What does one item cost you to make or buy? What will you sell it for? What do you spend every month whether you sell or not? Divide the monthly cost by what is left on each item and you know how many you must sell just to break even. Try it for your own business this week."'],
+            ['Analytical', 'Here is a breakdown', 'Idea: What our first adult cohort showed at 60 days (use only figures we have confirmed).', 'Post: "Of ten women in our first adult cohort, eight businesses were confirmed operating at 60 days. Early signals, not proof, and here is how we check them: we visit, call and ask at 30, 60 and 90 days."'],
+            ['Aspirational', 'Yes, you can', 'Idea: A mistake I made when I started, and what it taught me.', 'Post: "[One real moment from you: what you tried, what went wrong, what you changed.] If you are starting small, you are in good company."'],
+            ['Anthropological', 'Here is why', 'Idea: Why every Elimu+ lesson is built around one real omena seller in Likoni.', 'Post: "We do not teach with invented examples. When we learn pricing, we price her omena. When we map competition, we map her stall first. Real places teach better than case studies from somewhere else."'],
+          ].map(([name, tag, idea, post]) => (
+            <div key={name} className="rounded-lg border border-teal-100 p-3 text-sm">
+              <p><b className="text-teal">{name}</b> <span className="text-xs text-slate-500">{tag}</span></p>
+              <p className="mt-1 text-slate-700">{idea}</p>
+              <p className="mt-2 italic text-slate-600">{post}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-slate-600">These are only starting points. The best ideas come from something that really happened to you this week: a visit, a question a participant asked, a number that surprised you.</p>
+      </Card>
       <Card title="Share an idea" subtitle="Start from something real: a visit, a person, a lesson, a number, a place. It should still be true and useful in two years." className="mb-6">
         <form action={submitIdea} className="space-y-3">
           <input name="title" required placeholder="The idea in one line, e.g. What Mwanahamisi taught us about pricing omena" className={inputCls} />
@@ -33,7 +50,7 @@ export default async function Social() {
               </label>
             ))}
           </div>
-          <textarea name="material" required rows={5} placeholder="The real material: what happened, who said what, the number, the lesson. The more specific, the better the post." className={inputCls} />
+          <textarea name="material" required rows={5} placeholder="The real material: what happened, who said what, the number, the lesson. Write as much as you like; we adapt it for each platform." className={inputCls} />
           <div className="grid gap-3 sm:grid-cols-3">
             <input name="partner_name" placeholder="Partner organisation (optional)" className={inputCls} />
             <input name="partner_logo_url" placeholder="Partner logo address, https:// (optional)" className={inputCls} />
