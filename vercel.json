@@ -318,6 +318,10 @@
     {
       "path": "/api/cron/news-feed",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/billing",
+      "schedule": "0 5 * * *"
     }
   ]
 }

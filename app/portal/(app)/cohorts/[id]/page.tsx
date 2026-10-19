@@ -6,6 +6,7 @@ import { Badge, Card, ImgBand, PageHeader, Stat, Table, inputCls, statusTone, su
 import { BarCard, PieCard } from '@/components/charts';
 import { d, daysFromToday, iso, pct } from '@/lib/format';
 import { markAttendance, recordVisit, saveSessionLog, toggleUnlock } from '../../../actions';
+import { enrolRoster, publishDaySummary } from '../../../partner-actions';
 
 export default async function CohortPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }) {
   const me = await requireMe('facilitator', 'founder');
@@ -14,7 +15,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const data = await asUser(me.id, async (q) => {
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
-    const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms] = await Promise.all([
+    const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms, expected, summaries] = await Promise.all([
       q(`select e.id, e.track, e.status, e.has_business_at_entry, p.display_name, p.full_name, p.birth_year,
            (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
          from enrolments e join people p on p.id=e.person_id where e.cohort_id=$1 order by p.display_name`, [id]),
@@ -30,13 +31,15 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       q(`select l.*, s.day_number, p.display_name author from session_logs l join sessions s on s.id=l.session_id join people p on p.id=l.author_id where s.cohort_id=$1 order by s.day_number`, [id]),
       q(`select p.display_name, cf.role from cohort_facilitators cf join people p on p.id=cf.person_id where cf.cohort_id=$1`, [id]),
       q(`select id, stage, participant_name, visited_on, business_status, urgent, sales_range, stock_value_kes, answers from followup_forms where cohort_id=$1 order by visited_on desc, created_at desc`, [id]),
+      q("select id, full_name, phone, status from cohort_roster where cohort_id=$1 order by created_at", [id]),
+      q('select * from day_summaries where cohort_id=$1', [id]),
     ]);
     const chosen = sp.session ?? sessions[0]?.id;
     const present = chosen ? await q('select enrolment_id from attendance where session_id=$1 and present', [chosen]) : [];
-    return { c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
+    return { expected, summaries, c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
   });
   if (!data) notFound();
-  const { c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
+  const { expected, summaries, c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
   const boxBars = boxes.map((b) => ({ box: String(b.number), name: b.name_en, filled: answers.find((a) => a.box_number === b.number)?.n ?? 0 }));
   const attBars = att.map((a) => ({ day: `Day ${a.day_number}`, rate: pct(a.present, a.total) }));
   const statusPie = ['enrolled', 'completed', 'dropped'].map((s) => ({ name: s, value: roster.filter((r) => r.status === s).length })).filter((x) => x.value);
@@ -81,6 +84,13 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
         </Card>
       </div>
 
+      {expected.some((r) => r.status === 'expected') && (
+        <Card title="Waiting on the partner's list" subtitle={`${expected.filter((r) => r.status === 'expected').length} people the partner loaded before the training`} className="mt-4">
+          <p className="mb-3 text-sm text-slate-600">{expected.filter((r) => r.status === 'expected').map((r) => r.full_name).slice(0, 12).join(', ')}{expected.filter((r) => r.status === 'expected').length > 12 ? '…' : ''}</p>
+          <form action={enrolRoster}><input type="hidden" name="cohort" value={id} /><button className={submitCls}>Enrol everyone on the list</button></form>
+        </Card>
+      )}
+
       <Card title="Roster" className="mt-4" subtitle="Names are visible to trainers of this cohort only">
         <Table head={['Participant', 'Track', 'Status', 'Boxes filled', 'Business at entry']}
           rows={roster.map((r) => [
@@ -112,6 +122,19 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
                 </div>
                 <button className={`${submitCls} mt-3`}>Save attendance</button>
               </form>
+              {(() => {
+                const sm = summaries.find((x) => x.session_id === sess.id);
+                return (
+                  <form action={publishDaySummary} className="mb-5 space-y-2 rounded-lg border border-teal-100 p-3 text-sm">
+                    <input type="hidden" name="cohort" value={id} /><input type="hidden" name="session" value={sess.id} />
+                    <p className="font-bold">Summary for the partner {sm ? <span className="ml-1 text-xs font-normal text-green-700">published {d(sm.published_at)}</span> : null}</p>
+                    <textarea name="covered" rows={2} defaultValue={sm?.covered ?? ''} placeholder="What we covered today, in plain words" className={inputCls} />
+                    <textarea name="note" rows={2} defaultValue={sm?.note_for_partner ?? ''} placeholder="Anything the partner should know or do (optional)" className={inputCls} />
+                    <button className={submitCls}>{sm ? 'Update summary' : 'Publish summary'}</button>
+                    <p className="text-xs text-slate-500">Counts and the names of who came and who did not are taken from the attendance above. Save attendance first.</p>
+                  </form>
+                );
+              })()}
               <form action={saveSessionLog} className="space-y-3">
                 <input type="hidden" name="cohort" value={id} /><input type="hidden" name="session" value={sess.id} />
                 <fieldset className="rounded-lg border border-teal-100 p-3 text-sm">
