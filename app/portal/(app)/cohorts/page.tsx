@@ -13,7 +13,7 @@ export default async function Cohorts() {
       (select count(*) from enrolments e where e.cohort_id=c.id and e.status='completed')::int completed,
       (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id join enrolments e on e.id=cv.enrolment_id where e.cohort_id=c.id)::int boxes_touched,
       (select count(*) from canvas_unlocks u where u.cohort_id=c.id)::int unlocked
-      from cohorts c join organisations o on o.id=c.organisation_id order by c.start_date desc nulls last`),
+      from cohorts c join organisations o on o.id=c.organisation_id order by c.seq`),
     due: await q(`select s.visit, s.status, s.due_date, s.id, p.display_name, c.id cohort_id
       from followup_schedule s join enrolments e on e.id=s.enrolment_id join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id
       where s.status='scheduled' order by s.due_date`),

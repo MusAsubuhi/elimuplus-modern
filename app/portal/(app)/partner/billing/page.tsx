@@ -1,5 +1,6 @@
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
+import { releaseDueQuotes } from '@/lib/billing';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { notifyPayment } from '../../../partner-actions';
 import { BANK } from '@/lib/pricing';
@@ -8,6 +9,7 @@ import { d, kes } from '@/lib/format';
 
 export default async function Billing() {
   const me = await requireMe('org_admin');
+  await releaseDueQuotes().catch(() => {});
   const { invoices, payments, quotes, notices, receipts } = await asUser(me.id, async (q) => ({
     invoices: await q(`select i.*, o.name org_name, coalesce((select sum(amount_kes) from payments p where p.invoice_id=i.id),0)::int paid from invoices i join organisations o on o.id=i.organisation_id order by i.issued_on desc`),
     payments: await q('select p.*, i.number from payments p join invoices i on i.id=p.invoice_id order by p.received_on desc'),

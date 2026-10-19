@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   if (!validSecret(req.headers.get('x-forms-secret'))) return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
   const cohorts = await asAdmin((q) => q(
     `select c.id, c.name, o.name org, c.status from cohorts c join organisations o on o.id=c.organisation_id
-     where c.status in ('confirmed','delivering','followup') order by c.start_date desc nulls last limit 60`));
+     where c.status in ('confirmed','delivering','followup') order by c.seq limit 60`));
   const leaders = await asAdmin((q) => q(
     `select distinct p.display_name name, p.email,
        case when exists (select 1 from role_assignments r where r.person_id=p.id and r.role='founder' and r.status='active') then 'Founder' else 'Master trainer' end kind

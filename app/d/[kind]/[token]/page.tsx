@@ -101,7 +101,7 @@ function Quotation({ qt, org, co }: any) {
         <h2 className={h2}>Follow-up visits (30, 60 and 90 days)</h2>
         <table className="mt-2 w-full border-collapse"><thead><tr><th className={th}>Participants</th><th className={th}>Per participant</th><th className={th}>Estimated total</th></tr></thead>
           <tbody>{sizes.map((s) => { const ff = followups(s); return <tr key={s} className={s === n ? 'bg-gold-100 font-bold' : ''}><td className={td}>{s}</td><td className={td}>{kes(ff.perParticipant)}</td><td className={td}>{kes(ff.total)}</td></tr>; })}</tbody></table>
-        <p className="mt-2 text-xs text-slate-600">The follow-up fee is invoiced separately, shortly before the first follow-up visit.</p>
+        <p className="mt-2 text-xs text-slate-600">The follow-up fee is shared equally across the three visits. Each visit is invoiced separately, about two weeks before it takes place.</p>
         <div className="mt-5 rounded-lg bg-mist p-4 text-sm"><b>This quotation: </b>training {kes(t.total)} + follow-up {kes(f.total)} = <b>{kes(t.total + f.total)}</b> for {n} participants.</div>
         <h2 className={h2}>What is included</h2>
         <p className="mt-2 text-sm leading-relaxed">Curriculum &amp; facilitation (two trained facilitators, SAME framework &amp; SEE Canvas) · Bilingual materials (Swahili-first) · 30/60/90-day follow-up visits · Formal programme report · Certificates of Completion.</p>

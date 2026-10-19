@@ -69,13 +69,13 @@ export async function orgContacts(orgId: string): Promise<string[]> {
 }
 
 /** Create an invoice from a quote. Used by the founders' Deals page and by the daily job that bills follow-ups. */
-export async function createInvoice(q: Q, o: { quoteId: string; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; amount: number; description: string; dueOn: string }) {
+export async function createInvoice(q: Q, o: { quoteId: string; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string }) {
   const org = (await q('select name, code from organisations where id=$1', [o.orgId]))[0];
   const num = await nextInvoiceNumber(q, orgCode(org.name, org.code));
   const r = (await q(
-    `insert into invoices(quote_id, organisation_id, cohort_id, number, issued_on, due_on, amount_kes, status, kind, description)
-     values ($1,$2,$3,$4,current_date,$5,$6,'issued',$7,$8) returning id, number, share_token`,
-    [o.quoteId, o.orgId, o.cohortId, num, o.dueOn, o.amount, o.kind, o.description]))[0];
+    `insert into invoices(quote_id, organisation_id, cohort_id, number, issued_on, due_on, amount_kes, status, kind, description, visit)
+     values ($1,$2,$3,$4,current_date,$5,$6,'issued',$7,$8,$9) returning id, number, share_token`,
+    [o.quoteId, o.orgId, o.cohortId, num, o.dueOn, o.amount, o.kind, o.description, o.visit ?? null]))[0];
   return { id: r.id as string, number: r.number as string, token: r.share_token as string };
 }
 
@@ -93,3 +93,30 @@ export const visitDates = (c: { start_date?: any; end_date?: any; format?: strin
   return e ? ([30, 60, 90] as const).map((v) => ({ visit: v, due: plus(e, v) })) : [];
 };
 export const addDaysIso = plus;
+
+/** Split the follow-up fee over the three visits (the last one takes the rounding). */
+export const splitFollowup = (fee: number) => { const a = Math.floor(fee / 3 / 10) * 10; return { 30: a, 60: a, 90: fee - 2 * a } as Record<30 | 60 | 90, number>; };
+
+/**
+ * Quotations a partner asked for themselves are held back for a short, uneven while so the reply does not feel automatic.
+ * Called whenever a partner page opens and by the daily job; sends anything whose time has come.
+ */
+export async function releaseDueQuotes(): Promise<number> {
+  const due = await asAdmin((q) => q(
+    `select qt.id, qt.share_token, qt.number, qt.organisation_id, o.name org_name, o.contact_person
+       from quotes qt join organisations o on o.id=qt.organisation_id
+      where qt.self_service and qt.status='draft' and qt.release_at <= now() order by qt.release_at limit 20`));
+  let n = 0;
+  for (const x of due) {
+    const claimed = await asAdmin((q) => q("update quotes set status='sent', sent_at=now(), valid_until=current_date + 30 where id=$1 and status='draft' returning id", [x.id]));
+    if (!claimed.length) continue;
+    n++;
+    const to = await orgContacts(x.organisation_id);
+    const err = await mailDoc(to, `Your Elimu+ partnership proposal and quotation`,
+      `Dear ${x.contact_person || x.org_name},\n\nThank you for your interest in working with Elimu+. Your partnership proposal and quotation (${x.number}) are ready. Both are also in your partner portal under Invoices and payments. The quotation is valid for 30 days.\n\nWhen you are ready, reply to this email or call us and we will confirm dates with you.\n\nWarm regards,\nElimu+`,
+      [{ label: 'Read the partnership proposal', url: docUrl('proposal', x.share_token) }, { label: 'Open the quotation', url: docUrl('quote', x.share_token) }]);
+    await asAdmin((q) => q('update quotes set sent_to=$2 where id=$1', [x.id, to.join(', ') || null]));
+    await asAdmin((q) => alertFounders(q, `Quotation ${x.number} released to ${x.org_name}`, err ? `Email not sent: ${err}` : 'Emailed to the partner.', '/portal/deals', err ? 'attention' : 'info'));
+  }
+  return n;
+}

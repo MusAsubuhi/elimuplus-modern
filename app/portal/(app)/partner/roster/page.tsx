@@ -10,7 +10,7 @@ export default async function PartnerRoster({ searchParams }: { searchParams: Pr
   const { cohorts, rows } = await asUser(me.id, async (q) => ({
     cohorts: await q(`select c.id, c.name, c.start_date, c.status, c.expected_participants,
         (select count(*) from cohort_roster r where r.cohort_id=c.id and r.status<>'withdrawn')::int listed
-        from cohorts c where c.organisation_id in (select app.my_org_admin_orgs()) and c.status in ('requested','quoted','confirmed','delivering') order by c.start_date nulls last`),
+        from cohorts c where c.organisation_id in (select app.my_org_admin_orgs()) and c.status in ('requested','quoted','confirmed','delivering') order by c.seq`),
     rows: await q(`select * from cohort_roster order by created_at`),
   }));
   const chosen = cohorts.find((c) => c.id === sp.cohort) ?? cohorts[0];

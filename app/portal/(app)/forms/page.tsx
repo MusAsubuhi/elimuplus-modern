@@ -37,7 +37,7 @@ export default async function Forms() {
     const exit = await by(`select e.cohort_id, count(*)::int n from exit_feedback x join enrolments e on e.id = x.enrolment_id group by e.cohort_id`);
     const ad = await by(`select cohort_id, count(*) filter (where stage=30)::int s30, count(*) filter (where stage=60)::int s60, count(*) filter (where stage=90)::int s90 from followup_forms where cohort_id is not null group by cohort_id`);
     const yo = await by(`select cohort_id, count(*) filter (where stage=30)::int s30, count(*) filter (where stage=60)::int s60, count(*) filter (where stage=90)::int s90 from youth_followups where cohort_id is not null group by cohort_id`);
-    const list = await q(`select c.id, c.name, c.status, o.name org, c.start_date from cohorts c join organisations o on o.id = c.organisation_id order by c.start_date desc nulls last limit 60`);
+    const list = await q(`select c.id, c.name, c.status, o.name org, c.start_date from cohorts c join organisations o on o.id = c.organisation_id order by c.seq limit 60`);
     const cohorts = list.map((c: any) => ({ ...c, enrolled: enrol[c.id]?.n ?? 0, base: base[c.id]?.n ?? 0, pre: learn[c.id]?.pre ?? 0, post: learn[c.id]?.post ?? 0, exit: exit[c.id]?.n ?? 0, ad: ad[c.id] ?? {}, yo: yo[c.id] ?? {} }));
     return { forms, portal, cohorts };
   });

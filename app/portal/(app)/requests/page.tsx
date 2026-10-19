@@ -14,7 +14,7 @@ export default async function Requests({ searchParams }: { searchParams: Promise
   const { reqs, cats, cohorts, pay } = await asUser(me.id, async (q) => ({
     reqs: await q(`select r.*, c.name cohort_name, c.status cohort_status, k.name category from expense_requests r left join cohorts c on c.id=r.cohort_id left join expense_categories k on k.id=r.category_id where r.requester_id=$1 order by r.created_at desc`, [me.id]),
     cats: await q('select * from expense_categories order by name'),
-    cohorts: await q("select id, name, status, start_date, end_date from cohorts where status in ('confirmed','delivering','followup') order by (status='delivering') desc, start_date desc"),
+    cohorts: await q("select id, name, status, start_date, end_date from cohorts where status in ('confirmed','delivering','followup') order by (status='delivering') desc, seq"),
     pay: await q('select * from trainer_payments where person_id=$1 order by paid_on desc', [me.id]),
   }));
   const pending = reqs.filter((r) => r.status === 'submitted').reduce((s, r) => s + r.amount_kes, 0);

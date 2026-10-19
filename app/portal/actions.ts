@@ -1,5 +1,6 @@
 'use server';
-import { issueReceipt } from '@/lib/billing';
+import { alertFounders, issueReceipt, nextQuoteNumber, orgCode, quoteLines } from '@/lib/billing';
+import { CONTACT, MIN_SESSIONS } from '@/lib/pricing';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -217,16 +218,36 @@ export async function markExpensePaid(f: FormData) {
 /* ---------- partner ---------- */
 export async function requestCohort(f: FormData) {
   const me = await requireMe('org_admin');
+  const P = '/portal/partner/request';
+  const size = Math.round(Number(s(f, 'size')));
+  if (!(size > 0)) back(P, 'Enter how many participants will attend.', 'err');
+  const org = s(f, 'org');
+  const mine = (await asUser(me.id, (q) => q('select id, name, code from organisations where id=$1 and id in (select app.my_org_admin_orgs())', [org])))[0];
+  if (!mine) back(P, 'That organisation is not yours.', 'err');
+  // One self-service quotation per organisation. A second one goes through a conversation with us.
+  const had = (await asAdmin((q) => q('select count(*)::int n from quotes where organisation_id=$1', [org])))[0].n;
+  if (had > 0) back(P, `Your organisation already has a quotation with us. For another cohort, please contact Elimu+ on ${CONTACT.phone} or ${CONTACT.email} and we will prepare it with you.`, 'err');
+  const format = s(f, 'format') === '12-day' ? '12-day' : '5-day';
+  const sessions = format === '12-day' ? 12 : MIN_SESSIONS;
   try {
-    await asUser(me.id, (q) => q(
+    const cohort = (await asUser(me.id, (q) => q(
       `insert into cohorts(organisation_id,name,format,language,audience,start_date,venue,expected_participants,status)
-       values($1,$2,$3,$4,$5,$6,$7,$8,'requested')`,
-      [s(f, 'org'), s(f, 'name') || 'New cohort request', s(f, 'format') === '12-day' ? '12-day' : '5-day', s(f, 'language') === 'en' ? 'en' : 'sw',
-       s(f, 'audience'), s(f, 'start') || null, s(f, 'venue'), Number(s(f, 'size')) || null]));
-  } catch (e) { console.error("[portal action]", e); back('/portal/partner/request', 'Could not send the request.', 'err'); }
+       values($1,$2,$3,$4,$5,$6,$7,$8,'quoted') returning id`,
+      [org, s(f, 'name') || 'New cohort request', format, s(f, 'language') === 'en' ? 'en' : 'sw', s(f, 'audience'), s(f, 'start') || null, s(f, 'venue'), size])))[0];
+    const delayMin = 40 + Math.floor(Math.random() * 110); // 40 to 150 minutes
+    await asAdmin(async (q) => {
+      const num = await nextQuoteNumber(q, orgCode(mine.name, mine.code));
+      const qt = (await q(
+        `insert into quotes(organisation_id, cohort_id, number, participants, sessions, valid_until, status, self_service, requested_by, release_at)
+         values ($1,$2,$3,$4,$5,current_date + 30,'draft',true,$6, now() + ($7 || ' minutes')::interval) returning id`,
+        [org, cohort.id, num, size, sessions, me.id, String(delayMin)]))[0];
+      for (const l of quoteLines(size, sessions)) await q('insert into quote_lines(quote_id, kind, description, qty, unit_kes) values ($1,$2,$3,$4,$5)', [qt.id, l.kind, l.description, l.qty, l.unit_kes]);
+      await alertFounders(q, `${mine.name} requested a quotation`, `${size} participants, ${format}. It will be released to them automatically in about ${delayMin} minutes. Open Proposals and receipts to review or change it.`, '/portal/deals', 'info');
+    });
+  } catch (e) { console.error("[portal action]", e); back(P, 'Could not send the request.', 'err'); }
   await notify();
   revalidatePath('/portal', 'layout');
-  back('/portal/partner/request', 'Request sent. We will confirm details and a quote with you.');
+  back(P, 'Thank you. We are preparing your proposal and quotation and will send them to you shortly.');
 }
 
 export async function nominate(f: FormData) {

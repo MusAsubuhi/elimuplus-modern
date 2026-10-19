@@ -84,7 +84,7 @@ export default async function Deals() {
                   <div><b>{x.number ?? 'Unnumbered'}</b> · {x.org_name}{x.cohort_name ? ` · ${x.cohort_name}` : ''} <Badge tone={statusTone(x.status)}>{x.status}</Badge></div>
                   <b>{kes(x.total)}</b>
                 </div>
-                <p className="mt-1 text-xs text-slate-500">{x.participants ?? '—'} participants · {x.sessions} sessions · issued {d(x.issued_on)} · valid to {d(x.valid_until)}{x.sent_at ? ` · sent ${d(x.sent_at)} to ${x.sent_to}` : ''}</p>
+                <p className="mt-1 text-xs text-slate-500">{x.participants ?? '—'} participants · {x.sessions} sessions · issued {d(x.issued_on)} · valid to {d(x.valid_until)}{x.sent_at ? ` · sent ${d(x.sent_at)} to ${x.sent_to}` : ''}{x.self_service && x.status === 'draft' ? ` · requested by the partner, releases automatically after ${new Date(x.release_at).toLocaleString('en-GB', { timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <a className={mini} href={docUrl('proposal', x.share_token)} target="_blank">Proposal</a>
                   <a className={mini} href={docUrl('quote', x.share_token)} target="_blank">Quotation</a>
@@ -100,7 +100,7 @@ export default async function Deals() {
         </Card>
       </div>
 
-      <Card title="Invoices" className="mt-4" subtitle="Training invoices are raised when a quotation is accepted. The follow-up invoice is raised automatically about two weeks before the first follow-up visit.">
+      <Card title="Invoices" className="mt-4" subtitle="Training invoices are raised when a quotation is accepted. The 30, 60 and 90-day follow-up visits are each invoiced automatically about two weeks before the visit, at a third of the follow-up fee.">
         <Table head={['Invoice', 'Partner', 'Type', 'Amount', 'Paid', 'Due', 'Status', '']}
           rows={X.invoices.map((i) => [<b key="n">{i.number}</b>, i.org_name, i.kind, kes(i.amount_kes), kes(i.paid), d(i.due_on), <Badge key="s" tone={statusTone(i.status)}>{i.status}</Badge>,
             <div key="a" className="flex gap-2"><a className={mini} href={docUrl('invoice', i.share_token)} target="_blank">Open</a>

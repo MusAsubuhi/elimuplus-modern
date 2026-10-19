@@ -19,7 +19,7 @@ export default async function Team() {
         from people p order by p.created_at desc, p.full_name`),
     sup: await q("select s.person_id, p.display_name from supervision s join people p on p.id=s.supervisor_id where s.status='active'"),
     orgs: await q('select id, name from organisations where not is_internal order by name'),
-    cohorts: await q('select c.id, c.name from cohorts c join organisations o on o.id = c.organisation_id where not o.is_internal order by c.start_date desc nulls last'),
+    cohorts: await q('select c.id, c.name from cohorts c join organisations o on o.id = c.organisation_id where not o.is_internal order by c.seq'),
   }));
   const trainers = T.people.filter((p) => (p.roles as any[]).some((r) => r.role === 'facilitator'));
   const supOf = new Map(T.sup.map((x) => [x.person_id, x.display_name]));

@@ -34,7 +34,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
   const tpl = templateFor(level);
   const reviewer = me.roles.includes('founder') || me.roles.includes('master');
   const { cohorts, mine, queue, supervised } = await asUser(me.id, async (q) => ({
-    cohorts: await q("select id, name, status from cohorts where status in ('confirmed','delivering','followup') order by start_date desc nulls last"),
+    cohorts: await q("select id, name, status from cohorts where status in ('confirmed','delivering','followup') order by seq"),
     mine: await q(`select r.*, c.name cohort_name from day_reports r left join cohorts c on c.id=r.cohort_id where r.author_id=$1 order by r.created_at desc limit 20`, [me.id]),
     queue: await q(
       `select r.*, c.name cohort_name, coalesce(a.display_name, r.form_respondent) author, rt.display_name routed_name

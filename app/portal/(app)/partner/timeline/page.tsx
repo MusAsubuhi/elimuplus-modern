@@ -3,7 +3,7 @@ import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, statusTone } from '@/components/ui';
 import { d, daysFromToday, kes } from '@/lib/format';
-import { visitDates } from '@/lib/billing';
+import { releaseDueQuotes, visitDates } from '@/lib/billing';
 
 const when = (iso: string) => {
   const n = daysFromToday(iso);
@@ -22,8 +22,9 @@ function Step({ done, title, children }: { done: boolean; title: string; childre
 
 export default async function Timeline() {
   const me = await requireMe('org_admin');
+  await releaseDueQuotes().catch(() => {});
   const X = await asUser(me.id, async (q) => ({
-    cohorts: await q(`select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.organisation_id in (select app.my_org_admin_orgs()) order by c.start_date desc nulls last`),
+    cohorts: await q(`select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.organisation_id in (select app.my_org_admin_orgs()) order by c.seq`),
     quotes: await q(`select * from quotes where status in ('signed') order by accepted_at desc`),
     invoices: await q(`select i.*, coalesce((select sum(amount_kes) from payments p where p.invoice_id=i.id),0)::int paid from invoices i`),
     roster: await q(`select cohort_id, status, count(*)::int n from cohort_roster group by cohort_id, status`),
@@ -41,7 +42,7 @@ export default async function Timeline() {
           const quote = X.quotes.find((x) => x.cohort_id === c.id);
           const invs = X.invoices.filter((i) => i.cohort_id === c.id || (quote && i.quote_id === quote.id));
           const trainingInv = invs.find((i) => i.kind !== 'followup');
-          const followInv = invs.find((i) => i.kind === 'followup');
+          const followInvs = invs.filter((i) => i.kind === 'followup');
           const loaded = X.roster.filter((r) => r.cohort_id === c.id && r.status !== 'withdrawn').reduce((a, r) => a + r.n, 0);
           const sums = X.sums.filter((s) => s.cohort_id === c.id);
           const visits = visitDates(c);
@@ -85,9 +86,12 @@ export default async function Timeline() {
                       {visits.map((v) => <span key={v.visit} className="rounded-lg border border-teal-100 bg-white px-3 py-1 text-xs"><b>{v.visit} days</b> · {d(v.due)} · {when(v.due)}</span>)}
                     </div>
                   ) : 'Dates are set once the training dates are confirmed.'}
-                  <p className="mt-2">{followInv
-                    ? <>Follow-up invoice {followInv.number} · {kes(followInv.amount_kes)} · due {d(followInv.due_on)} · <Badge tone={statusTone(followInv.status)}>{followInv.status}</Badge></>
-                    : visits.length ? <>We will send the follow-up invoice about two weeks before the first visit, around {d(new Date(new Date(visits[0].due).getTime() - 14 * 86400000))}.</> : ''}</p>
+                  <div className="mt-2 space-y-1">
+                    {visits.map((v) => { const inv = followInvs.find((i) => i.visit === v.visit); return (
+                      <p key={v.visit}>{v.visit}-day visit: {inv
+                        ? <>{inv.number} · {kes(inv.amount_kes)} · due {d(inv.due_on)} · <Badge tone={statusTone(inv.status)}>{inv.status}</Badge></>
+                        : <>invoice follows about two weeks before the visit, around {d(new Date(new Date(v.due).getTime() - 14 * 86400000))}</>}</p>); })}
+                  </div>
                 </Step>
                 <Step done={rep.length > 0} title="Reports released to you">
                   {rep.length ? rep.map((r) => <span key={r.id} className="mr-2 inline-block">{r.title} ({d(r.released_on)})</span>) : 'Reports are released after our team has reviewed them.'}

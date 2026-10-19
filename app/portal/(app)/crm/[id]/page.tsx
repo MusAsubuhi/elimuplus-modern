@@ -22,7 +22,7 @@ export default async function CrmOrg({ params }: { params: Promise<{ id: string 
       st: (await q('select * from crm_org_status where organisation_id=$1', [id]))[0],
       acts: await q('select a.*, p.display_name who from crm_activities a join people p on p.id=a.logged_by where a.organisation_id=$1 order by a.occurred_on desc, a.created_at desc', [id]),
       items: await q('select i.*, c.status, c.note, c.checked_on, p.display_name checker from readiness_items i left join readiness_checks c on c.item_key=i.key and c.organisation_id=$1 left join people p on p.id=c.checked_by order by i.sort', [id]),
-      cohorts: await q('select * from cohorts where organisation_id=$1 order by start_date desc nulls last', [id]),
+      cohorts: await q('select * from cohorts where organisation_id=$1 order by seq', [id]),
       team: isFounder ? await q(`select distinct p.id, p.display_name, r.tier from people p join role_assignments r on r.person_id=p.id and r.status='active' and r.role='facilitator' order by p.display_name`) : [],
       crew: await q('select cf.cohort_id, cf.role, p.display_name from cohort_facilitators cf join people p on p.id=cf.person_id where cf.cohort_id in (select id from cohorts where organisation_id=$1)', [id]),
     };

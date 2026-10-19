@@ -18,7 +18,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
     impact: await loadImpact(q),
     roster: await q(`select p.display_name, p.birth_year, e.status, e.track, c.name cohort_name,
         (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
-        from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.start_date desc, p.display_name`),
+        from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.seq, p.display_name`),
     noms: await q('select * from invitations where nominated_by=$1 order by created_at desc', [me.id]),
   }));
   const named = roster.length > 0;

@@ -16,7 +16,7 @@ export default async function Finance() {
         coalesce((select sum(p.amount_kes) from payments p join invoices i on i.id=p.invoice_id join quotes qt on qt.id=i.quote_id where qt.cohort_id=c.id),0)::int income,
         (coalesce((select sum(coalesce(r.paid_amount_kes,r.amount_kes)) from expense_requests r where r.cohort_id=c.id and r.status in ('paid','reconciled')),0)
          + coalesce((select sum(amount_kes) from trainer_payments t where t.cohort_id=c.id),0))::int cost
-        from cohorts c order by c.start_date`),
+        from cohorts c order by c.seq`),
     lines: await q(`select l.kind, sum(l.qty*l.unit_kes)::int total from quote_lines l join quotes qt on qt.id=l.quote_id group by l.kind order by 2 desc`),
     trainerPay: await q(`select t.*, p.display_name, c.name cohort from trainer_payments t join people p on p.id=t.person_id left join cohorts c on c.id=t.cohort_id order by t.paid_on desc`),
     support: await q(`select s.*, p.display_name from support_ledger s join enrolments e on e.id=s.enrolment_id join people p on p.id=e.person_id order by s.entry_date desc`),

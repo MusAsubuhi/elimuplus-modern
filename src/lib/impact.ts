@@ -8,7 +8,7 @@ export async function loadImpact(q: Q, cohortId?: string) {
   const rows = await q(
     `select i.cohort_id, i.metrics, c.name, c.start_date, c.end_date, c.status, c.format, o.name org_name
      from app.cohort_impact() i join cohorts c on c.id = i.cohort_id join organisations o on o.id = c.organisation_id
-     ${cohortId ? 'where i.cohort_id = $1' : ''} order by c.start_date desc nulls last`, cohortId ? [cohortId] : []);
+     ${cohortId ? 'where i.cohort_id = $1' : ''} order by c.seq`, cohortId ? [cohortId] : []);
   return rows.map((r) => ({ id: r.cohort_id as string, name: r.name as string, org: r.org_name as string, start: r.start_date, end: r.end_date, status: r.status as string, format: r.format as string, m: r.metrics as Impact }));
 }
 
