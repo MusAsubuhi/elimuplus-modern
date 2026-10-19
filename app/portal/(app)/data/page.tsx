@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader, Table } from '@/components/ui';
+import { lastStorageBackup } from '@/lib/backup';
+import { d } from '@/lib/format';
 
 const cell = (have: number, of: number) => {
   if (!of) return <span className="text-slate-400">—</span>;
@@ -24,6 +26,7 @@ export default async function DataCompleteness() {
       (select count(*)::int from participant_stories s where s.cohort_id = c.id and s.status <> 'withdrawn') stories,
       (select count(*)::int from participant_certificates pc where pc.cohort_id = c.id) certs
     from cohorts c order by c.seq`));
+  const lastBackup = await lastStorageBackup();
   const tot = rows.reduce((a, r) => ({ enrolled: a.enrolled + r.enrolled, baselines: a.baselines + r.baselines, f30: a.f30 + r.f30, stories: a.stories + r.stories, consent: a.consent + r.consent }), { enrolled: 0, baselines: 0, f30: 0, stories: 0, consent: 0 });
   return (
     <>
@@ -34,6 +37,9 @@ export default async function DataCompleteness() {
         <Card title="30-day follow-ups"><p className="text-2xl font-bold text-teal">{tot.f30}</p><p className="text-xs text-slate-500">of {tot.enrolled}</p></Card>
         <Card title="Stories collected"><p className="text-2xl font-bold text-teal">{tot.stories}</p><p className="text-xs text-slate-500">permission on file for {tot.consent}</p></Card>
       </div>
+      <Card title="Backup" className="mb-4" subtitle="Saved automatically every two days, replacing the one before.">
+        <p className="text-sm">{lastBackup ? <>Last backup: <b>{d(lastBackup)}</b>. The previous copy is kept too.</> : <span className="text-red-700 font-semibold">No backup has run yet.</span>}</p>
+      </Card>
       <Card title="By cohort" subtitle="Green is complete, amber is partly there, red is nothing yet.">
         <Table empty="No cohorts yet."
           head={['Cohort', 'Enrolled', 'Starting point', 'Learning check before', 'after', '30 days', '60 days', '90 days', 'Story permission', 'Stories', 'Certificates']}
