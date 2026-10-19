@@ -84,7 +84,7 @@ export default async function Pathway({ searchParams }: { searchParams: Promise<
       <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who.full_name}’s pathway`} subtitle="From Foundation Facilitator to Accredited ToT Lead: what is held, what is needed next, and what keeps a trainer certified." />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Current tier" value={`Tier ${tier}`} sub={TIER_TITLES[tier]} />
-        <Stat tone="gold" label="Certificate" value={s.cert?.number ?? '—'} sub={s.cert ? `Issued ${d(s.cert.issued_on)}` : undefined} />
+        <Stat tone="gold" label="Certificate" value={s.cert?.number ?? '—'} sub={s.cert ? <>Issued {d(s.cert.issued_on)} · <a className="underline" href={`/d/certificate/${s.cert.share_token}`} target="_blank">Open</a></> : undefined} />
         <Stat tone="green" label="Independent deliveries" value={s.deliveries} sub={`${s.twelveDay} were 12-Day`} />
         <Stat label="Last QA visit" value={s.lastQa ? d(s.lastQa) : 'None yet'} sub={tier === 1 ? 'Due within 90 days of first delivery, then every 18 months' : tier === 2 ? 'Every 24 months' : undefined} />
       </div>

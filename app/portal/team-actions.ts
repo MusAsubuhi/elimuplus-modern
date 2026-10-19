@@ -7,6 +7,7 @@ import { requireMe } from '@/lib/session';
 import { requireFeature } from '@/lib/access';
 import { normPhone, provisionLogin, tempPin } from '@/lib/accounts';
 import { audit } from '@/lib/audit';
+import { nextTrainerNumber } from '@/lib/certs';
 import { notify } from '@/lib/mail';
 
 export type PinState = { ok?: boolean; error?: string; name?: string; phone?: string; pin?: string; message?: string } | null;
@@ -151,8 +152,14 @@ export async function grantRole(f: FormData) {
   if (!role || !s(f, 'person')) back('/portal/team', 'Choose a person and a role.', 'err');
   if (role && needsOrg(role) && !orgId) back('/portal/team', 'Choose the partner organisation.', 'err');
   try {
-    await asUser(me.id, (q) => q('insert into role_assignments(person_id, role, tier, organisation_id) values ($1,$2,$3,$4)',
-      [s(f, 'person'), role!.role, role!.tier, role!.role === 'participant' || (role && needsOrg(role)) ? orgId : null]));
+    await asUser(me.id, async (q) => {
+      await q('insert into role_assignments(person_id, role, tier, organisation_id) values ($1,$2,$3,$4)',
+        [s(f, 'person'), role!.role, role!.tier, role!.role === 'participant' || (role && needsOrg(role)) ? orgId : null]);
+      // Every trainer level comes with a certificate, so none is forgotten.
+      if (role!.role === 'facilitator' && (role!.tier ?? 0) >= 1 &&
+          !(await q("select 1 from certifications where person_id=$1 and tier=$2 and status='active'", [s(f, 'person'), role!.tier])).length)
+        await q("insert into certifications(person_id,tier,number,issued_on,status) values ($1,$2,$3,current_date,'active')", [s(f, 'person'), role!.tier, await nextTrainerNumber(q, role!.tier!)]);
+    });
   } catch (e) { console.error("[portal action]", e); back('/portal/team', 'That change is not allowed. Founders cannot raise their own facilitator tier; a co-founder certifies it.', 'err'); }
   await audit(me.id, `granted ${role!.role}${role!.tier ? ' tier ' + role!.tier : ''}`, 'role_assignments');
   revalidatePath('/portal', 'layout');

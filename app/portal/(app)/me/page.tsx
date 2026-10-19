@@ -11,6 +11,7 @@ export default async function MyJourney() {
   const me = await requireMe('participant', 'founder', 'master', 'facilitator');
   const lang = await getLang(me);
   const ctx = await asUser(me.id, (q) => participantContext(q, me.id));
+  const myCert = ctx ? (await asUser(me.id, (q) => q('select number, share_token, issued_on from participant_certificates where person_id=$1 order by issued_on desc limit 1', [me.id])))[0] : null;
   if (!ctx) return <Card title="No cohort yet">{!me.roles.includes('participant') ? <>You have not started the participant journey. <Link href="/portal/journey" className="font-bold text-teal underline">Start it here</Link>.</> : 'You are not enrolled in a cohort yet. Your facilitator will add you.'}</Card>;
   const { en, boxes, unlocked, filled, schedule, canvas } = ctx;
   const nameOf = (n: number) => boxes.find((b) => b.number === n)?.[lang === 'sw' ? 'name_sw' : 'name_en'];
@@ -24,6 +25,13 @@ export default async function MyJourney() {
         <Link href="/portal/canvas" className="rounded-lg bg-gold px-4 py-2 text-sm font-bold text-teal">{t(lang, 'myCanvas')} →</Link>
         <Link href="/portal/canvas/print" className="rounded-lg border border-white/50 px-4 py-2 text-sm font-bold text-white">{t(lang, 'print')}</Link>
       </PageHeader>
+
+      {myCert && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-gold bg-gold-100 p-4">
+          <div><p className="font-bold text-teal">{lang === 'sw' ? 'Cheti chako cha kumaliza kiko tayari' : 'Your certificate of completion is ready'}</p><p className="text-xs text-slate-600">{myCert.number} · {d(myCert.issued_on)}</p></div>
+          <a href={`/d/certificate/${myCert.share_token}`} target="_blank" className="rounded-lg bg-teal px-4 py-2 text-sm font-bold text-white">{lang === 'sw' ? 'Fungua au chapisha' : 'Open or print'}</a>
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card title={t(lang, 'progress')}>

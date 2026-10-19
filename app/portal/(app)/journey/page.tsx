@@ -41,7 +41,7 @@ export default async function Journey() {
           {hasFacRole ? (
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2"><Badge tone="teal">Tier {stats.cert?.tier ?? 1}</Badge><span className="font-semibold">{TIER_TITLES[stats.cert?.tier ?? 1]}</span></div>
-              <p className="text-xs text-slate-600">{stats.cert ? `Certificate ${stats.cert.number}, issued ${d(stats.cert.issued_on)}.` : 'No certificate yet. A founder issues it once they have reviewed your pathway.'}</p>
+              <p className="text-xs text-slate-600">{stats.cert ? <>Certificate {stats.cert.number}, issued {d(stats.cert.issued_on)}. <a className="font-bold underline" href={`/d/certificate/${stats.cert.share_token}`} target="_blank">Open or print</a>.</> : 'No certificate yet. A founder issues it once they have reviewed your pathway.'}</p>
               <p className="text-xs text-slate-600">{stats.deliveries} independent deliveries · {stats.completeFollowups} cohorts with complete 30/60/90 records</p>
               <Link href="/portal/pathway" className={submitCls}>See what I need next</Link>
             </div>

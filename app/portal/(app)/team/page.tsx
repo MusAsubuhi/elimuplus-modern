@@ -15,7 +15,8 @@ export default async function Team() {
     people: await q(`select p.id, p.full_name, p.display_name, p.phone, p.birth_year, p.education_level, p.county, p.ward, p.auth_user_id, p.pin_reset_required, p.status,
         (select coalesce(json_agg(json_build_object('id', ra.id, 'role', ra.role, 'tier', ra.tier, 'org', o.name) order by ra.start_date), '[]'::json)
            from role_assignments ra left join organisations o on o.id = ra.organisation_id where ra.person_id = p.id and ra.status = 'active') roles,
-        (select max(tier) from certifications c where c.person_id = p.id and c.status = 'active') cert_tier
+        (select max(tier) from certifications c where c.person_id = p.id and c.status = 'active') cert_tier,
+        (select share_token from certifications c where c.person_id = p.id and c.status = 'active' order by tier desc limit 1) cert_token
         from people p order by p.created_at desc, p.full_name`),
     sup: await q("select s.person_id, p.display_name from supervision s join people p on p.id=s.supervisor_id where s.status='active'"),
     orgs: await q('select id, name from organisations where not is_internal order by name'),
@@ -80,10 +81,10 @@ export default async function Team() {
             <button className={submitCls}>Add role</button>
           </form>
         </Card>
-        <Card title="Trainer certificates" subtitle="Tiers cannot be skipped. You issue your co-founder’s certificate and they issue yours.">
+        <Card title="Trainer certificates" subtitle="Tiers cannot be skipped. Issuing a certificate moves the trainer up a level and creates a printable certificate. You issue your co-founder’s certificate and they issue yours.">
           <Table head={['Trainer', 'Holds', 'Next', '']} rows={trainers.map((p) => [
             <b key="n">{p.full_name}</b>,
-            p.cert_tier ? `Tier ${p.cert_tier}` : <span key="u" className="text-slate-400">uncertified</span>,
+            p.cert_tier ? <span key="h">Tier {p.cert_tier} · <a className="text-xs font-bold text-teal underline" href={`/d/certificate/${p.cert_token}`} target="_blank">Open certificate</a></span> : <span key="u" className="text-slate-400">uncertified</span>,
             nextTier(p) <= 4 ? `Tier ${nextTier(p)}` : 'Highest',
             nextTier(p) > 4 ? '' : p.id === me.id
               ? <Link key="l" href="/portal/pathway" className="text-xs font-bold text-teal underline">Your pathway</Link>

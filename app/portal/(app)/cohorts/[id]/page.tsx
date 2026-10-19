@@ -7,6 +7,7 @@ import { BarCard, PieCard } from '@/components/charts';
 import { d, daysFromToday, iso, pct } from '@/lib/format';
 import { markAttendance, recordVisit, saveSessionLog, toggleUnlock } from '../../../actions';
 import { enrolRoster, publishDaySummary } from '../../../partner-actions';
+import { issueParticipantCertificates } from '../../../cert-actions';
 
 export default async function CohortPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }) {
   const me = await requireMe('facilitator', 'founder');
@@ -15,7 +16,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const data = await asUser(me.id, async (q) => {
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
-    const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms, expected, summaries] = await Promise.all([
+    const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms, expected, summaries, rates, certs] = await Promise.all([
       q(`select e.id, e.track, e.status, e.has_business_at_entry, p.display_name, p.full_name, p.birth_year,
            (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
          from enrolments e join people p on p.id=e.person_id where e.cohort_id=$1 order by p.display_name`, [id]),
@@ -33,13 +34,15 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       q(`select id, stage, participant_name, visited_on, business_status, urgent, sales_range, stock_value_kes, answers from followup_forms where cohort_id=$1 order by visited_on desc, created_at desc`, [id]),
       q("select id, full_name, phone, status from cohort_roster where cohort_id=$1 order by created_at", [id]),
       q('select * from day_summaries where cohort_id=$1', [id]),
+      q('select e.id, count(*) filter (where a.present)::int p, count(a.id)::int t from enrolments e left join attendance a on a.enrolment_id=e.id where e.cohort_id=$1 group by e.id', [id]),
+      q('select enrolment_id, number, share_token from participant_certificates where cohort_id=$1', [id]),
     ]);
     const chosen = sp.session ?? sessions[0]?.id;
     const present = chosen ? await q('select enrolment_id from attendance where session_id=$1 and present', [chosen]) : [];
-    return { expected, summaries, c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
+    return { rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
   });
   if (!data) notFound();
-  const { expected, summaries, c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
+  const { rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
   const boxBars = boxes.map((b) => ({ box: String(b.number), name: b.name_en, filled: answers.find((a) => a.box_number === b.number)?.n ?? 0 }));
   const attBars = att.map((a) => ({ day: `Day ${a.day_number}`, rate: pct(a.present, a.total) }));
   const statusPie = ['enrolled', 'completed', 'dropped'].map((s) => ({ name: s, value: roster.filter((r) => r.status === s).length })).filter((x) => x.value);
@@ -102,6 +105,39 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
           ])} />
       </Card>
 
+      {(() => {
+        const isFounder = me.roles.includes('founder');
+        const rows = roster.map((r) => {
+          const rt = rates.find((x) => x.id === r.id);
+          const pctAtt = rt && rt.t ? Math.round((rt.p / rt.t) * 100) : null;
+          const cert = certs.find((x) => x.enrolment_id === r.id);
+          const eligible = r.status !== 'dropped' && (pctAtt === null || pctAtt >= 80);
+          return { r, pctAtt, cert, eligible };
+        });
+        const pending = rows.filter((x) => !x.cert);
+        const ended = sessions.length > 0 && sessions.every((s) => s.session_date && new Date(s.session_date) <= new Date());
+        return (
+          <Card title="Certificates of completion" className="mt-4" subtitle={certs.length ? `${certs.length} issued` : 'Not issued yet. Participants should leave with one, so do this soon after the last day.'}
+            action={certs.length ? <a href={`/portal/cohorts/${id}/certificates`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Print certificates</a> : undefined}>
+            {ended && !certs.length && <p className="mb-3 rounded-lg bg-gold-100 px-3 py-2 text-sm font-semibold text-gold-600">Training has finished and no certificates have been issued yet.</p>}
+            {isFounder && pending.length > 0 ? (
+              <form action={issueParticipantCertificates}>
+                <input type="hidden" name="cohort" value={id} />
+                <div className="grid gap-1 text-sm sm:grid-cols-2">
+                  {pending.map(({ r, pctAtt, eligible }) => (
+                    <label key={r.id} className="flex items-center gap-2"><input type="checkbox" name="enrol" value={r.id} defaultChecked={eligible} />{r.display_name}
+                      <span className="text-xs text-slate-500">{pctAtt === null ? 'no attendance recorded' : `${pctAtt}% attended`}{r.status === 'dropped' ? ' · left the programme' : ''}</span></label>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-slate-500">Ticked means they left or did not drop out and attended at least 80% of the days. Untick anyone who should not receive one.</p>
+                <button className={`${submitCls} mt-3`}>Issue certificates to the ticked participants</button>
+              </form>
+            ) : !isFounder && pending.length > 0 ? <p className="text-sm text-slate-600">{pending.length} participants are waiting for a certificate. A founder issues them after reviewing attendance.</p> : null}
+            {certs.length > 0 && <p className="mt-3 text-xs text-slate-500">Each participant also sees their certificate on their own page.</p>}
+          </Card>
+        );
+      })()}
+
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Attendance and session note" subtitle="Choose a day">
           <div className="mb-3 flex flex-wrap gap-2">
@@ -139,7 +175,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
                 <input type="hidden" name="cohort" value={id} /><input type="hidden" name="session" value={sess.id} />
                 <fieldset className="rounded-lg border border-teal-100 p-3 text-sm">
                   <legend className="px-1 text-xs font-bold uppercase text-slate-500">Non-negotiables</legend>
-                  {[['canvas_order', 'Sections taught in canvas order'], ['cost_types_order', 'Cost types in order: sunk, fixed, variable'], ['canvas_completion_checked', 'Canvas completion checked before release'], ['followup_dates_confirmed', 'Follow-up dates confirmed (final day)']].map(([k, label]) => (
+                  {[['canvas_order', 'Sections taught in canvas order'], ['cost_types_order', 'Cost types in order: sunk, fixed, variable'], ['canvas_completion_checked', 'Canvas completion checked before release'], ['followup_dates_confirmed', 'Follow-up dates confirmed (final day)'], ['certificates_ready', 'Certificates flagged for founders to issue (final day)']].map(([k, label]) => (
                     <label key={k} className="flex items-center gap-2"><input type="checkbox" name={k} defaultChecked={!!log?.checks?.[k]} />{label}</label>
                   ))}
                 </fieldset>

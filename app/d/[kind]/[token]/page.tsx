@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { asAdmin } from '@/lib/db';
 import PrintButton from '@/components/print-button';
 import { d, kes } from '@/lib/format';
+import { CertificateSheet, certPrintCss } from '@/components/certificate';
+import { SIGNERS, TIER_TEXT, TIER_TITLES } from '@/lib/certs';
 import { BANK, CONTACT, SESSION_HOURS, SMALL_GROUP, SMALL_GROUP_SESSION, TIERS, followups, tierFor, training } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
@@ -67,6 +69,35 @@ export default async function Doc({ params }: { params: Promise<{ kind: string; 
     });
     if (!x) notFound();
     return <Receipt {...x} />;
+  }
+  if (kind === 'certificate') {
+    const site = (process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '');
+    const x = await asAdmin(async (q) => {
+      const pc = (await q('select * from participant_certificates where share_token=$1', [token]))[0];
+      if (pc) {
+        const p = (await q('select full_name from people where id=$1', [pc.person_id]))[0];
+        const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [pc.cohort_id]))[0];
+        return { type: 'participant' as const, cert: pc, name: p.full_name as string, c };
+      }
+      const tc = (await q('select * from certifications where share_token=$1', [token]))[0];
+      if (!tc) return null;
+      const p = (await q('select full_name from people where id=$1', [tc.person_id]))[0];
+      return { type: 'trainer' as const, cert: tc, name: p.full_name as string, c: null };
+    });
+    if (!x) notFound();
+    const verifyUrl = `${site}/verify/${x.cert.number}`;
+    const props = x.type === 'participant'
+      ? { heading: 'Certificate of Completion', lines: [
+          `has successfully completed the Elimu+ ${x.c.format === '12-day' ? '12-Day' : '5-Day'} Entrepreneurship and Employability Programme`,
+          `with ${x.c.org_name}${x.c.start_date ? `, ${d(x.c.start_date)}${x.c.end_date ? ` to ${d(x.c.end_date)}` : ''}` : ''}, building a SEE Canvas for a business or income idea and learning to turn skills and effort into real value.`] }
+      : { heading: `Certificate of Accreditation · Tier ${x.cert.tier}`, lines: [`${TIER_TITLES[x.cert.tier]}`, `This person ${TIER_TEXT[x.cert.tier]}`] };
+    return (
+      <div className="bg-slate-100 print:bg-white">
+        <style>{certPrintCss}</style>
+        <div className="print:hidden mx-auto flex max-w-[1123px] justify-end px-4 pt-4"><PrintButton label="Print or save as PDF" /></div>
+        <CertificateSheet {...props} name={x.name} number={x.cert.number} issued={x.cert.issued_on} signers={SIGNERS} verifyUrl={verifyUrl} />
+      </div>
+    );
   }
   notFound();
 }

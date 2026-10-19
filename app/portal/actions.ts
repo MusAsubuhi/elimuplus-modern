@@ -103,7 +103,7 @@ export async function saveSessionLog(f: FormData) {
   const me = await requireMe('facilitator', 'founder');
   const cohort = s(f, 'cohort');
   const session = s(f, 'session');
-  const checks = Object.fromEntries(['canvas_order', 'cost_types_order', 'canvas_completion_checked', 'followup_dates_confirmed'].map((k) => [k, f.get(k) === 'on']));
+  const checks = Object.fromEntries(['canvas_order', 'cost_types_order', 'canvas_completion_checked', 'followup_dates_confirmed', 'certificates_ready'].map((k) => [k, f.get(k) === 'on']));
   try {
     await asUser(me.id, (q) => q(
       `insert into session_logs(session_id,author_id,flow_rating,checks,hardest_concepts,went_well,to_improve,notable_quotes)

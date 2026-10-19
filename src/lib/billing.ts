@@ -79,8 +79,8 @@ export async function createInvoice(q: Q, o: { quoteId: string; orgId: string; c
   return { id: r.id as string, number: r.number as string, token: r.share_token as string };
 }
 
-export async function alertFounders(q: Q, title: string, body: string, link: string, severity: 'info' | 'attention' | 'urgent' = 'info') {
-  await q(`insert into founder_alerts(kind, severity, title, body, link, source_table) values ('billing',$1,$2,$3,$4,'invoices')`, [severity, title, body, link]);
+export async function alertFounders(q: Q, title: string, body: string, link: string, severity: 'info' | 'attention' | 'urgent' = 'info', kind = 'billing') {
+  await q(`insert into founder_alerts(kind, severity, title, body, link, source_table) values ($5,$1,$2,$3,$4,'invoices')`, [severity, title, body, link, kind]);
 }
 
 const plus = (iso: string, n: number) => { const x = new Date(String(iso).slice(0, 10) + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };

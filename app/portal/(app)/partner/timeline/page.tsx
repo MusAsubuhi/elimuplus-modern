@@ -93,6 +93,9 @@ export default async function Timeline() {
                         : <>invoice follows about two weeks before the visit, around {d(new Date(new Date(v.due).getTime() - 14 * 86400000))}</>}</p>); })}
                   </div>
                 </Step>
+                <Step done={!!c.certificates_issued_on} title="Certificates of completion">
+                  {c.certificates_issued_on ? <>{c.certificates_count} participants received certificates on {d(c.certificates_issued_on)}.</> : 'Certificates are issued to everyone who completes the programme, soon after the last training day.'}
+                </Step>
                 <Step done={rep.length > 0} title="Reports released to you">
                   {rep.length ? rep.map((r) => <span key={r.id} className="mr-2 inline-block">{r.title} ({d(r.released_on)})</span>) : 'Reports are released after our team has reviewed them.'}
                   {rep.length > 0 && <> <Link href="/portal/partner/library" className="font-bold text-teal underline">Open reports</Link></>}

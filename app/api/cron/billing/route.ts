@@ -43,5 +43,28 @@ export async function GET(req: Request) {
       } catch (e) { console.error('[billing cron]', c.id, pv.visit, e); }
     }
   }
-  return NextResponse.json({ released, raised: out });
+
+  // Certificates are the thing we always forget: remind the founders until they are issued.
+  const reminded: string[] = [];
+  const dueCerts = await asAdmin((q) => q(
+    `select c.id, c.name, count(e.id)::int n from cohorts c join organisations o on o.id=c.organisation_id and not o.is_internal
+       join enrolments e on e.cohort_id=c.id and e.status <> 'dropped'
+      where c.status in ('delivering','followup') and c.certificates_issued_on is null
+        and coalesce(c.end_date, c.start_date + (case when c.format='12-day' then 11 else 4 end)) <= current_date
+        and not exists (select 1 from founder_alerts a where a.kind='certificates' and a.link = '/portal/cohorts/' || c.id::text and a.created_at > now() - interval '4 days')
+      group by c.id, c.name`));
+  for (const c of dueCerts) {
+    await asAdmin((q) => alertFounders(q, `Certificates not issued yet: ${c.name}`, `${c.n} participants finished training and have no certificate. Open the cohort, tick who qualifies and issue them, then print.`, `/portal/cohorts/${c.id}`, 'attention', 'certificates'));
+    reminded.push(c.name);
+  }
+  const noCert = await asAdmin((q) => q(
+    `select p.id, p.full_name, ra.tier from role_assignments ra join people p on p.id=ra.person_id
+      where ra.role='facilitator' and ra.status='active' and coalesce(ra.tier,0) >= 1
+        and not exists (select 1 from certifications c where c.person_id=ra.person_id and c.tier=ra.tier and c.status='active')
+        and not exists (select 1 from founder_alerts a where a.kind='certificates' and a.title like '%' || p.full_name || '%' and a.created_at > now() - interval '7 days')`));
+  for (const t of noCert) {
+    await asAdmin((q) => alertFounders(q, `Tier ${t.tier} certificate missing: ${t.full_name}`, 'This trainer holds the level but no certificate has been issued. Open Team and people to issue it.', '/portal/team', 'attention', 'certificates'));
+    reminded.push(t.full_name);
+  }
+  return NextResponse.json({ released, raised: out, reminded });
 }
