@@ -6,6 +6,7 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls }
 import { d, kes, pct } from '@/lib/format';
 import { label } from '@/lib/impact';
 import { recordExit } from '../../../../../actions';
+import { erasePerson } from '../../../../../story-actions';
 
 const yn = (v: unknown) => (v === true ? 'Yes' : v === false ? 'No' : '—');
 const t = (v: unknown) => (v == null || v === '' ? '—' : typeof v === 'string' ? label(v) : String(v));
@@ -18,7 +19,7 @@ export default async function Participant({ params }: { params: Promise<{ id: st
     const e = (await q(`select e.*, p.display_name, p.full_name, p.phone, p.birth_year, p.gender, p.has_disability, c.name cohort_name
       from enrolments e join people p on p.id = e.person_id join cohorts c on c.id = e.cohort_id where e.id = $1 and e.cohort_id = $2`, [eid, id]))[0];
     if (!e) return null;
-    const [base, learn, exit, adult, youth, att, boxes, support, welfare, sched] = await Promise.all([
+    const [base, learn, exit, adult, youth, att, boxes, support, welfare, sched, stories] = await Promise.all([
       q('select * from baselines where enrolment_id = $1', [eid]),
       q('select * from learning_checks where enrolment_id = $1 order by stage desc', [eid]),
       q('select * from exit_feedback where enrolment_id = $1', [eid]),
@@ -29,11 +30,12 @@ export default async function Participant({ params }: { params: Promise<{ id: st
       q('select entry_date, item, amount_kes, funder from support_ledger where enrolment_id = $1 order by entry_date', [eid]),
       q('select category, summary, status, created_at from welfare_flags where enrolment_id = $1 order by created_at desc', [eid]),
       q('select visit, due_date, status from followup_schedule where enrolment_id = $1 order by visit', [eid]),
+      q(`select id, title, status, created_at from participant_stories where enrolment_id = $1 and status <> 'withdrawn' order by created_at desc`, [eid]),
     ]);
-    return { e, base: base[0], learn, exit: exit[0], adult, youth, att: att[0], boxes: boxes[0]?.n ?? 0, support, welfare, sched };
+    return { e, base: base[0], learn, exit: exit[0], adult, youth, att: att[0], boxes: boxes[0]?.n ?? 0, support, welfare, sched, stories };
   });
   if (!x) notFound();
-  const { e, base: b, learn, exit, adult, youth, att, boxes, support, welfare, sched } = x;
+  const { e, base: b, learn, exit, adult, youth, att, boxes, support, welfare, sched, stories } = x;
   const pre = learn.find((l) => l.stage === 'pre'), post = learn.find((l) => l.stage === 'post');
   const isYouth = b?.kind === 'youth' || (!b && e.birth_year && new Date().getFullYear() - e.birth_year < 25);
   const stages = [30, 60, 90];
@@ -111,6 +113,21 @@ export default async function Participant({ params }: { params: Promise<{ id: st
           <button className={submitCls}>Save</button>
         </form>
       </Card>
-    </>
+          <Card title="Stories" className="mt-4" subtitle="What the participant says changed. Permission is recorded with each story.">
+        <ul className="mb-3 space-y-1 text-sm">
+          {stories.map((st: any) => <li key={st.id}><Link href={`/portal/stories/${st.id}`} className="font-bold text-teal underline">{st.title || 'Untitled story'}</Link> <Badge tone={statusTone(st.status)}>{st.status}</Badge> <span className="text-xs text-slate-500">{d(st.created_at)}</span></li>)}
+          {!stories.length && <li className="text-slate-500">No story yet.</li>}
+        </ul>
+        <Link href="/portal/stories/new" className="text-sm font-bold text-teal underline">Collect a story →</Link>
+      </Card>
+      {me.roles.includes('founder') && (
+        <Card title="Erase this person on request" className="mt-4" subtitle="Removes name, phone, answers and photos for good. The anonymous programme numbers stay. This cannot be undone.">
+          <form action={erasePerson} className="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="person" value={e.person_id} /><input type="hidden" name="cohort" value={id} /><input type="hidden" name="eid" value={eid} />
+            <label className="text-xs font-semibold text-teal">Type ERASE to confirm<input name="confirm" autoComplete="off" className={`${inputCls} mt-1`} /></label>
+            <button className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white">Erase</button>
+          </form>
+        </Card>)}
+</>
   );
 }

@@ -6,7 +6,7 @@ const hasSite = existsSync('public/index.html');
 
 /** @type {import('next').NextConfig} */
 export default {
-  serverExternalPackages: ['@electric-sql/pglite', 'pg'],
+  serverExternalPackages: ['@electric-sql/pglite', 'pg', 'sharp'],
   outputFileTracingIncludes: { '/**': ['./node_modules/@electric-sql/pglite/dist/**', './supabase/**'] },
   async rewrites() {
     return {

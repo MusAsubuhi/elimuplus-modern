@@ -98,7 +98,7 @@ export async function enrolRoster(f: FormData) {
     const co = (await q('select organisation_id from cohorts where id=$1', [cohort]))[0];
     const rows = await q("select * from cohort_roster where cohort_id=$1 and status='expected' order by created_at", [cohort]);
     for (const r of rows) {
-      let p = r.phone ? (await q('select id from people where phone=$1 limit 1', [r.phone]))[0] : null;
+      let p = r.phone ? (await q('select id from people where phone=$1 or phone=$2 limit 1', [r.phone, '+254' + String(r.phone).slice(1)]))[0] : null;
       if (!p) {
         p = (await q(`insert into people(full_name, display_name, phone, preferred_language, birth_year) values ($1,$2,$3,'sw',$4) returning id`,
           [r.full_name, r.full_name.split(/\s+/)[0], r.phone, r.birth_year]))[0];

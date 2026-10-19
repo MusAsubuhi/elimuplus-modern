@@ -4,6 +4,7 @@ import { requirePartner } from '@/lib/session';
 import { Badge, Card, PageHeader, statusTone } from '@/components/ui';
 import { d, daysFromToday, kes } from '@/lib/format';
 import { releaseDueQuotes, visitDates } from '@/lib/billing';
+import { signPhotos } from '@/lib/stories';
 
 const when = (iso: string) => {
   const n = daysFromToday(iso);
@@ -31,8 +32,11 @@ export default async function Timeline() {
     sums: await q(`select * from day_summaries order by day_number`),
     names: await q(`select summary_id, name, present from day_summary_names order by name`),
     seminars: await q(`select title, held_on, venue from seminars where held_on >= current_date order by held_on limit 6`),
+    stories: await q(`select id, cohort_id, title, body, quote, shown_name, consent_photo, status from participant_stories where status in ('approved','published') order by reviewed_at desc`).catch(() => []),
+    photos: await q(`select story_id, storage_path from story_photos order by created_at`).catch(() => []),
     reports: await q(`select id, cohort_id, title, type, released_on from reports where status='released' order by released_on desc`),
   }));
+  const urls = await signPhotos(X.photos.map((p: any) => p.storage_path)).catch(() => ({} as Record<string, string>));
   return (
     <>
       <PageHeader image="/images/partner-hero.jpg" title="Our deliverables" subtitle="Every step from the first quotation to the 90-day follow-up, with dates, what we have done and what comes next." />
@@ -95,6 +99,24 @@ export default async function Timeline() {
                 </Step>
                 <Step done={!!c.certificates_issued_on} title="Certificates of completion">
                   {c.certificates_issued_on ? <>{c.certificates_count} participants received certificates on {d(c.certificates_issued_on)}.</> : 'Certificates are issued to everyone who completes the programme, soon after the last training day.'}
+                </Step>
+                <Step done={X.stories.some((st) => st.cohort_id === c.id)} title="Stories from your participants">
+                  {X.stories.filter((st) => st.cohort_id === c.id).length ? (
+                    <div className="mt-1 space-y-3">
+                      {X.stories.filter((st) => st.cohort_id === c.id).map((st) => (
+                        <div key={st.id} className="rounded-lg bg-mist p-3">
+                          {st.title && <p className="font-bold text-slate-700">{st.title}</p>}
+                          <p className="whitespace-pre-line">{st.body}</p>
+                          {st.quote && <p className="mt-1 italic">“{st.quote}”</p>}
+                          <p className="mt-1 text-xs text-slate-500">{st.shown_name}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {X.photos.filter((ph: any) => ph.story_id === st.id && urls[ph.storage_path]).map((ph: any) => (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img key={ph.storage_path} src={urls[ph.storage_path]} alt="Participant story" className="h-24 w-24 rounded-lg object-cover" />))}
+                          </div>
+                        </div>))}
+                    </div>
+                  ) : 'Stories appear here once participants have shared them and we have confirmed their permission.'}
                 </Step>
                 <Step done={rep.length > 0} title="Reports released to you">
                   {rep.length ? rep.map((r) => <span key={r.id} className="mr-2 inline-block">{r.title} ({d(r.released_on)})</span>) : 'Reports are released after our team has reviewed them.'}

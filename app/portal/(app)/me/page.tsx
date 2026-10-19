@@ -33,6 +33,11 @@ export default async function MyJourney() {
         </div>
       )}
 
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-teal-100 bg-white p-4">
+        <div><p className="font-bold text-teal">{lang === 'sw' ? 'Tuambie yaliyobadilika kwako' : 'Tell us what has changed for you'}</p><p className="text-xs text-slate-600">{lang === 'sw' ? 'Hadithi fupi, na picha kama unataka.' : 'A short story, and photos if you wish.'}</p></div>
+        <Link href="/portal/stories/new" className="rounded-lg bg-gold px-4 py-2 text-sm font-bold text-teal">{lang === 'sw' ? 'Andika hadithi' : 'Write my story'}</Link>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-3">
         <Card title={t(lang, 'progress')}>
           <Gauge value={pct} label={`${filled.size}/12 ${t(lang, 'boxesFilled')}`} />

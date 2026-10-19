@@ -15,6 +15,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
   participant: { title: 'Participant', items: [
     { href: '/portal/me', label: 'My journey', icon: '◎' },
     { href: '/portal/canvas', label: 'My canvas', icon: '▦' },
+    { href: '/portal/stories', label: 'My story', icon: '❝' },
     { href: '/portal/directory', label: 'Biashara za Elimu+', icon: '❖' }] },
   facilitator: { title: 'Facilitator', items: [
     { href: '/portal/cohorts', label: 'My cohorts', icon: '◧' },

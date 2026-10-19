@@ -9,7 +9,7 @@
     "build": "npm run sync-static && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "db:test": "node scripts/test-rls.mjs",
+    "db:test": "node scripts/test-rls.mjs && node scripts/test-stories.mjs",
     "db:seed": "node scripts/seed-supabase.mjs",
     "test:auth": "tsx scripts/test-auth-admin.mjs"
   },
@@ -22,7 +22,8 @@
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "recharts": "2.15.4",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.0",
