@@ -81,6 +81,56 @@ export async function addPerson(_prev: PinState, f: FormData): Promise<PinState>
   return { ok: true, name, phone, pin };
 }
 
+/** One step for a new partner contact: the organisation (if it is new), the person, a partner role and a first sign-in. */
+export async function invitePartnerContact(_prev: PinState, f: FormData): Promise<PinState> {
+  const me = await requireMe('founder');
+  const name = s(f, 'name'), phone = normPhone(s(f, 'phone')), email = s(f, 'email').toLowerCase();
+  const role = s(f, 'role') === 'org_viewer' ? 'org_viewer' : 'org_admin';
+  const lang = s(f, 'lang') === 'en' ? 'en' : 'sw';
+  let orgId = s(f, 'org');
+  const newName = s(f, 'new_org');
+  if (!name) return { error: 'Enter the full name of the person you are inviting.' };
+  if (!phone) return { error: 'Enter a valid Kenyan phone number, for example 0712 345 678. It is their sign-in.' };
+  if (email && !/^\S+@\S+\.\S+$/.test(email)) return { error: 'That email address does not look right.' };
+  if (!orgId && !newName) return { error: 'Choose their organisation, or type the name of a new one.' };
+  if (await phoneTaken(phone)) return { error: 'Someone with that phone number is already on the platform.' };
+  let orgName = '', personId = '';
+  try {
+    await asUser(me.id, async (q) => {
+      if (!orgId) {
+        const type = ['church', 'cdc', 'school', 'college', 'ngo', 'company', 'other'].includes(s(f, 'org_type')) ? s(f, 'org_type') : 'other';
+        const dup = (await q('select id from organisations where lower(name)=lower($1)', [newName]))[0];
+        if (dup) throw new Error('org-exists');
+        orgId = (await q(`insert into organisations(name,type,status,county,ward) values ($1,$2,'prospect',$3,$4) returning id`, [newName, type, s(f, 'county') || 'Mombasa', s(f, 'ward') || null]))[0].id;
+        await q('insert into agreements(organisation_id) values ($1)', [orgId]);
+      }
+      const o = (await q('select name, contact_person, contact_phone, contact_email from organisations where id=$1', [orgId]))[0];
+      if (!o) throw new Error('org');
+      orgName = o.name;
+      personId = (await q(`insert into people(full_name, display_name, phone, email, preferred_language) values ($1,$2,$3,$4,$5) returning id`,
+        [name, name.split(/\s+/)[0], phone, email || null, lang]))[0].id;
+      await q('insert into role_assignments(person_id, role, organisation_id) values ($1,$2,$3)', [personId, role, orgId]);
+      // First contact becomes the organisation's contact, so quotations, invoices and receipts have somewhere to go.
+      await q(`update organisations set contact_person = coalesce(contact_person, $2), contact_phone = coalesce(contact_phone, $3), contact_email = coalesce(contact_email, $4) where id=$1`,
+        [orgId, name, phone, email || null]);
+    });
+  } catch (e: any) {
+    if (e?.message === 'org-exists') return { error: 'An organisation with that name already exists. Choose it from the list instead.' };
+    console.error('[invite partner]', e);
+    return { error: 'Could not create the invitation. Check the details and try again.' };
+  }
+  const pin = tempPin();
+  try { await provisionLogin(personId, phone, pin); }
+  catch (e: any) { return { error: `${name} was added to ${orgName}, but the sign-in could not be created (${e.message}). Find them under Team and people and use "Reset PIN".` }; }
+  await audit(me.id, `invited ${role === 'org_admin' ? 'partner admin' : 'partner viewer'} ${name} for ${orgName}`, 'people');
+  revalidatePath('/portal', 'layout');
+  const link = `${(process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '')}/portal/login`;
+  const message = lang === 'en'
+    ? `Hello ${name.split(/\s+/)[0]}, you have been invited to the Elimu+ partner portal for ${orgName}. There you can request training, add the participants you want us to train, follow each training day, and see invoices, receipts and reports in one place.\n\nSign in: ${link}\nPhone: ${phone}\nTemporary PIN: ${pin}\nYou will choose your own PIN the first time you sign in.\n\nElimu+ · hello@elimuplus.com`
+    : `Habari ${name.split(/\s+/)[0]}, umealikwa kwenye tovuti ya washirika ya Elimu+ kwa niaba ya ${orgName}. Hapo unaweza kuomba mafunzo, kuongeza washiriki unaotaka tuwafunze, kufuatilia kila siku ya mafunzo, na kuona ankara, risiti na ripoti mahali pamoja.\n\nIngia: ${link}\nSimu: ${phone}\nPIN ya muda: ${pin}\nUtachagua PIN yako mwenyewe utakapoingia mara ya kwanza.\n\nElimu+ · hello@elimuplus.com`;
+  return { ok: true, name, phone, pin, message };
+}
+
 export async function resetPin(_prev: PinState, f: FormData): Promise<PinState> {
   const me = await requireMe('founder');
   const id = s(f, 'person');

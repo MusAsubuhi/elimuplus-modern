@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
-import { AddPersonForm, ResetPinButton } from '@/components/pin-forms';
+import { AddPersonForm, InvitePartnerForm, ResetPinButton } from '@/components/pin-forms';
 import { EDUCATION, ROLE_OPTIONS, educationLabel, roleLabel } from '@/lib/options';
 import { audit } from '@/lib/audit';
 import { endRole, grantRole, issueCertificate } from '../../team-actions';
@@ -36,7 +36,11 @@ export default async function Team() {
         <Stat tone="red" label="Not signed in yet" value={T.people.filter((p) => p.pin_reset_required).length} sub="still on a temporary PIN" />
       </div>
 
-      <Card title="Add a person" subtitle="Creates their record, role and sign-in in one step. You get a one-time temporary PIN to send them.">
+      <Card title="Invite a partner contact" subtitle="For a project director, manager, youth pastor or anyone else at a partner. Creates the organisation if it is new, their partner role and a first sign-in, and prepares a welcome message to paste into WhatsApp.">
+        <InvitePartnerForm orgs={T.orgs as any} />
+      </Card>
+
+      <Card className="mt-4" title="Add a person" subtitle="Creates their record, role and sign-in in one step. You get a one-time temporary PIN to send them.">
         <AddPersonForm orgs={T.orgs as any} cohorts={T.cohorts as any} />
       </Card>
 

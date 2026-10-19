@@ -2,7 +2,7 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { addPerson, approveInvitation, changePin, resetPin, type PinState } from '../../app/portal/team-actions';
+import { addPerson, approveInvitation, invitePartnerContact, changePin, resetPin, type PinState } from '../../app/portal/team-actions';
 import { EDUCATION, ROLE_OPTIONS } from '@/lib/options';
 import { inputCls, submitCls } from '@/components/ui';
 
@@ -17,7 +17,7 @@ export function PinResult({ state, onClose }: { state: NonNullable<PinState>; on
   const [copied, setCopied] = useState(false);
   if (state.error) return <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{state.error}</p>;
   if (!state.ok) return null;
-  const text = `Elimu+ Portal sign-in\nPhone: ${state.phone}\nTemporary PIN: ${state.pin}\nYou will choose your own PIN the first time you sign in.`;
+  const text = state.message ?? `Elimu+ Portal sign-in\nPhone: ${state.phone}\nTemporary PIN: ${state.pin}\nYou will choose your own PIN the first time you sign in.`;
   return (
     <div className="rounded-xl border-2 border-gold bg-gold-100 p-4 text-sm">
       <p className="font-bold text-teal">{state.name} can now sign in.</p>
@@ -115,6 +115,41 @@ export function SetPinForm() {
       <label className="block text-sm font-bold">Type it again<input name="again" type="password" inputMode="numeric" autoComplete="new-password" required className={inputCls} /></label>
       {state?.error && <p role="alert" className="text-sm font-semibold text-red-700">{state.error}</p>}
       <button disabled={pending} className={`${submitCls} w-full py-2.5`}>{pending ? 'Saving…' : 'Save my PIN'}</button>
+    </form>
+  );
+}
+
+export function InvitePartnerForm({ orgs }: { orgs: { id: string; name: string }[] }) {
+  const [state, action, pending] = useActionState(invitePartnerContact, null);
+  const router = useRouter();
+  const ref = useRef<HTMLFormElement>(null);
+  const [org, setOrg] = useState('');
+  useEffect(() => { if (state?.ok) { router.refresh(); ref.current?.reset(); setOrg(''); } }, [state, router]);
+  return (
+    <form ref={ref} onSubmit={submitter(action)} className="grid gap-3 text-sm sm:grid-cols-2">
+      <label className="block font-bold">Organisation
+        <select name="org" value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls}><option value="">A new organisation…</option>{orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
+      </label>
+      {!org && (
+        <>
+          <label className="block font-bold">New organisation name<input name="new_org" placeholder="e.g. Likoni Community Church" className={inputCls} /></label>
+          <label className="block font-bold">Type
+            <select name="org_type" defaultValue="church" className={inputCls}><option value="church">Church</option><option value="cdc">Church development centre</option><option value="school">School</option><option value="college">College</option><option value="ngo">NGO</option><option value="company">Company</option><option value="other">Other</option></select>
+          </label>
+          <label className="block font-bold">County<input name="county" defaultValue="Mombasa" className={inputCls} /></label>
+        </>
+      )}
+      <label className="block font-bold">Their full name<input name="name" required placeholder="e.g. Pastor Grace Achieng" className={inputCls} /></label>
+      <label className="block font-bold">Phone (their sign-in)<input name="phone" required inputMode="tel" placeholder="0712 345 678" className={inputCls} /></label>
+      <label className="block font-bold">Email (for quotations and receipts)<input name="email" type="email" className={inputCls} /></label>
+      <label className="block font-bold">Their role
+        <select name="role" defaultValue="org_admin" className={inputCls}><option value="org_admin">Partner admin: requests training, loads participants, pays and views everything</option><option value="org_viewer">Partner viewer: read only</option></select>
+      </label>
+      <label className="block font-bold">Message language
+        <select name="lang" defaultValue="en" className={inputCls}><option value="en">English</option><option value="sw">Kiswahili</option></select>
+      </label>
+      <div className="sm:col-span-2"><button disabled={pending} className={submitCls}>{pending ? 'Creating…' : 'Create invitation and sign-in'}</button></div>
+      {state && <div className="sm:col-span-2"><PinResult state={state} /></div>}
     </form>
   );
 }
