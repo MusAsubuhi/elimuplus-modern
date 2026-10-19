@@ -18,6 +18,7 @@ export interface Me {
   orgIds: string[];
   mustChangePin: boolean;
   demo: boolean;
+  preview?: { orgId: string; orgName: string };
 }
 
 const ORDER: Role[] = ['founder', 'master', 'facilitator', 'org_admin', 'participant'];
@@ -82,3 +83,37 @@ export async function getLang(me?: Me | null): Promise<Lang> {
 }
 
 export { asUser };
+
+const PREVIEW_COOKIE = 'elimu_preview_org';
+export const previewCookie = PREVIEW_COOKIE;
+
+/** A stand-in partner administrator (no sign-in) so founders can see exactly what an organisation sees, through the same access rules. */
+async function previewPerson(orgId: string): Promise<{ id: string; orgName: string } | null> {
+  return asAdmin(async (q) => {
+    const o = (await q('select id, name from organisations where id=$1', [orgId]))[0];
+    if (!o) return null;
+    const email = `preview-${o.id}@preview.elimuplus.invalid`;
+    let p = (await q('select id from people where email=$1', [email]))[0];
+    if (!p) {
+      p = (await q(`insert into people(full_name, display_name, email, preferred_language) values ($1,$1,$2,'en') returning id`, [`Partner preview: ${o.name}`, email]))[0];
+      await q(`insert into role_assignments(person_id, role, organisation_id) values ($1,'org_admin',$2)`, [p.id, o.id]);
+    }
+    return { id: p.id as string, orgName: o.name as string };
+  });
+}
+
+/** For the partner pages: a real partner administrator, or a founder who has chosen to preview an organisation. */
+export async function requirePartner(): Promise<Me> {
+  const me = await getMe();
+  if (!me) redirect('/portal/login');
+  if (me.roles.includes('org_admin')) return me;
+  if (me.roles.includes('founder')) {
+    const org = (await cookies()).get(PREVIEW_COOKIE)?.value;
+    if (org && /^[0-9a-f-]{36}$/.test(org)) {
+      const pv = await previewPerson(org);
+      if (pv) return { ...me, id: pv.id, roles: ['org_admin'], primary: 'org_admin', orgIds: [org], preview: { orgId: org, orgName: pv.orgName } };
+    }
+    redirect('/portal/preview');
+  }
+  redirect('/portal');
+}

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requirePartner } from '@/lib/session';
 import { Badge, Card, PageHeader, statusTone } from '@/components/ui';
 import { d, daysFromToday, kes } from '@/lib/format';
 import { releaseDueQuotes, visitDates } from '@/lib/billing';
@@ -21,7 +21,7 @@ function Step({ done, title, children }: { done: boolean; title: string; childre
 }
 
 export default async function Timeline() {
-  const me = await requireMe('org_admin');
+  const me = await requirePartner();
   await releaseDueQuotes().catch(() => {});
   const X = await asUser(me.id, async (q) => ({
     cohorts: await q(`select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.organisation_id in (select app.my_org_admin_orgs()) order by c.seq`),

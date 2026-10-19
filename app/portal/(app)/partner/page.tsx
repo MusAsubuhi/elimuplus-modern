@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requirePartner } from '@/lib/session';
 import { partnerData } from '@/lib/partner';
 import { Badge, Card, ImgBand, PageHeader, Stat, Table, statusTone, inputCls, submitCls } from '@/components/ui';
 import { BarCard, Gauge, PieCard } from '@/components/charts';
@@ -12,7 +12,7 @@ import { Outcomes } from '@/components/outcomes';
 
 export default async function Partner({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const sp = await searchParams;
-  const me = await requireMe('org_admin');
+  const me = await requirePartner();
   const { orgs, cohorts, follow, roster, noms, impact } = await asUser(me.id, async (q) => ({
     ...(await partnerData(q)),
     impact: await loadImpact(q),

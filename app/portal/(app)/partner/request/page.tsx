@@ -1,5 +1,5 @@
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requirePartner } from '@/lib/session';
 import { Badge, Card, PageHeader, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { requestCohort } from '../../../actions';
 import { d } from '@/lib/format';
@@ -7,7 +7,7 @@ import { releaseDueQuotes } from '@/lib/billing';
 import { CONTACT } from '@/lib/pricing';
 
 export default async function RequestTraining() {
-  const me = await requireMe('org_admin');
+  const me = await requirePartner();
   await releaseDueQuotes().catch(() => {});
   const { orgs, reqs, qcount, pending } = await asUser(me.id, async (q) => ({
     orgs: await q('select id, name from organisations where id in (select app.my_org_admin_orgs()) order by name'),

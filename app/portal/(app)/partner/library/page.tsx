@@ -1,12 +1,12 @@
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requirePartner } from '@/lib/session';
 import { Badge, Card, PageHeader, Table } from '@/components/ui';
 import { d } from '@/lib/format';
 
 const ICON: Record<string, string> = { certificate: '🎓', attendance_list: '📋', report: '📊', invoice: '🧾', agreement: '📑', other: '📄' };
 
 export default async function Library() {
-  const me = await requireMe('org_admin');
+  const me = await requirePartner();
   const { reports, docs } = await asUser(me.id, async (q) => ({
     reports: await q(`select r.*, o.name org_name from reports r join organisations o on o.id=r.organisation_id order by released_on desc nulls last`),
     docs: await q(`select dc.*, o.name org_name from documents dc left join organisations o on o.id=dc.organisation_id order by created_at desc`),

@@ -37,6 +37,7 @@ export const FEATURES: Feature[] = [
   { key: 'team', label: 'Team and people', section: 'People and access', href: '/portal/team', icon: '☺', delegable: false, roles: ['founder'], note: 'Personal records.' },
   { key: 'people', label: 'Suggestions and partners', section: 'People and access', href: '/portal/people', icon: '☰', delegable: false, roles: ['founder'] },
   { key: 'journey', label: 'My journey', section: 'People and access', href: '/portal/journey', icon: '➜', delegable: true, roles: ['founder', 'master', 'facilitator'], note: 'Every trainer takes the participant and facilitator journey themselves.' },
+  { key: 'preview', label: 'Preview partner view', section: 'People and access', href: '/portal/preview', icon: '◉', delegable: false, roles: ['founder'], note: 'See exactly what a partner organisation sees.' },
   { key: 'permissions', label: 'Permissions', section: 'People and access', href: '/portal/permissions', icon: '⚿', delegable: false, roles: ['founder'], note: 'Only founders can change who sees what.' },
   { key: 'audit', label: 'Audit log', section: 'People and access', href: '/portal/audit', icon: '⌕', delegable: false, roles: ['founder'], note: 'Who read what.' },
 ];

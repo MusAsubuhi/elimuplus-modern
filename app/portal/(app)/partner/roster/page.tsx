@@ -1,11 +1,11 @@
 import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { requirePartner } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { d } from '@/lib/format';
 import { addRoster, removeRoster } from '../../../partner-actions';
 
 export default async function PartnerRoster({ searchParams }: { searchParams: Promise<{ cohort?: string }> }) {
-  const me = await requireMe('org_admin');
+  const me = await requirePartner();
   const sp = await searchParams;
   const { cohorts, rows } = await asUser(me.id, async (q) => ({
     cohorts: await q(`select c.id, c.name, c.start_date, c.status, c.expected_participants,
