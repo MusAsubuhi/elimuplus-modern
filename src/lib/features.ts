@@ -35,6 +35,8 @@ export const FEATURES: Feature[] = [
   { key: 'social_publish', label: 'Social calendar and posting', section: 'Marketing', href: '/portal/social/calendar', icon: '▣', delegable: true, roles: ['founder'] },
   { key: 'social_insights', label: 'Social insights', section: 'Marketing', href: '/portal/social/insights', icon: '◔', delegable: true, roles: ['founder'] },
   { key: 'deals', label: 'Proposals and receipts', section: 'Money', href: '/portal/deals', icon: '✎', delegable: false, roles: ['founder'], note: 'Proposals, quotations, invoices and receipts for partners.' },
+  { key: 'payouts', label: 'Trainer payments', section: 'Money', href: '/portal/payouts', icon: '◈', delegable: false, roles: ['founder'], note: 'Approve and record what trainers are paid for finished work.' },
+  { key: 'earnings', label: 'My earnings', section: 'Money', href: '/portal/earnings', icon: '◇', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'What each trainer has earned and been paid.' },
   { key: 'finance', label: 'Finance', section: 'Money', href: '/portal/finance', icon: '₭', delegable: false, roles: ['founder'], note: 'Money, rates and margins.' },
   { key: 'team', label: 'Team and people', section: 'People and access', href: '/portal/team', icon: '☺', delegable: false, roles: ['founder'], note: 'Personal records.' },
   { key: 'people', label: 'Suggestions and partners', section: 'People and access', href: '/portal/people', icon: '☰', delegable: false, roles: ['founder'] },

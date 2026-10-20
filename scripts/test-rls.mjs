@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans', '0026_trainer_payouts']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -247,6 +247,70 @@ ok('supervisor leaves a note', (await asErr('tier2', `insert into improvement_ch
 ok('supervisor cannot post an update in the owner’s name', (await asErr('tier2', `insert into improvement_checkins(plan_id,author_id,kind,body) values('${PLAN}','${who.tier1}','update','forged')`)) !== null);
 ok('check-ins cannot be edited or deleted', (await as('tier1', `update improvement_checkins set body='changed' where plan_id='${PLAN}' returning 1`)).length === 0 && (await as('tier1', `delete from improvement_checkins where plan_id='${PLAN}' returning 1`)).length === 0);
 ok('only a draft plan can be deleted by its owner', (await as('tier1', `delete from improvement_plans where id='${PLAN}' returning 1`)).length === 0);
+
+
+// ---------- paying trainers ----------
+const claim = (n) => `00000000-0000-4000-8000-0000000ca00${n}`;
+const decide = (c, d) => `select app.decide_payout_claim('${claim(c)}','${d}') as r`;
+const val = async (p, sql, col = 'r') => (await as(p, sql))[0]?.[col];
+ok('trainer sees only own claims', (await n('tier1', 'select 1 from payout_claims')) === 2 && (await n('tier2', 'select 1 from payout_claims')) === 2);
+ok('founder sees every claim', (await n('founder', 'select 1 from payout_claims')) === 6);
+ok('participant and partner see no claims', (await n('zawadi', 'select 1 from payout_claims')) + (await n('ke358', 'select 1 from payout_claims')) === 0);
+ok('trainer cannot see the rate card', (await n('tier1', 'select 1 from payout_rates')) === 0 && (await n('founder', 'select 1 from payout_rates')) === 5);
+ok('trainer cannot create a claim for themselves', (await asErr('tier1', `insert into payout_claims(person_id,kind,description,amount_kes,status,created_by) values('${who.tier1}','other','x',9999,'ready','${who.tier1}')`)) !== null);
+ok('trainer cannot change a claim or approve it directly', (await as('tier1', `update payout_claims set status='approved' where id='${claim(1)}' returning 1`)).length === 0);
+ok('founder cannot set a claim to approved by hand', (await asErr('founder', `update payout_claims set status='approved' where id='${claim(1)}'`)) !== null);
+ok('nobody inserts approvals or payouts directly', (await asErr('founder', `insert into payout_approvals(claim_id,approver_id,decision) values('${claim(1)}','${who.founder}','approve')`)) !== null && (await asErr('founder', `insert into payouts(person_id,amount_kes,method) values('${who.tier1}',100,'cash')`)) !== null);
+ok('trainer cannot decide on a claim', (await asErr('tier2', decide(1, 'approve'))) !== null);
+ok('founder cannot decide on their own claim', (await asErr('founder', decide(4, 'approve'))) !== null);
+ok('co-founder can approve the founder’s claim', (await val('cofounder', decide(4, 'approve'))) === 'approved');
+ok('one founder approves a claim under the threshold', (await val('founder', decide(1, 'approve'))) === 'approved');
+ok('above the threshold one approval is not enough', (await val('founder', decide(3, 'approve'))) === 'ready');
+ok('the same founder approving twice does not count twice', (await val('founder', decide(3, 'approve'))) === 'ready');
+ok('the second founder completes the approval', (await val('cofounder', decide(3, 'approve'))) === 'approved');
+ok('a claim waiting for work cannot be decided', (await asErr('founder', decide(5, 'approve'))) !== null);
+ok('trainer sees the approval trail on their own claim', (await n('tier1', `select 1 from payout_approvals where claim_id='${claim(1)}'`)) === 1 && (await n('tier2', `select 1 from payout_approvals where claim_id='${claim(1)}'`)) === 0);
+ok('a decided claim’s amount cannot be changed', (await as('founder', `update payout_claims set amount_kes=1 where id='${claim(1)}' returning 1`)).length === 0);
+const pay = (person, ids, method, ref) => `select app.record_payout('${person}', array[${ids.map((i) => `'${claim(i)}'::uuid`).join(',')}], '${method}', '${ref}') as r`;
+ok('trainer cannot record a payment', (await asErr('tier2', pay(who.tier2, [3], 'cash', ''))) !== null);
+ok('a founder cannot pay themselves', (await asErr('founder', pay(who.founder, [4], 'cash', ''))) !== null);
+ok('an unapproved claim cannot be paid', (await asErr('founder', pay(who.tier2, [2], 'cash', ''))) !== null);
+ok('claims of another person cannot be bundled in', (await asErr('founder', pay(who.tier1, [1, 3], 'cash', ''))) !== null);
+ok('mobile money needs the reference code', (await asErr('founder', pay(who.tier1, [1], 'mpesa', ''))) !== null);
+ok('mobile money needs a number on file', (await asErr('founder', pay(who.founder, [4], 'mpesa', 'QX1'))) !== null);
+ok('co-founder records the founder’s cash payment', (await asErr('cofounder', pay(who.founder, [4], 'cash', ''))) === null);
+ok('founder records an M-Pesa payment with its code', (await asErr('founder', pay(who.tier1, [1], 'mpesa', 'QHX9TEST1'))) === null);
+ok('a paid claim cannot be paid twice', (await asErr('founder', pay(who.tier1, [1], 'mpesa', 'QHX9TEST2'))) !== null);
+ok('payment total equals the claim and stores the number used', (await as('tier1', `select amount_kes, phone_used, status from payouts`))[0]?.amount_kes === 4000 && (await as('tier1', `select phone_used from payouts`))[0]?.phone_used === '+254700000203');
+ok('trainer sees own payout only', (await n('tier1', 'select 1 from payouts')) === 1 && (await n('tier2', 'select 1 from payouts')) === 0 && (await n('zawadi', 'select 1 from payouts')) === 0);
+ok('claim is marked paid after payment', (await val('tier1', `select status as r from payout_claims where id='${claim(1)}'`)) === 'paid');
+// payout details
+ok('trainer reads only their own payout details', (await n('tier1', 'select 1 from payout_methods')) === 1 && (await n('founder', 'select 1 from payout_methods')) === 2);
+ok('trainer cannot change someone else’s payout number', (await as('tier1', `update payout_methods set phone='+254799999999' where person_id='${who.tier2}' returning 1`)).length === 0);
+ok('trainer cannot verify their own payout details', (await asErr('tier1', `update payout_methods set verified_on=current_date, verified_by='${who.tier1}' where person_id='${who.tier1}'`)) !== null);
+ok('founder verifies a trainer’s details', (await asErr('founder', `update payout_methods set verified_on=current_date, verified_by='${who.founder}' where person_id='${who.tier1}'`)) === null);
+await as('tier1', `update payout_methods set phone='+254711111111' where person_id='${who.tier1}'`);
+ok('changing the number clears the verification', (await val('founder', `select verified_on as r from payout_methods where person_id='${who.tier1}'`)) === null);
+ok('M-Pesa details need a phone number', (await asErr('tier1', `insert into payout_methods(person_id,method) values('${who.tier1}','mpesa')`)) !== null);
+
+// ---------- paid as they go: each visit is its own claim ----------
+await db.exec(`delete from payout_claims where kind='followup_visit'; update followup_schedule set status='scheduled' where id='${P(901)}'`);
+ok('a visit not yet done has no claim', (await as('founder', `select 1 from payout_claims where source_ref='${P(901)}'`)).length === 0);
+await db.exec(`update followup_schedule set status='done' where id='${P(901)}'`);
+const vc = await as('tier1', `select amount_kes, status, kind from payout_claims where source_ref='${P(901)}'`);
+ok('recording a visit creates its claim straight away at the visit rate', vc.length === 1 && vc[0].amount_kes === 800 && vc[0].status === 'ready' && vc[0].kind === 'followup_visit', vc);
+const doneVisits = (await as('founder', `select 1 from followup_schedule s join enrolments e on e.id=s.enrolment_id where e.cohort_id='${P(501)}' and s.status in ('done','unreachable') and s.assigned_to is not null`)).length;
+ok('every recorded visit in the cohort has exactly one claim', (await as('founder', `select 1 from payout_claims where kind='followup_visit' and cohort_id='${P(501)}'`)).length === doneVisits, doneVisits);
+await as('founder', `select app.sync_payout_claims('${P(501)}')`);
+ok('running it again adds nothing', (await as('founder', `select 1 from payout_claims where kind='followup_visit' and cohort_id='${P(501)}'`)).length === doneVisits);
+ok('a trainer sees visit claims as their own and others cannot', (await n('tier2', `select 1 from payout_claims where source_ref='${P(901)}'`)) === 0);
+await db.exec(`update payout_claims set status='approved' where source_ref='${P(901)}'; update payout_rates set amount_kes=900 where kind='followup_visit'`);
+await as('founder', `select app.sync_payout_claims('${P(501)}')`);
+ok('an approved visit claim keeps its amount when the rate changes', (await as('founder', `select amount_kes from payout_claims where source_ref='${P(901)}'`))[0].amount_kes === 800);
+ok('a later visit is paid separately after an earlier one was approved', (await as('founder', `select 1 from payout_claims where kind='followup_visit' and status='ready' and cohort_id='${P(501)}'`)).length === doneVisits - 1);
+await db.exec(`update payout_rates set amount_kes=800 where kind='followup_visit'`);
+const ended = await as('founder', `select app.sync_payout_claims('${P(502)}') as r`);
+ok('sync reports back to a founder and not to anyone else', ended[0].r.created !== undefined && (await as('tier1', `select app.sync_payout_claims('${P(502)}') as r`))[0].r.missing_rate.length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
