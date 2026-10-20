@@ -42,58 +42,14 @@ export function pickRate(rates: Rate[], kind: string, tier: number, format: stri
 export interface GenResult { created: number; updated: number; waiting: number; missingRate: string[] }
 
 /**
- * Turns finished work on a cohort into claims, and keeps unapproved claims in step with what has been recorded since.
- * Delivery: the cohort has ended and its sessions were logged (lead and co-facilitators), or the trainee filed at least one day report (observers).
- * Follow-up: each visit the person completed, counted once per visit stage.
- * Safe to run again: approved and paid claims are never touched.
+ * Claims are created by the database as work is recorded (a training ending, a day report, each follow-up visit), so trainers are paid as they go.
+ * This runs the same rules on demand for a cohort, for example after a rate is set that was missing, and reports what it found.
  */
 export async function generateClaims(q: Q, cohortId: string, byPerson: string): Promise<GenResult> {
-  const out: GenResult = { created: 0, updated: 0, waiting: 0, missingRate: [] };
-  const c = (await q('select id, name, format, status, end_date from cohorts where id=$1', [cohortId]))[0];
-  if (!c) return out;
-  const rates = (await q('select kind, tier, format, amount_kes from payout_rates')) as Rate[];
-  const fmt = c.format === '5-day' || c.format === '12-day' ? c.format : null;
-  const ended = ['followup', 'closed'].includes(c.status) || (c.end_date && new Date(c.end_date) <= new Date());
-  const sessionsLogged = Number((await q('select count(*)::int n from session_logs sl join sessions s on s.id=sl.session_id where s.cohort_id=$1', [cohortId]))[0].n);
-  const team = await q(
-    `select cf.person_id, cf.role, p.display_name,
-       coalesce((select max(tier) from role_assignments ra where ra.person_id=cf.person_id and ra.role='facilitator' and ra.status='active'),0)::int tier,
-       (select count(*)::int from day_reports r where r.author_id=cf.person_id and r.cohort_id=cf.cohort_id) reports
-     from cohort_facilitators cf join people p on p.id=cf.person_id where cf.cohort_id=$1`, [cohortId]);
-
-  const upsert = async (person: string, kind: string, description: string, amount: number, evidence: object, ready: boolean) => {
-    const status = ready ? 'ready' : 'pending_work';
-    const had = (await q('select id, status from payout_claims where person_id=$1 and cohort_id=$2 and kind=$3', [person, cohortId, kind]))[0];
-    if (!had) {
-      await q('insert into payout_claims(person_id,cohort_id,kind,description,amount_kes,evidence,status,created_by) values($1,$2,$3,$4,$5,$6,$7,$8)',
-        [person, cohortId, kind, description, amount, JSON.stringify(evidence), status, byPerson]);
-      out.created++;
-    } else if (['pending_work', 'ready'].includes(had.status)) {
-      await q('update payout_claims set amount_kes=$2, evidence=$3, status=$4, description=$5 where id=$1', [had.id, amount, JSON.stringify(evidence), status, description]);
-      out.updated++;
-    }
-    if (!ready) out.waiting++;
+  const r = (await q('select app.sync_payout_claims($1, $2) as r', [cohortId, byPerson]))[0]?.r ?? {};
+  const names: Record<string, string> = RATE_KINDS;
+  return {
+    created: Number(r.created ?? 0), updated: Number(r.updated ?? 0), waiting: Number(r.waiting ?? 0),
+    missingRate: ((r.missing_rate ?? []) as string[]).map((m) => { const [who, k] = m.split(': '); return `${who}: ${names[k] ?? k}`; }),
   };
-
-  if (fmt) {
-    for (const m of team) {
-      const kind = m.role === 'lead' ? 'delivery_lead' : m.role === 'co' ? 'delivery_co' : 'delivery_observer';
-      const amount = pickRate(rates, kind, m.tier, fmt);
-      if (!amount) { out.missingRate.push(`${m.display_name}: ${RATE_KINDS[kind]}`); continue; }
-      const done = m.role === 'observer' ? !!ended && m.reports >= 1 : !!ended && sessionsLogged >= 1;
-      const role = m.role === 'lead' ? 'Led' : m.role === 'co' ? 'Co-facilitated' : 'Observed';
-      await upsert(m.person_id, 'delivery', `${role} ${c.name} (${fmt})`, amount, { sessions_logged: sessionsLogged, reports_filed: m.reports, cohort_ended: !!ended }, done);
-    }
-  }
-  const visitRate = pickRate(rates, 'followup_visit', 0, null);
-  const visits = await q(
-    `select s.assigned_to person_id, s.visit, count(*)::int n, p.display_name
-     from followup_schedule s join enrolments e on e.id=s.enrolment_id join people p on p.id=s.assigned_to
-     where e.cohort_id=$1 and s.status in ('done','unreachable') and s.assigned_to is not null group by s.assigned_to, s.visit, p.display_name`, [cohortId]);
-  for (const v of visits) {
-    if (!visitRate) { out.missingRate.push(`${v.display_name}: ${RATE_KINDS.followup_visit}`); continue; }
-    await upsert(v.person_id, `followup_${v.visit}`, `${v.n} ${v.visit}-day follow-up visit${v.n === 1 ? '' : 's'}, ${c.name}`, v.n * visitRate, { visits_recorded: v.n }, true);
-  }
-  out.missingRate = [...new Set(out.missingRate)];
-  return out;
 }

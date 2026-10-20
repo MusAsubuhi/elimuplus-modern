@@ -29,7 +29,7 @@ export default async function Earnings() {
 
   return (
     <>
-      <PageHeader image="/images/trainer-coaching.jpg" title="My earnings" subtitle="What you have earned from finished work, where each amount is in the process, and what has been paid to you." />
+      <PageHeader image="/images/trainer-coaching.jpg" title="My earnings" subtitle="You are paid as you go: after the training, and after every field visit you record. Here is each amount, where it is, and what has been paid." />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Work recorded" value={kes(sum(waiting))} sub={waiting.length ? `${waiting.length} waiting for reports or sessions to be logged` : 'Nothing waiting'} />
         <Stat tone="gold" label="With the founders" value={kes(sum(withFounders))} sub={`${withFounders.length} to decide`} />

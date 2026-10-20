@@ -73,7 +73,7 @@ export default async function Payouts({ searchParams }: { searchParams: Promise<
               </Card>
             );
           })}
-          {!queue.length && <Card>Nothing waiting for a decision. Claims appear here once a cohort’s work is recorded and you press “Work done”.</Card>}
+          {!queue.length && <Card>Nothing waiting for a decision. Claims appear here by themselves: the training pays when it ends, and each field visit pays as soon as it is recorded. “Work done” only re-checks a cohort.</Card>}
         </div>
       )}
 
@@ -105,7 +105,7 @@ export default async function Payouts({ searchParams }: { searchParams: Promise<
 
       {tab === 'generate' && (
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card title="Create claims from finished work" subtitle="Looks at the cohort’s logged sessions, day reports and completed follow-up visits. Run it again any time; approved and paid claims are never changed.">
+          <Card title="Create claims from finished work" subtitle="Claims are made automatically when work is recorded; this re-checks a cohort, for example after you add a missing rate. Run it any time; approved and paid claims are never changed.">
             <form action={generateForCohort} className="space-y-3 text-sm">
               <label className="block font-bold">Cohort<select name="cohort" required className={`${inputCls} mt-1 font-normal`}>{cohorts.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.status})</option>)}</select></label>
               <button className={submitCls}>Work out what is owed</button>

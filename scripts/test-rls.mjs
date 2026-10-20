@@ -254,7 +254,7 @@ const claim = (n) => `00000000-0000-4000-8000-0000000ca00${n}`;
 const decide = (c, d) => `select app.decide_payout_claim('${claim(c)}','${d}') as r`;
 const val = async (p, sql, col = 'r') => (await as(p, sql))[0]?.[col];
 ok('trainer sees only own claims', (await n('tier1', 'select 1 from payout_claims')) === 2 && (await n('tier2', 'select 1 from payout_claims')) === 2);
-ok('founder sees every claim', (await n('founder', 'select 1 from payout_claims')) === 5);
+ok('founder sees every claim', (await n('founder', 'select 1 from payout_claims')) === 6);
 ok('participant and partner see no claims', (await n('zawadi', 'select 1 from payout_claims')) + (await n('ke358', 'select 1 from payout_claims')) === 0);
 ok('trainer cannot see the rate card', (await n('tier1', 'select 1 from payout_rates')) === 0 && (await n('founder', 'select 1 from payout_rates')) === 5);
 ok('trainer cannot create a claim for themselves', (await asErr('tier1', `insert into payout_claims(person_id,kind,description,amount_kes,status,created_by) values('${who.tier1}','other','x',9999,'ready','${who.tier1}')`)) !== null);
@@ -292,6 +292,25 @@ ok('founder verifies a trainer’s details', (await asErr('founder', `update pay
 await as('tier1', `update payout_methods set phone='+254711111111' where person_id='${who.tier1}'`);
 ok('changing the number clears the verification', (await val('founder', `select verified_on as r from payout_methods where person_id='${who.tier1}'`)) === null);
 ok('M-Pesa details need a phone number', (await asErr('tier1', `insert into payout_methods(person_id,method) values('${who.tier1}','mpesa')`)) !== null);
+
+// ---------- paid as they go: each visit is its own claim ----------
+await db.exec(`delete from payout_claims where kind='followup_visit'; update followup_schedule set status='scheduled' where id='${P(901)}'`);
+ok('a visit not yet done has no claim', (await as('founder', `select 1 from payout_claims where source_ref='${P(901)}'`)).length === 0);
+await db.exec(`update followup_schedule set status='done' where id='${P(901)}'`);
+const vc = await as('tier1', `select amount_kes, status, kind from payout_claims where source_ref='${P(901)}'`);
+ok('recording a visit creates its claim straight away at the visit rate', vc.length === 1 && vc[0].amount_kes === 800 && vc[0].status === 'ready' && vc[0].kind === 'followup_visit', vc);
+const doneVisits = (await as('founder', `select 1 from followup_schedule s join enrolments e on e.id=s.enrolment_id where e.cohort_id='${P(501)}' and s.status in ('done','unreachable') and s.assigned_to is not null`)).length;
+ok('every recorded visit in the cohort has exactly one claim', (await as('founder', `select 1 from payout_claims where kind='followup_visit' and cohort_id='${P(501)}'`)).length === doneVisits, doneVisits);
+await as('founder', `select app.sync_payout_claims('${P(501)}')`);
+ok('running it again adds nothing', (await as('founder', `select 1 from payout_claims where kind='followup_visit' and cohort_id='${P(501)}'`)).length === doneVisits);
+ok('a trainer sees visit claims as their own and others cannot', (await n('tier2', `select 1 from payout_claims where source_ref='${P(901)}'`)) === 0);
+await db.exec(`update payout_claims set status='approved' where source_ref='${P(901)}'; update payout_rates set amount_kes=900 where kind='followup_visit'`);
+await as('founder', `select app.sync_payout_claims('${P(501)}')`);
+ok('an approved visit claim keeps its amount when the rate changes', (await as('founder', `select amount_kes from payout_claims where source_ref='${P(901)}'`))[0].amount_kes === 800);
+ok('a later visit is paid separately after an earlier one was approved', (await as('founder', `select 1 from payout_claims where kind='followup_visit' and status='ready' and cohort_id='${P(501)}'`)).length === doneVisits - 1);
+await db.exec(`update payout_rates set amount_kes=800 where kind='followup_visit'`);
+const ended = await as('founder', `select app.sync_payout_claims('${P(502)}') as r`);
+ok('sync reports back to a founder and not to anyone else', ended[0].r.created !== undefined && (await as('tier1', `select app.sync_payout_claims('${P(502)}') as r`))[0].r.missing_rate.length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
