@@ -15,6 +15,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
   participant: { title: 'Participant', items: [
     { href: '/portal/me', label: 'My journey', icon: '◎' },
     { href: '/portal/canvas', label: 'My canvas', icon: '▦' },
+    { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
     { href: '/portal/stories', label: 'My story', icon: '❝' },
     { href: '/portal/directory', label: 'Biashara za Elimu+', icon: '❖' }] },
   facilitator: { title: 'Facilitator', items: [
@@ -22,8 +23,10 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/reports', label: 'Day reports', icon: '✎' },
     { href: '/portal/requests', label: 'My requests', icon: '₭' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
+    { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer', items: [
+    { href: '/portal/plan', label: 'Improvement plans', icon: '↗' },
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },

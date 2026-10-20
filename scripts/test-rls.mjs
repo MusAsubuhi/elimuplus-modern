@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -220,6 +220,33 @@ ok('founder can read follow-up forms', (await n('founder', 'select 1 from follow
 ok('a participant cannot read follow-up forms', (await n('zawadi', 'select 1 from followup_forms')) === 0);
 ok('a partner cannot read follow-up forms', (await n('ke358', 'select 1 from followup_forms')) === 0);
 ok('trainers cannot write follow-up forms directly', (await asErr('tier1', `insert into followup_forms(stage, participant_name) values (30, 'x')`)) !== null);
+
+
+// ---------- personal improvement plans ----------
+const PLAN = P('f01');
+ok('owner sees own plan, goals and check-ins', (await n('tier1', 'select 1 from improvement_plans')) === 1 && (await n('tier1', 'select 1 from improvement_goals')) === 3 && (await n('tier1', 'select 1 from improvement_checkins')) === 2);
+ok('supervisor sees the plan of the person they supervise', (await n('tier2', 'select 1 from improvement_plans')) === 1);
+ok('founder sees every plan', (await n('founder', 'select 1 from improvement_plans')) === 1);
+ok('unrelated trainer cannot see the plan', (await n('tier1young', 'select 1 from improvement_plans')) === 0 && (await n('master', 'select 1 from improvement_goals')) === 0);
+ok('participant and partner cannot see plans', (await n('zawadi', 'select 1 from improvement_plans')) + (await n('ke358', 'select 1 from improvement_plans')) === 0);
+ok('anyone can start their own plan', (await asErr('zawadi', `insert into improvement_plans(person_id,title,created_by) values('${who.zawadi}','Grow my stall','${who.zawadi}')`)) === null);
+ok('cannot start a plan in someone else’s name', (await asErr('tier1young', `insert into improvement_plans(person_id,title,created_by) values('${who.tier1}','Spoof','${who.tier1young}')`)) !== null);
+ok('cannot claim another person as the author', (await asErr('tier1young', `insert into improvement_plans(person_id,title,created_by) values('${who.tier1young}','Spoof','${who.tier1}')`)) !== null);
+ok('supervisor can set up a plan for the person they supervise', (await asErr('tier2', `insert into improvement_plans(person_id,title,origin,created_by) values('${who.tier1young}','Kevin: next steps','reviewer','${who.tier2}')`)) === null);
+ok('a plan cannot be moved to another person', (await asErr('tier1', `update improvement_plans set person_id='${who.tier2}' where id='${PLAN}'`)) !== null);
+ok('owner adds an accepted goal', (await asErr('tier1', `insert into improvement_goals(plan_id,title,proposed_by,accepted) values('${PLAN}','New goal','${who.tier1}',true)`)) === null);
+ok('owner cannot add an unaccepted goal for themselves', (await asErr('tier1', `insert into improvement_goals(plan_id,title,proposed_by,accepted) values('${PLAN}','x','${who.tier1}',false)`)) !== null);
+ok('supervisor can only suggest a goal', (await asErr('tier2', `insert into improvement_goals(plan_id,title,proposed_by,accepted) values('${PLAN}','Suggested','${who.tier2}',false)`)) === null);
+ok('supervisor cannot add an already-accepted goal', (await asErr('tier2', `insert into improvement_goals(plan_id,title,proposed_by,accepted) values('${PLAN}','Forced','${who.tier2}',true)`)) !== null);
+ok('supervisor cannot change progress on a goal', (await as('tier2', `update improvement_goals set progress=100, status='done' where id='${P('f11')}' returning 1`)).length === 0);
+ok('owner can update progress on own goal', (await as('tier1', `update improvement_goals set progress=60, status='in_progress' where id='${P('f11')}' returning 1`)).length === 1);
+ok('outsider cannot add goals to the plan', (await asErr('tier1young', `insert into improvement_goals(plan_id,title,proposed_by,accepted) values('${PLAN}','x','${who.tier1young}',false)`)) !== null);
+ok('owner posts an update', (await asErr('tier1', `insert into improvement_checkins(plan_id,author_id,kind,body) values('${PLAN}','${who.tier1}','update','Tried again, held the order.')`)) === null);
+ok('owner cannot post as a reviewer', (await asErr('tier1', `insert into improvement_checkins(plan_id,author_id,kind,body) values('${PLAN}','${who.tier1}','reviewer_note','I am wonderful')`)) !== null);
+ok('supervisor leaves a note', (await asErr('tier2', `insert into improvement_checkins(plan_id,author_id,kind,body) values('${PLAN}','${who.tier2}','reviewer_note','Well done.')`)) === null);
+ok('supervisor cannot post an update in the owner’s name', (await asErr('tier2', `insert into improvement_checkins(plan_id,author_id,kind,body) values('${PLAN}','${who.tier1}','update','forged')`)) !== null);
+ok('check-ins cannot be edited or deleted', (await as('tier1', `update improvement_checkins set body='changed' where plan_id='${PLAN}' returning 1`)).length === 0 && (await as('tier1', `delete from improvement_checkins where plan_id='${PLAN}' returning 1`)).length === 0);
+ok('only a draft plan can be deleted by its owner', (await as('tier1', `delete from improvement_plans where id='${PLAN}' returning 1`)).length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
