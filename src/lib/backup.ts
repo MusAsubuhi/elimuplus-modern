@@ -50,10 +50,23 @@ const b64u = (b: Buffer | string) => Buffer.from(b).toString('base64url');
  * Optional copy in the founders' Google Drive. It replaces the contents of ONE existing file, so nothing piles up.
  * Needs GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_DRIVE_BACKUP_FILE_ID. Returns false when not set up yet.
  */
+/** Accepts the key file pasted as JSON (optionally wrapped in quotes) or as base64. Errors describe the shape only, never the value. */
+function readServiceAccount(raw: string): { client_email: string; private_key: string } {
+  let t = raw.trim();
+  if (!t.startsWith('{')) { try { const d = Buffer.from(t, 'base64').toString('utf8').trim(); if (d.startsWith('{')) t = d; } catch { /* fall through */ } }
+  if (t.startsWith('"') && t.endsWith('"')) { try { t = JSON.parse(t); } catch { /* fall through */ } }
+  let key: any;
+  try { key = JSON.parse(t); } catch {
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON is not the key file (${raw.trim().length} characters, starts with "${raw.trim().slice(0, 1)}"; the key file starts with "{" and is about 2,300 characters). Paste the whole downloaded .json file.`);
+  }
+  if (!key?.client_email || !key?.private_key) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is JSON but has no client_email or private_key; use the key file downloaded for the service account.');
+  return key;
+}
+
 export async function saveToDrive(json: string): Promise<boolean> {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON, fileId = process.env.GOOGLE_DRIVE_BACKUP_FILE_ID;
   if (!raw || !fileId) return false;
-  const key = JSON.parse(raw) as { client_email: string; private_key: string };
+  const key = readServiceAccount(raw);
   const now = Math.floor(Date.now() / 1000);
   const head = b64u(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const claim = b64u(JSON.stringify({ iss: key.client_email, scope: 'https://www.googleapis.com/auth/drive', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3300 }));
