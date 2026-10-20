@@ -5,13 +5,13 @@ const FROM = () => process.env.MAIL_FROM || 'Elimu+ Portal <alerts@elimuplus.com
 const SITE = () => process.env.NEXT_PUBLIC_SITE_URL || 'https://elimuplus.com';
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-export async function sendEmail(to: string[], subject: string, html: string, text: string) {
+export async function sendEmail(to: string[], subject: string, html: string, text: string, opts: { attachments?: { filename: string; content: string }[]; replyTo?: string } = {}) {
   const key = process.env.RESEND_API_KEY;
   if (!key) throw new Error('RESEND_API_KEY is not set');
   const r = await fetch(process.env.RESEND_API_URL || 'https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM(), to, subject, html, text }),
+    body: JSON.stringify({ from: FROM(), to, subject, html, text, ...(opts.attachments?.length ? { attachments: opts.attachments } : {}), ...(opts.replyTo ? { reply_to: opts.replyTo } : {}) }),
   });
   if (!r.ok) throw new Error(`Resend ${r.status}: ${(await r.text()).slice(0, 200)}`);
 }
