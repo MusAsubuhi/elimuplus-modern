@@ -16,6 +16,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/me', label: 'My journey', icon: '◎' },
     { href: '/portal/canvas', label: 'My canvas', icon: '▦' },
     { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
+    { href: '/portal/recognition', label: 'Recognition', icon: '✧' },
     { href: '/portal/stories', label: 'My story', icon: '❝' },
     { href: '/portal/directory', label: 'Biashara za Elimu+', icon: '❖' }] },
   facilitator: { title: 'Facilitator', items: [
@@ -25,10 +26,12 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/earnings', label: 'My earnings', icon: '◈' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
     { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
+    { href: '/portal/recognition', label: 'Recognition', icon: '✧' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer', items: [
     { href: '/portal/earnings', label: 'My earnings', icon: '◈' },
     { href: '/portal/plan', label: 'Improvement plans', icon: '↗' },
+    { href: '/portal/recognition', label: 'Recognition', icon: '✧' },
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
@@ -38,7 +41,8 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/partner/roster', label: 'Add participants', icon: '+' },
     { href: '/portal/partner/timeline', label: 'Our deliverables', icon: '◷' },
     { href: '/portal/partner/billing', label: 'Invoices and payments', icon: '₭' },
-    { href: '/portal/partner/library', label: 'Reports and documents', icon: '▤' }] },
+    { href: '/portal/partner/library', label: 'Reports and documents', icon: '▤' },
+    { href: '/portal/recognition', label: 'Impact milestones', icon: '✧' }] },
   founder: { title: 'Founders', items: [] },
 };
 
