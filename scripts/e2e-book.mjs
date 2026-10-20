@@ -26,10 +26,12 @@ await page.locator('input[name="q_credit"]').nth(1).fill('2');
 await page.locator('input[name="stock_paid"]').fill('500');
 await page.locator('input[name="transport"]').fill('30');
 await page.getByRole('button', { name: /Save today/ }).click();
+await page.waitForURL(/ok=|err=/);
 await page.waitForLoadState('networkidle');
+await page.getByText('How today went').waitFor();
 tx = await body(page);
 // 20 omena x (50-30)=400 + 2 dagaa x 30 = 60 -> 460; fixed 1800/26 = 69.23 -> reached
-check('result shows break-even reached with the right sales', /You reached break-even/.test(tx) && /KES 1,200/.test(tx), page.url() + ' ' + (await page.textContent('body')).slice(0, 300));
+check('result shows break-even reached with the right sales', /You reached break-even/.test(tx) && /KES 1,200/.test(tx), (await page.textContent('main')).slice(0, 700));
 check('cash worked out', /Cash at end/.test(tx));
 await page.goto(base + '/portal/book/week', { waitUntil: 'networkidle' });
 tx = await body(page);
