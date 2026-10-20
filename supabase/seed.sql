@@ -215,5 +215,22 @@ insert into public.invitations(full_name,contact,role,organisation_id,nominated_
  ('Grace Njeri (demo)','+254700000777','participant','00000000-0000-4000-8000-0000000000a3','00000000-0000-4000-8000-000000000402','nominated',2009,false,'Under 18: guardian consent needed before approval'),
  ('Hassan Ali (demo)','+254700000778','trainer_candidate','00000000-0000-4000-8000-0000000000a4','00000000-0000-4000-8000-000000000201','nominated',2003,false,'Campus student, English');
 
+-- A demo improvement plan (only when the improvement-plan tables exist)
+do $$ begin
+  if to_regclass('public.improvement_plans') is not null then
+    insert into public.improvement_plans(id,person_id,title,focus,summary,starts_on,review_on,status,reviewer_id,origin,created_by) values
+     ('00000000-0000-4000-8000-000000000f01','00000000-0000-4000-8000-000000000203','Getting ready for my second independent cohort','facilitation',
+      'I rush the cost section when time is short. I want to hold the order (sunk, fixed, variable) even on a tight day.',
+      current_date - 21, current_date + 40,'active','00000000-0000-4000-8000-000000000202','self','00000000-0000-4000-8000-000000000203');
+    insert into public.improvement_goals(id,plan_id,title,why,measure,due_on,status,progress,source_kind,proposed_by,accepted) values
+     ('00000000-0000-4000-8000-000000000f11','00000000-0000-4000-8000-000000000f01','Teach the cost section in the right order every time','Participants lose the point when sunk costs come last.','Observer checklist shows the order held in two sessions in a row',current_date + 30,'in_progress',40,'qa_visit','00000000-0000-4000-8000-000000000203',true),
+     ('00000000-0000-4000-8000-000000000f12','00000000-0000-4000-8000-000000000f01','Close every follow-up record for my first cohort','Needed for the next tier.','All 30, 60 and 90-day visits recorded',current_date + 40,'not_started',0,'pathway','00000000-0000-4000-8000-000000000203',true),
+     ('00000000-0000-4000-8000-000000000f13','00000000-0000-4000-8000-000000000f01','Practise the five-minute silence with a colleague','Brian suggested it.','Do it twice before the next cohort',current_date + 20,'not_started',0,'own','00000000-0000-4000-8000-000000000202',false);
+    insert into public.improvement_checkins(plan_id,goal_id,author_id,kind,body,progress) values
+     ('00000000-0000-4000-8000-000000000f01','00000000-0000-4000-8000-000000000f11','00000000-0000-4000-8000-000000000203','update','Held the order on Day 3 but skipped the recap. Will try again on Day 4.',40),
+     ('00000000-0000-4000-8000-000000000f01',null,'00000000-0000-4000-8000-000000000202','reviewer_note','Good honest start. When we meet, bring the slide you rushed and we will time it together.',null);
+  end if;
+end $$;
+
 -- demo data should not raise founder alerts
 delete from public.founder_alerts;
