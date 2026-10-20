@@ -4,7 +4,7 @@ import { getLang, requireMe, type Role } from '@/lib/session';
 import { asAdmin, asUser } from '@/lib/db';
 import { logout, setLang, demoLogin } from '../actions';
 import Flash from '@/components/flash';
-import NavLink from '@/components/nav-link';
+import { MobileMenu, TopNav, type NavGroup } from '@/components/portal-nav';
 import { t } from '@/lib/i18n';
 import { levelName } from '@/lib/levels';
 import { allowedFeatures } from '@/lib/access';
@@ -60,46 +60,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isFounder = me.roles.includes('founder');
   const seen = new Set<string>();
   const shared = FEATURES.filter((f) => f.delegable && allowed.has(f.key) && !isFounder);
+  const navGroups: NavGroup[] = [];
+  if (isFounder) for (const sec of SECTIONS) {
+    const items = FEATURES.filter((f) => f.section === sec);
+    items.forEach((f) => seen.add(f.href));
+    navGroups.push({ title: sec, items: items.map((f) => ({ href: f.href, label: f.label, icon: f.icon, badge: f.href === '/portal/alerts' ? unread : 0 })) });
+  }
+  for (const g of groups.filter((x) => x !== 'founder')) {
+    const items = NAV[g].items.filter((i) => !seen.has(i.href) && seen.add(i.href));
+    if (items.length) navGroups.push({ title: NAV[g].title, items });
+  }
+  if (shared.length > 0) navGroups.push({ title: 'Shared with you', items: shared.map((f) => ({ href: f.href, label: f.label, icon: f.icon })) });
   return (
-    <div className="min-h-screen md:flex">
-      <aside className="no-print bg-teal text-white md:sticky md:top-0 md:h-screen md:w-64 md:shrink-0 md:overflow-y-auto">
-        <div className="flex items-center gap-3 px-5 py-5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo-elimu-white.png" alt="Elimu+" className="h-9 w-auto" />
-          <span className="text-xs font-bold uppercase tracking-widest text-gold">Portal</span>
+    <div className="min-h-screen">
+      <div className="no-print sticky top-0 z-40 bg-teal text-white">
+        <div className="flex items-center gap-2 px-3 py-2 md:px-5">
+          <MobileMenu groups={navGroups} label={lang === 'sw' ? 'Fungua menyu' : 'Open menu'} />
+          <Link href="/portal" className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/images/logo-elimu-white.png" alt="Elimu+" className="h-8 w-auto" />
+            <span className="text-xs font-bold uppercase tracking-widest text-gold">Portal</span>
+          </Link>
+          <div className="ml-4 hidden min-w-0 flex-1 md:block"><TopNav groups={navGroups} /></div>
         </div>
-        <nav className="px-3 pb-6">
-          {isFounder && SECTIONS.map((s) => {
-            const items = FEATURES.filter((f) => f.section === s);
-            items.forEach((f) => seen.add(f.href));
-            return (
-              <div key={s} className="mb-4">
-                <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{s}</div>
-                {items.map((i) => (
-                  <NavLink key={i.href} href={i.href} icon={i.icon} label={i.label} badge={i.href === '/portal/alerts' ? unread : 0} />
-                ))}
-              </div>
-            );
-          })}
-          {groups.filter((g) => g !== 'founder').map((g) => (
-            <div key={g} className="mb-4">
-              <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{NAV[g].title}</div>
-              {NAV[g].items.filter((i) => !seen.has(i.href) && seen.add(i.href)).map((i) => (
-                <NavLink key={i.href} href={i.href} icon={i.icon} label={i.label} />
-              ))}
-            </div>
-          ))}
-          {shared.length > 0 && (
-            <div className="mb-4">
-              <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">Shared with you</div>
-              {shared.map((i) => (
-                <NavLink key={i.href} href={i.href} icon={i.icon} label={i.label} />
-              ))}
-            </div>
-          )}
-        </nav>
-      </aside>
-      <div className="min-w-0 flex-1">
+      </div>
+      <div className="min-w-0">
         <header className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-teal-100 bg-white px-5 py-3">
           <div className="text-sm"><span className="font-bold text-teal">{me.displayName}</span>
             <span className="ml-2 text-slate-500">{me.primary === 'master' || me.primary === 'facilitator' ? levelName(me.tier) : NAV[me.primary].title}</span></div>
