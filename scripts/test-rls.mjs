@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans', '0026_trainer_payouts', '0027_report_exports']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans', '0026_trainer_payouts', '0027_report_exports', '0028_business_book']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -324,6 +324,31 @@ ok('the partner sees its own export log and another partner does not', (await n(
 ok('founders can read every organisation’s exports', (await n('founder', 'select 1 from report_exports')) === 1);
 ok('trainers and participants see no exports', (await n('tier1', 'select 1 from report_exports')) + (await n('zawadi', 'select 1 from report_exports')) === 0);
 ok('an export record cannot be edited or deleted', (await as('ke358', `update report_exports set title='changed' returning 1`)).length === 0 && (await as('ke358', `delete from report_exports returning 1`)).length === 0);
+
+// ---------- my business book: private to the person unless they choose to share ----------
+const BZ = '00000000-0000-4000-8000-00000000b001', BR = '00000000-0000-4000-8000-00000000b002';
+ok('a trainee sees only their own book, items, costs and days', (await n('zawadi', 'select 1 from business_books')) === 1 && (await n('zawadi', 'select 1 from business_items')) === 2 && (await n('zawadi', 'select 1 from business_fixed_costs')) === 2 && (await n('zawadi', 'select 1 from business_days')) > 5);
+ok('a trainee cannot read another trainee’s book or days', (await n('zawadi', `select 1 from business_books where id='${BR}'`)) === 0 && (await n('zawadi', `select 1 from business_days where book_id='${BR}'`)) === 0);
+ok('a cohort trainer sees a shared book and its days, and not an unshared one', (await n('tier2', `select 1 from business_books where id='${BR}'`)) === 1 && (await n('tier2', `select 1 from business_days where book_id='${BR}'`)) > 5 && (await n('tier2', `select 1 from business_books where id='${BZ}'`)) === 0 && (await n('tier2', `select 1 from business_day_lines`)) === 0);
+ok('a trainer outside the cohort sees no books', (await n('tier1young', 'select 1 from business_books')) === 0);
+ok('founders see a shared book only', (await n('founder', 'select 1 from business_books')) === 1 && (await n('founder', `select 1 from business_books where id='${BZ}'`)) === 0);
+ok('partner organisations see no business books', (await n('ke358', 'select 1 from business_books')) + (await n('ke358', 'select 1 from business_days')) === 0);
+ok('a trainer cannot write in a shared book', (await asErr('tier2', `insert into business_days(book_id,day,sales_cash) values('${BR}',current_date,50)`)) !== null && (await as('tier2', `update business_days set sales_cash=1 where book_id='${BR}' returning 1`)).length === 0 && (await as('tier2', `update business_books set business_name='x' where id='${BR}' returning 1`)).length === 0);
+ok('a founder cannot write in a shared book', (await as('founder', `delete from business_days where book_id='${BR}' returning 1`)).length === 0);
+ok('a trainee cannot start a book in someone else’s name', (await asErr('zawadi', `insert into business_books(person_id,business_name) values('${who.rehema}','Not mine')`)) !== null);
+ok('a trainee cannot keep two active books', (await asErr('zawadi', `insert into business_books(person_id,business_name) values('${who.zawadi}','Second')`)) !== null);
+ok('a book cannot be handed to another person', (await asErr('zawadi', `update business_books set person_id='${who.rehema}' where id='${BZ}'`)) !== null);
+ok('a trainee cannot write days or lines into another book', (await asErr('zawadi', `insert into business_days(book_id,day,sales_cash) values('${BR}',current_date,50)`)) !== null);
+ok('one page per day for a book', (await asErr('rehema', `insert into business_days(book_id,day) select book_id, day from business_days where book_id='${BR}' limit 1`)) !== null);
+ok('negative money is refused', (await asErr('rehema', `insert into business_days(book_id,day,sales_cash) values('${BR}',current_date,-5)`)) !== null);
+ok('the date of a day page cannot be changed', (await asErr('rehema', `update business_days set day=day+400 where book_id='${BR}'`)) !== null);
+ok('the owner can add a day and a sales line', (await asErr('zawadi', `insert into business_days(book_id,day,sales_cash) values('${BZ}',current_date,0)`)) === null && (await asErr('zawadi', `insert into business_day_lines(day_id,name,qty,price_kes,unit_cost_kes) select id,'Omena',3,50,30 from business_days where book_id='${BZ}' and day=current_date`)) === null);
+await as('zawadi', `update business_books set share_with_trainer=true where id='${BZ}'`);
+ok('turning sharing on lets the trainer read the lines too', (await n('tier2', `select 1 from business_day_lines`)) > 0 && (await n('tier2', `select 1 from business_books where id='${BZ}'`)) === 1);
+await as('zawadi', `update business_books set share_with_trainer=false where id='${BZ}'`);
+ok('turning sharing off takes it away again', (await n('tier2', `select 1 from business_books where id='${BZ}'`)) === 0 && (await n('tier2', `select 1 from business_day_lines`)) === 0);
+await db.exec(`insert into business_books(id,person_id,business_name) values('00000000-0000-4000-8000-00000000b003','${who.salim}','Salim shop'); update people set status='archived' where id='${who.salim}'`);
+ok('a person removed at their own request takes their books with them', (await db.query(`select 1 from business_books where person_id='${who.salim}'`)).rows.length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

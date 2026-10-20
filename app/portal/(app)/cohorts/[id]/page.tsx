@@ -17,7 +17,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
     const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms, expected, summaries, rates, certs] = await Promise.all([
-      q(`select e.id, e.track, e.status, e.has_business_at_entry, p.display_name, p.full_name, p.birth_year,
+      q(`select e.id, e.person_id, e.track, e.status, exists(select 1 from business_books bb where bb.person_id=e.person_id and bb.status='active') has_book, e.has_business_at_entry, p.display_name, p.full_name, p.birth_year,
            (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
          from enrolments e join people p on p.id=e.person_id where e.cohort_id=$1 order by p.display_name`, [id]),
       q('select * from sessions where cohort_id=$1 order by day_number', [id]),
@@ -97,7 +97,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       <Card title="Roster" className="mt-4" subtitle="Names are visible to trainers of this cohort only">
         <Table head={['Participant', 'Track', 'Status', 'Boxes filled', 'Business at entry']}
           rows={roster.map((r) => [
-            <div key="n"><Link href={`/portal/cohorts/${id}/participants/${r.id}`} className="font-bold text-teal underline">{r.display_name}</Link>{r.birth_year && new Date().getFullYear() - r.birth_year < 18 ? <span className="ml-2"><Badge tone="gold">under 18</Badge></span> : null}</div>,
+            <div key="n"><Link href={`/portal/cohorts/${id}/participants/${r.id}`} className="font-bold text-teal underline">{r.display_name}</Link>{r.has_book ? <Link href={`/portal/book/view?person=${r.person_id}`} className="ml-2 text-xs font-bold text-teal-700 underline">Business book</Link> : null}{r.birth_year && new Date().getFullYear() - r.birth_year < 18 ? <span className="ml-2"><Badge tone="gold">under 18</Badge></span> : null}</div>,
             <Badge key="t" tone={r.track === 'starter' ? 'gold' : 'teal'}>{r.track}</Badge>,
             <Badge key="s" tone={statusTone(r.status)}>{r.status}</Badge>,
             <div key="b" className="flex items-center gap-2"><div className="h-2 w-24 rounded bg-teal-50"><div className="h-2 rounded bg-teal" style={{ width: `${pct(r.boxes, 12)}%` }} /></div><span className="text-xs">{r.boxes}/12</span></div>,

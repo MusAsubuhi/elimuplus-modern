@@ -250,5 +250,30 @@ do $$ begin
   end if;
 end $$;
 
+-- Demo business books (only when the table exists). Zawadi keeps hers private; Rehema has chosen to share with her trainer.
+do $$ begin
+  if to_regclass('public.business_books') is not null then
+    insert into public.business_books(id,person_id,enrolment_id,business_name,what_i_sell,where_i_trade,started_on,entry_mode,days_per_week,days_per_month,opening_cash,goal_text,share_with_trainer) values
+     ('00000000-0000-4000-8000-00000000b001','00000000-0000-4000-8000-000000000301','00000000-0000-4000-8000-000000000601','Omena ya Zawadi','Omena and dagaa','Soweto market, Likoni',current_date-20,'items',6,26,2000,'Sell enough every day to cover my stall and save KES 200 a week',false);
+    insert into public.business_books(id,person_id,enrolment_id,business_name,what_i_sell,where_i_trade,started_on,entry_mode,margin_pct,days_per_week,days_per_month,opening_cash,goal_text,share_with_trainer) values
+     ('00000000-0000-4000-8000-00000000b002','00000000-0000-4000-8000-000000000302','00000000-0000-4000-8000-000000000602','Rehema Mboga','Vegetables','Likoni ferry road',current_date-20,'simple',30,6,26,1500,'Stop mixing shop money and house money',true);
+    insert into public.business_items(id,book_id,name,unit,price_kes,unit_cost_kes,sort_order) values
+     ('00000000-0000-4000-8000-00000000b101','00000000-0000-4000-8000-00000000b001','Omena','cup',50,30,1),
+     ('00000000-0000-4000-8000-00000000b102','00000000-0000-4000-8000-00000000b001','Dagaa','packet',100,70,2);
+    insert into public.business_fixed_costs(book_id,name,amount_kes,times_per_month) values
+     ('00000000-0000-4000-8000-00000000b001','Stall rent',1500,1),('00000000-0000-4000-8000-00000000b001','Phone airtime',300,1),
+     ('00000000-0000-4000-8000-00000000b002','Stall rent',2000,1),('00000000-0000-4000-8000-00000000b002','Licence',600,1);
+    insert into public.business_days(id,book_id,day,traded,sales_cash,sales_credit,debts_received,stock_paid,transport,mpesa_fees,saved_kes,customers)
+    select gen_random_uuid(),'00000000-0000-4000-8000-00000000b002',current_date-g,true,900+(g*37)%400,(g%3)*60,(g%4)*40,500+(g*53)%200,40,10,case when g%7=0 then 200 else 0 end,12+g%6
+    from generate_series(1,14) g where g%7<>0;
+    insert into public.business_days(book_id,day,traded,stock_paid,stall_fee,transport,mpesa_fees,saved_kes,customers)
+    select '00000000-0000-4000-8000-00000000b001',current_date-g,true,900+(g*41)%300,0,30,10,case when g%7=1 then 200 else 0 end,10+g%5
+    from generate_series(1,14) g where g%7<>0;
+    insert into public.business_day_lines(day_id,item_id,name,qty,price_kes,unit_cost_kes,on_credit)
+    select d.id,i.id,i.name,case when i.name='Omena' then 14+(extract(day from d.day)::int%6) else 5+(extract(day from d.day)::int%4) end,i.price_kes,i.unit_cost_kes,false
+    from public.business_days d join public.business_items i on i.book_id=d.book_id where d.book_id='00000000-0000-4000-8000-00000000b001';
+  end if;
+end $$;
+
 -- demo data should not raise founder alerts
 delete from public.founder_alerts;
