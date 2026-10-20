@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requirePartner } from '@/lib/session';
 import { stopPartnerPreview } from '../../preview-actions';
 
-const LINKS = [['/portal/partner', 'Overview'], ['/portal/partner/request', 'Request training'], ['/portal/partner/roster', 'Add participants'], ['/portal/partner/timeline', 'Our deliverables'], ['/portal/partner/billing', 'Invoices and payments'], ['/portal/partner/library', 'Reports and documents']];
+const LINKS = [['/portal/partner', 'Overview'], ['/portal/partner/request', 'Request training'], ['/portal/partner/roster', 'Add participants'], ['/portal/partner/timeline', 'Our deliverables'], ['/portal/partner/billing', 'Invoices and payments'], ['/portal/partner/library', 'Reports and documents'], ['/portal/partner/reports', 'Build a report']];
 
 export default async function PartnerLayout({ children }: { children: React.ReactNode }) {
   const me = await requirePartner();

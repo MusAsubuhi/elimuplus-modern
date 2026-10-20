@@ -42,6 +42,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/partner/timeline', label: 'Our deliverables', icon: '◷' },
     { href: '/portal/partner/billing', label: 'Invoices and payments', icon: '₭' },
     { href: '/portal/partner/library', label: 'Reports and documents', icon: '▤' },
+    { href: '/portal/partner/reports', label: 'Build a report', icon: '▥' },
     { href: '/portal/recognition', label: 'Impact milestones', icon: '✧' }] },
   founder: { title: 'Founders', items: [] },
 };

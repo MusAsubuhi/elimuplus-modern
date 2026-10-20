@@ -9,7 +9,7 @@ await db.exec(`
   create function auth.uid() returns uuid language sql stable as $$ select nullif(coalesce(current_setting('request.jwt.claim.sub', true), current_setting('request.jwt.sub', true)),'')::uuid $$;
   create role authenticated; create role anon;
 `);
-for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans', '0026_trainer_payouts']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
+for (const f of ['0001_schema', '0002_rls', '0003_partner_aggregates', '0004_function_search_path', '0006_team_suggestions_journey', '0007_levels_crm_reports_alerts', '0008_followup_forms', '0009_impact_data', '0010_form_registry', '0025_improvement_plans', '0026_trainer_payouts', '0027_report_exports']) await db.exec(readFileSync(`supabase/migrations/${f}.sql`, 'utf8'));
 await db.exec(readFileSync('supabase/seed.sql', 'utf8'));
 await db.exec(`
   create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -311,6 +311,19 @@ ok('a later visit is paid separately after an earlier one was approved', (await 
 await db.exec(`update payout_rates set amount_kes=800 where kind='followup_visit'`);
 const ended = await as('founder', `select app.sync_payout_claims('${P(502)}') as r`);
 ok('sync reports back to a founder and not to anyone else', ended[0].r.created !== undefined && (await as('tier1', `select app.sync_payout_claims('${P(502)}') as r`))[0].r.missing_rate.length === 0);
+
+// ---------- report exports: what leaves the portal is on record ----------
+const orgOf = async (p) => (await db.query(`select organisation_id o from role_assignments where person_id='${who[p]}' and role in ('org_admin','org_viewer')`)).rows[0]?.o;
+const ORG_A = await orgOf('ke358'), ORG_B = await orgOf('school');
+const exp = (org, by, extra = '') => `insert into report_exports(organisation_id,created_by,title,format,action,status${extra ? ',' + extra.split('|')[0] : ''}) values('${org}','${who[by]}','Q4 report','pdf','download','downloaded'${extra ? ',' + extra.split('|')[1] : ''})`;
+ok('a partner admin records their own export', ORG_A && (await asErr('ke358', exp(ORG_A, 'ke358'))) === null);
+ok('a partner cannot record an export for another organisation', (await asErr('ke358', exp(ORG_B, 'ke358'))) !== null);
+ok('an export cannot be recorded in someone else’s name', (await asErr('ke358', exp(ORG_A, 'founder'))) !== null);
+ok('an emailed export needs a recipient', (await asErr('ke358', `insert into report_exports(organisation_id,created_by,title,format,action,status) values('${ORG_A}','${who.ke358}','x','pdf','email','sent')`)) !== null);
+ok('the partner sees its own export log and another partner does not', (await n('ke358', 'select 1 from report_exports')) === 1 && (await n('school', 'select 1 from report_exports')) === 0);
+ok('founders can read every organisation’s exports', (await n('founder', 'select 1 from report_exports')) === 1);
+ok('trainers and participants see no exports', (await n('tier1', 'select 1 from report_exports')) + (await n('zawadi', 'select 1 from report_exports')) === 0);
+ok('an export record cannot be edited or deleted', (await as('ke358', `update report_exports set title='changed' returning 1`)).length === 0 && (await as('ke358', `delete from report_exports returning 1`)).length === 0);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
