@@ -22,10 +22,12 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/cohorts', label: 'My cohorts', icon: '◧' },
     { href: '/portal/reports', label: 'Day reports', icon: '✎' },
     { href: '/portal/requests', label: 'My requests', icon: '₭' },
+    { href: '/portal/earnings', label: 'My earnings', icon: '◈' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
     { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
   master: { title: 'Master trainer', items: [
+    { href: '/portal/earnings', label: 'My earnings', icon: '◈' },
     { href: '/portal/plan', label: 'Improvement plans', icon: '↗' },
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },

@@ -232,5 +232,23 @@ do $$ begin
   end if;
 end $$;
 
+-- Demo trainer payments (only when the payout tables exist). Rates are placeholders, not real fees.
+do $$ begin
+  if to_regclass('public.payout_claims') is not null then
+    insert into public.payout_rates(kind,tier,format,amount_kes,note) values
+     ('delivery_lead',null,'5-day',7000,'DEMO placeholder'),('delivery_co',null,'5-day',4000,'DEMO placeholder'),
+     ('delivery_observer',0,null,1500,'DEMO placeholder'),('followup_visit',null,null,800,'DEMO placeholder'),('qa_visit',null,null,2500,'DEMO placeholder');
+    insert into public.payout_methods(person_id,method,account_name,phone) values
+     ('00000000-0000-4000-8000-000000000203','mpesa','Faith Wanjiru','+254700000203'),
+     ('00000000-0000-4000-8000-000000000202','mpesa','Brian Otieno','+254700000202');
+    insert into public.payout_claims(id,person_id,cohort_id,kind,description,amount_kes,evidence,status,created_by) values
+     ('00000000-0000-4000-8000-0000000ca001','00000000-0000-4000-8000-000000000203','00000000-0000-4000-8000-000000000501','delivery','Co-facilitated KE358 Cohort 1 (5-day)',4000,'{"reports_filed":5}','ready','00000000-0000-4000-8000-000000000101'),
+     ('00000000-0000-4000-8000-0000000ca002','00000000-0000-4000-8000-000000000202','00000000-0000-4000-8000-000000000501','delivery','Led KE358 Cohort 1 (5-day)',7000,'{"reports_filed":5}','ready','00000000-0000-4000-8000-000000000101'),
+     ('00000000-0000-4000-8000-0000000ca003','00000000-0000-4000-8000-000000000202',null,'other','Training of trainers preparation (demo, above threshold)',25000,'{}','ready','00000000-0000-4000-8000-000000000101'),
+     ('00000000-0000-4000-8000-0000000ca004','00000000-0000-4000-8000-000000000101',null,'other','Founder delivery day (demo)',5000,'{}','ready','00000000-0000-4000-8000-000000000102'),
+     ('00000000-0000-4000-8000-0000000ca005','00000000-0000-4000-8000-000000000203','00000000-0000-4000-8000-000000000502','delivery','Observed KE740 Cohort 2 (waiting for day reports)',1500,'{"reports_filed":0}','pending_work','00000000-0000-4000-8000-000000000101');
+  end if;
+end $$;
+
 -- demo data should not raise founder alerts
 delete from public.founder_alerts;
