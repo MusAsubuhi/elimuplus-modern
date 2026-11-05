@@ -75,7 +75,12 @@ export async function acceptDeal(f: FormData) {
       const due = co?.start_date ? String(co.start_date).slice(0, 10) : addDays(14);
       if (training > 0) await createInvoice(q, { quoteId: id, orgId: qt.organisation_id, cohortId: qt.cohort_id, kind: 'training', amount: training, description: `Training${co ? `: ${co.name}` : ''}, ${qt.participants ?? ''} participants, ${qt.sessions} sessions`, dueOn: due });
     });
-  } catch (e) { console.error('[deal]', e); back('Could not mark it accepted. It may already be accepted.', 'err'); }
+  } catch (e: any) {
+    console.error('[deal]', e);
+    // The database holds back confirmation until the organisation is called, visited and checked; say so instead of a vague failure.
+    if (String(e?.message ?? '').startsWith('Not ready')) back('Not confirmed yet: this organisation still has to be called, visited and pass the venue checks. Record those on its CRM page, or a founder can record an override reason there, then mark it accepted again. The quotation is unchanged.', 'err');
+    back('Could not mark it accepted. It may already be accepted.', 'err');
+  }
   await audit(me.id, 'quotation accepted, training invoice raised', 'quotes');
   revalidatePath(P);
   back('Accepted. The cohort is confirmed and the training invoice is raised. Send it from the invoices list.');
