@@ -120,6 +120,12 @@ export default async function Deals() {
             <p className="mt-2 text-xs text-slate-500">Recording a payment marks the invoice paid (or part paid) and creates the receipt. It appears in the Receipts list at the bottom of this page, where you press Email to send it. If the partner told you they paid through their portal, confirm it in the box at the top instead.</p>
           </form>
         )}
+        {!X.invoices.some((i) => i.amount_kes - i.paid > 0) && (
+          <div className="mt-4 rounded-lg bg-mist p-3 text-sm">
+            <p className="font-bold text-teal">Record a payment you received</p>
+            <p className="mt-1 text-slate-700">There is no unpaid invoice to record a payment against yet. An invoice is raised when you press <b>They accepted</b> on a quotation above. Once it exists, the form to record the payment appears here.</p>
+          </div>
+        )}
         <p className="mt-3 text-xs text-slate-500">The flow: quotation accepted, invoice raised, partner pays, you record the payment (or confirm their notice), the receipt is created below and emailed.</p>
       </Card>
 
