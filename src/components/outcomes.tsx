@@ -19,7 +19,6 @@ export function Outcomes({ m }: { m: Impact }) {
   const habits = [
     { habit: 'Records daily', day0: pct(num(base.records_daily), num(base.adult_n)), ...Object.fromEntries(stages.map((s) => [`d${s}`, pct(num(adult(s).records_daily), num(adult(s).n))])) },
     { habit: 'Separates money', day0: pct(num(base.separates_always), num(base.adult_n)), ...Object.fromEntries(stages.map((s) => [`d${s}`, pct(num(adult(s).separates_always), num(adult(s).n))])) },
-    { habit: 'Sets money aside', day0: pct(num(base.set_aside), num(base.adult_n)), ...Object.fromEntries(stages.map((s) => [`d${s}`, pct(num(adult(s).set_aside), num(adult(s).n))])) },
   ];
   const income = ['higher', 'same', 'lower'].map((k) => ({ name: label(k), value: stages.reduce((s, st) => s + num(adult(st)[k]), 0), color: k === 'higher' ? '#2E8B7A' : k === 'same' ? '#D4A843' : '#C8553D' })).filter((v) => v.value);
   const challenges: Record<string, number> = {};
@@ -37,9 +36,9 @@ export function Outcomes({ m }: { m: Impact }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Who took part"><PieCard data={g} height={200} />{age.length > 0 && <div className="mt-2 text-xs text-slate-600">{age.map((a) => `${a.name}: ${a.value}`).join(' · ')}</div>}
           <div className="mt-2 text-xs text-slate-600">{num(m.had_business)} already had a business · {num(m.disability)} living with a disability</div></Card>
-        <Card title="Trading after training" subtitle="Made a sale in the 14 days before each visit">
+        <Card title="Still operating after training" subtitle="Business operating at each visit (open normally or reduced)">
           {adultN ? <BarCard data={trading} x="visit" height={220} bars={[{ key: 'trading', label: '% trading', color: '#0D3B3B' }, { key: 'reached', label: '% reached', color: '#D4A843' }]} /> : <p className="text-sm text-slate-500">Appears after the first follow-up visits.</p>}</Card>
-        <Card title="Trading at 90 days">{num(adult('90').sold14_known) ? <Gauge value={pct(num(adult('90').sold14), num(adult('90').sold14_known))} target={75} label="of those reached" /> : <p className="text-sm text-slate-500">No 90-day visits yet.</p>}</Card>
+        <Card title="Operating at 90 days">{num(adult('90').sold14_known) ? <Gauge value={pct(num(adult('90').sold14), num(adult('90').sold14_known))} target={75} label="of those reached" /> : <p className="text-sm text-slate-500">No 90-day visits yet.</p>}</Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -54,11 +53,9 @@ export function Outcomes({ m }: { m: Impact }) {
             ['Reached / due', `${num(base.adult_n)}`, ...stages.map((s) => `${num(adult(s).n)} / ${num(adult(s).due)}`)],
             ['Growing or stable', '', ...stages.map((s) => (adult(s).n ? `${num(adult(s).growing) + num(adult(s).stable)} of ${adult(s).n}` : '—'))],
             ['Struggling or closed', '', ...stages.map((s) => (adult(s).n ? `${num(adult(s).struggling) + num(adult(s).closed)} of ${adult(s).n}` : '—'))],
-            ['Average weekly profit', base.avg_profit ? kes(base.avg_profit) : '—', ...stages.map((s) => (adult(s).avg_profit ? kes(adult(s).avg_profit) : '—'))],
-            ['Average stock value', base.avg_stock_value ? kes(base.avg_stock_value) : '—', ...stages.map((s) => (adult(s).avg_stock_value ? kes(adult(s).avg_stock_value) : '—'))],
-            ['Skipped a meal for money reasons', base.n ? `${num(base.meal_any)}` : '—', ...stages.map((s) => (adult(s).n ? `${num(adult(s).meal_any)} of ${adult(s).n}` : '—'))],
+            ['Average weekly profit (estimate from ranges)', base.avg_profit ? kes(base.avg_profit) : '—', ...stages.map((s) => (adult(s).avg_profit ? kes(adult(s).avg_profit) : '—'))],
+            ['Average business value (stock plus cash)', base.avg_stock_value ? kes(base.avg_stock_value) : '—', ...stages.map((s) => (adult(s).avg_stock_value ? kes(adult(s).avg_stock_value) : '—'))],
             ['Confidence (1 to 5)', base.avg_confidence ?? '—', ...stages.map((s) => adult(s).confidence ?? '—')],
-            ['Needed a referral', '', ...stages.map((s) => (adult(s).n ? num(adult(s).referrals) : '—'))],
           ]} />
         </Card>
       )}
@@ -69,13 +66,12 @@ export function Outcomes({ m }: { m: Impact }) {
         <Card title="Youth, visit by visit">
           <Table head={['', 'Day 30', 'Day 60', 'Day 90']} rows={[
             ['Visited', ...stages.map((s) => num(youth(s).n))],
-            ['Officer view: on track', ...stages.map((s) => (youth(s).n ? `${num(youth(s).on_track)} of ${youth(s).n}` : '—'))],
-            ['Needs support or disengaged', ...stages.map((s) => (youth(s).n ? `${num(youth(s).needs_support) + num(youth(s).disengaged)} of ${youth(s).n}` : '—'))],
+            ['Result: on track', ...stages.map((s) => (youth(s).n ? `${num(youth(s).on_track)} of ${youth(s).n}` : '—'))],
+            ['Stuck or lost contact', ...stages.map((s) => (youth(s).n ? `${num(youth(s).needs_support) + num(youth(s).disengaged)} of ${youth(s).n}` : '—'))],
             ['Earned a first income', ...stages.map((s) => (youth(s).n ? num(youth(s).first_income) : '—'))],
-            ['CV ready', ...stages.map((s) => (youth(s).n ? num(youth(s).cv_ready) : '—'))],
-            ['Applications / interviews', ...stages.map((s) => (youth(s).n ? `${num(youth(s).applications)} / ${num(youth(s).interviews)}` : '—'))],
-            ['Venture started / operating', ...stages.map((s) => (youth(s).n ? `${num(youth(s).venture_started)} / ${num(youth(s).venture_operating)}` : '—'))],
-            ['Team project done', ...stages.map((s) => (youth(s).n ? num(youth(s).team_project_done) : '—'))],
+            ['CV ready or updated', ...stages.map((s) => (youth(s).n ? num(youth(s).cv_ready) : '—'))],
+            ['Applied / had an interview (people)', ...stages.map((s) => (youth(s).n ? `${num(youth(s).applications)} / ${num(youth(s).interviews)}` : '—'))],
+            ['Started a business or side income', ...stages.map((s) => (youth(s).n ? num(youth(s).venture_started) : '—'))],
             ['Safety concerns', ...stages.map((s) => (youth(s).n ? num(youth(s).safety) : '—'))],
           ]} />
         </Card>

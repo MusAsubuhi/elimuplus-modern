@@ -5,7 +5,7 @@ import { normPhone } from '@/lib/accounts';
 import { notify } from '@/lib/mail';
 import ins from '@/lib/instruments.json';
 import {
-  EDU_CODE, GENDER, STORY, asNum, clean, code, cohortFromLabel, findEnrolment, insertParts, isoDate, list, longText, personByPhone, pick, rekey, yesNo, type Field,
+  PAYS_SELF, SEPARATES, asNum, clean, code, cohortFromLabel, findEnrolment, insertParts, isoDate, list, longText, personByPhone, pick, profitKes, rekey, ticked, yesNo, type Field,
 } from '@/lib/forms-map';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +14,10 @@ type Q = (sql: string, params?: any[]) => Promise<any[]>;
 type Instrument = { common: Field[]; branch?: { label: string; options: { label: string; value: string; sections: { fields: Field[] }[] }[] } };
 const INSTR = ins.instruments as unknown as Record<string, Instrument>;
 
-const BUSINESS_STAGE: [RegExp, string][] = [[/^running/i, 'running'], [/^starting/i, 'starting'], [/idea/i, 'idea']];
-const PATH: [RegExp, string][] = [[/job/i, 'employment'], [/both/i, 'both'], [/business/i, 'own_business'], [/sure/i, 'not_sure']];
-const EDU_STATUS: [RegExp, string][] = [[/^in school/i, 'in_school'], [/^out of school/i, 'out_of_school'], [/college|university/i, 'in_college'], [/^working/i, 'working'], [/self/i, 'self_employed'], [/looking/i, 'looking_for_work']];
-const YOUTH_STATUS: [RegExp, string][] = [[/^employed/i, 'employed'], [/casual|piece/i, 'casual_work'], [/own business/i, 'own_business'], [/intern|apprentice/i, 'internship'], [/studying/i, 'studying'], [/looking/i, 'looking_for_work'], [/nothing/i, 'none']];
-const OFFICER_VIEW: [RegExp, string][] = [[/on track/i, 'on_track'], [/needs/i, 'needs_support'], [/disengaged/i, 'disengaged']];
+const PATH: [RegExp, string][] = [[/job/i, 'employment'], [/both/i, 'both'], [/business/i, 'own_business'], [/study/i, 'study'], [/sure/i, 'not_sure']];
+const EDU_STATUS: [RegExp, string][] = [[/^in school/i, 'in_school'], [/^out of school/i, 'out_of_school'], [/small business/i, 'self_employed'], [/casual|job/i, 'working']];
+const YOUTH_STATUS: [RegExp, string][] = [[/^employed/i, 'employed'], [/^self/i, 'own_business'], [/casual|piece/i, 'casual_work'], [/studying/i, 'studying'], [/looking/i, 'looking_for_work']];
+const OFFICER_VIEW: [RegExp, string][] = [[/on track/i, 'on_track'], [/stuck|needs/i, 'needs_support'], [/lost|disengaged/i, 'disengaged']];
 
 /**
  * Receives one submitted Day 0 baseline, learning check, end-of-training feedback or youth follow-up from the Elimu+ Forms script.
@@ -61,48 +60,34 @@ export async function POST(req: Request) {
     if (key === 'baseline') return saveBaseline(q, en, option!.value as 'adult' | 'youth', A, A, rid, officerId, officerText);
     if (key === 'learning') return saveLearning(q, en, fields, A, rid);
     if (key === 'exit') return saveExit(q, en, A, rid, participant);
-    return saveYouthVisit(q, en, cohort?.id ?? en.cohort_id, Number(option!.value), A, rid, participant, pphone, officerId, officerText, b.routed_email);
+    return saveYouthVisit(q, en, cohort?.id ?? en.cohort_id, Number(option!.value), fields, A, rid, participant, pphone, officerId, officerText, b.routed_email);
   });
   if (!(out as any).duplicate && (out as any).ok) await notify();
   return NextResponse.json(out);
 }
 
 async function saveBaseline(q: Q, en: any, kind: 'adult' | 'youth', A: Record<string, any>, raw: Record<string, any>, rid: string, officerId: string | null, officerText: string | null) {
-  const born = asNum(A.birth_year);
-  await q(
-    `update people set gender = coalesce($2, gender), birth_year = coalesce($3, birth_year), education_level = coalesce($4, education_level),
-       has_disability = coalesce($5, has_disability) where id = $1`,
-    [en.person_id, GENDER(A.gender), born && born > 1900 && born <= new Date().getFullYear() ? born : null, pick(A.education, EDU_CODE),
-     /^yes/i.test(String(A.disability ?? '')) ? true : /^no$/i.test(String(A.disability ?? '').trim()) ? false : null]);
-
-  const stage = pick(A.business_stage, BUSINESS_STAGE);
-  await q(
-    `update enrolments set partner_ref = coalesce($2, partner_ref), guardian_name = coalesce($3, guardian_name), guardian_phone = coalesce($4, guardian_phone),
-       guardian_consent = coalesce($5, guardian_consent), story_consent = coalesce($6, story_consent), photo_consent = coalesce($7, photo_consent),
-       consented_on = coalesce(consented_on, current_date),
-       has_business_at_entry = case when $8::text is null then has_business_at_entry else $8 = 'running' end,
-       track = case when $8::text is null then track when $8 = 'running' then 'standard' else 'starter' end
-     where id = $1`,
-    [en.id, clean(A.partner_ref, 60) || null, clean(A.guardian_name, 120) || null, normPhone(String(A.guardian_phone ?? '')) || null,
-     yesNo(A.guardian_consent), STORY(A.story_consent), yesNo(A.photo_consent), kind === 'adult' ? stage : null]);
-
-  const skills: Record<string, number> = {};
-  for (const k of ['communication', 'teamwork', 'money', 'customer', 'problem']) { const n = asNum(A[`skill_${k}`]); if (n) skills[k] = n; }
+  // Who they are (name, phone, age, gender, guardian) comes from the roster, so this form only records where the person starts.
+  // A business not started yet is an idea; one that has stopped trading is starting again; anything else is running.
+  const stage = kind !== 'adult' ? null : /^not started/i.test(String(A.business_stage ?? '')) ? 'idea' : String(A.business_stage ?? '') ? (String(A.a1_operating ?? '') === 'No' ? 'starting' : 'running') : null;
+  if (stage) {
+    await q(
+      `update enrolments set has_business_at_entry = ($2 = 'running'), track = case when $2 = 'running' then 'standard' else 'starter' end where id = $1`,
+      [en.id, stage]);
+  }
+  const conf = asNum(A.confidence);
   const row = insertParts({
     enrolment_id: en.id, kind, officer_id: officerId, officer_text: officerText,
-    business_stage: kind === 'adult' ? stage : null, business_type: clean(A.business_type, 160) || null,
-    days_open: asNum(A.a1_days_open), customers_good_day: asNum(A.a2_good_day), customers_slow_day: asNum(A.a2_slow_day),
-    weekly_sales_range: clean(A.a4_sales_range, 40) || null, weekly_profit_kes: asNum(A.a4_profit), restock_range: clean(A.a4_restock_range, 40) || null,
+    business_stage: stage, business_type: clean(A.business_type, 160) || null,
+    // The profit band (adults) or the 30-day earnings band (youth) is kept in the same column the follow-ups use, so Day 0 and later visits compare directly.
+    weekly_sales_range: clean(kind === 'adult' ? A.a4_profit_band : A.earning_range, 40) || null,
+    weekly_profit_kes: kind === 'adult' ? profitKes(A.a4_profit, A.a4_profit_band) : null,
     stock_level: code(A.a3_stock_level), stock_value_kes: asNum(A.a3_stock_value),
-    keeps_records: code(A.a5_records), separates_money: code(A.a5_separate), pays_self: code(A.a5_pays_self),
-    set_aside: A.a4_set_aside === 'Yes' ? true : A.a4_set_aside === 'Not enough' ? false : null, in_savings_group: yesNo(A.savings_group),
-    household_size: asNum(A.household_size), dependants: asNum(A.dependants), children_in_school: asNum(A.children_in_school),
-    meal_skipped: code(A.a6_meal), income_sources: list(A.income_sources),
-    support_promised: longText(A.support_promised), support_promised_kes: asNum(A.support_promised_kes),
-    education_status: kind === 'youth' ? pick(A.education_status, EDU_STATUS) : null, school_class: clean(A.school_class, 80) || null,
-    has_cv: yesNo(A.has_cv), prior_work: longText(A.prior_work, 600), hoped_path: pick(A.hoped_path, PATH), digital_access: list(A.digital_access),
-    skills_self: JSON.stringify(skills), confidence: asNum(A.confidence) && asNum(A.confidence)! >= 1 && asNum(A.confidence)! <= 5 ? asNum(A.confidence) : null,
-    main_challenge: longText(A.a7_words, 600), challenge_category: code(A.a7_category), hope_words: longText(A.hope_words, 600),
+    keeps_records: code(A.a5_records), separates_money: SEPARATES(A.a5_separate), pays_self: PAYS_SELF(A.a5_pays_self),
+    education_status: kind === 'youth' ? pick(A.education_status, EDU_STATUS) : null,
+    has_cv: yesNo(A.has_cv), prior_work: clean(A.prior_work, 100) || null, hoped_path: pick(A.hoped_path, PATH),
+    confidence: conf && conf >= 1 && conf <= 5 ? conf : null,
+    challenge_category: code(A.a7_category),
     answers: JSON.stringify(raw), response_id: rid || null,
   });
   await q(
@@ -143,24 +128,34 @@ async function saveExit(q: Q, en: any, A: Record<string, any>, rid: string, name
   return { ok: true, concern };
 }
 
-async function saveYouthVisit(q: Q, en: any, cohortId: string, stage: number, A: Record<string, any>, rid: string, name: string, phone: string,
+async function saveYouthVisit(q: Q, en: any, cohortId: string, stage: number, fields: Field[], A: Record<string, any>, rid: string, name: string, phone: string,
   officerId: string | null, officerText: string | null, routedEmail: unknown) {
   const email = String(routedEmail ?? '').trim().toLowerCase();
   const routed = email ? (await q('select id from people where lower(email) = $1 limit 1', [email]))[0]?.id ?? null : null;
-  const safety = String(A.safety_concern ?? '');
+  const opts = (key: string) => (fields.find((f) => f.key === key) as any)?.options ?? [];
+  const since = ticked(A.since_training, opts('since_training'));
+  const has = (re: RegExp) => since.some((x) => re.test(x));
+  // Challenges are listed most serious first and Google returns ticks in that order, so the first tick is the one counted in the charts.
+  const challenges = ticked(A.challenges, opts('challenges')).filter((x) => !/^none/i.test(x));
+  const risks = ticked(A.risks, opts('risks'));
+  const safety = risks.some((x) => /safety|welfare/i.test(x));
+  const band = clean(A.earning_range, 40) || null;
+  const nextStep = [A.next_step, A.next_who ? `(${A.next_who})` : '', A.next_date ? `by ${A.next_date}` : ''].filter(Boolean).join(' ');
   const row = insertParts({
     stage, cohort_id: cohortId, enrolment_id: en.id, officer_id: officerId, officer_text: officerText, participant_name: name, participant_phone: phone || null,
     visited_on: isoDate(A.visited_on) ?? new Date().toISOString().slice(0, 10),
-    status: pick(A.status, YOUTH_STATUS), earning_range: clean(A.earning_range, 40) || null, first_income: yesNo(A.first_income), cv_ready: yesNo(A.cv_ready),
-    applications: asNum(A.applications), interviews: asNum(A.interviews), venture_started: yesNo(A.venture_started), venture_operating: yesNo(A.venture_operating),
-    team_project_done: yesNo(A.team_project_done), skills_used: list(A.skills_used), challenge_category: code(A.challenge_category),
-    challenge_words: longText(A.challenge_words, 1000), support_needed: list(A.support_needed),
-    safety_concern: /^yes/i.test(safety), officer_view: pick(A.officer_view, OFFICER_VIEW), urgent: yesNo(A.urgent) === true || /urgent/i.test(safety),
-    next_step: longText(A.next_step ?? A.b_next, 400), story_consent: STORY(A.story_consent),
+    status: pick(A.status, YOUTH_STATUS), earning_range: band, first_income: band ? !/^nothing/i.test(band) : null,
+    cv_ready: has(/CV/i) || /^yes/i.test(String(A.cv_status ?? '')) ? true : A.cv_status ? false : null,
+    // Ticks count people, so one tick is one applicant, one interview and so on.
+    applications: has(/^Applied/i) ? 1 : 0, interviews: has(/interview/i) ? 1 : 0, venture_started: has(/^Started/i),
+    skills_used: [], challenge_category: code(challenges[0]), challenge_words: challenges.join(', ') || null,
+    support_needed: list(A.support_needed).length ? ticked(A.support_needed, opts('support_needed')) : [],
+    safety_concern: safety, officer_view: pick(A.officer_view, OFFICER_VIEW), urgent: safety,
+    next_step: longText(nextStep, 400),
     answers: JSON.stringify(A), response_id: rid || null, routed_to: routed,
   });
   const saved = (await q(`insert into youth_followups(${row.cols}) values (${row.marks}) returning id`, row.values))[0];
   const sched = (await q('select id from followup_schedule where enrolment_id = $1 and visit = $2', [en.id, stage]))[0]?.id;
   if (sched) await q("update followup_schedule set status = 'done', attempts = attempts + 1 where id = $1 and status <> 'done'", [sched]);
-  return { ok: true, id: saved.id, stage, updatedSchedule: !!sched };
+  return { ok: true, id: saved.id, stage, urgent: safety, updatedSchedule: !!sched };
 }

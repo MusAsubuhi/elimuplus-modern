@@ -4,14 +4,15 @@ import { validSecret } from '@/lib/forms-auth';
 import { normPhone } from '@/lib/accounts';
 import { notify } from '@/lib/mail';
 import tpl from '@/lib/followup-template.json';
-import { STORY, code, list, longText, yesNo } from '@/lib/forms-map';
+import { INCOME_VS, PAYS_SELF, SEPARATES, code, longText, profitKes, ticked, yesNo } from '@/lib/forms-map';
 
 export const dynamic = 'force-dynamic';
 
-type F = { key: string; label: string };
+type F = { key: string; label: string; options?: string[] };
 const asNum = (v: unknown) => { const n = Number(String(v ?? '').replace(/[^\d.]/g, '')); return Number.isFinite(n) && String(v ?? '').trim() !== '' ? Math.round(n) : null; };
 const STATUS: Record<string, string> = { Growing: 'growing', Stable: 'stable', Struggling: 'struggling', Closed: 'closed' };
-const INCOME: Record<string, string> = { Higher: 'higher', 'About the same': 'same', Lower: 'lower' };
+const INCOME_SHORT: Record<string, string> = { higher: 'higher', about_the_same: 'same', lower: 'lower' };
+const SUPPORT_USED: Record<string, string> = { Fully: 'yes', Partly: 'partly', 'Not yet': 'no' };
 
 /**
  * Receives one submitted Day 30/60/90 follow-up from the Elimu+ Forms script.
@@ -57,25 +58,28 @@ export async function POST(req: Request) {
         [pphone, '+254' + pphone.slice(1), cohort]);
       enrolment = rows[0]?.id ?? null;
     }
-    const status = STATUS[String(answers.c_status ?? '')] ?? null;
-    const operating = answers.a1_operating ? answers.a1_operating !== 'Closed' : null;
     const A = answers;
+    const opts = (key: string) => fields.find((f) => f.key === key)?.options ?? [];
+    // Challenges are listed most serious first and Google returns ticks in that order, so the first tick is the one counted in the charts.
+    const challenges = ticked(A.a7_challenges, opts('a7_challenges')).filter((x) => !/^none/i.test(x));
+    const risks = ticked(A.a7_risk, opts('a7_risk'));
+    const safety = risks.includes('Personal safety concern');
+    const status = STATUS[String(A.c_status ?? '')] ?? null;
+    const operating = A.a1_operating ? A.a1_operating !== 'No' : null;
+    const incomeVs = INCOME_VS(A.a4_compare);
+    const nextStep = [A.c_next, A.c_next_who ? `(${A.c_next_who})` : '', A.c_next_date ? `by ${A.c_next_date}` : ''].filter(Boolean).join(' ');
     const typed = {
-      sold_14_days: yesNo(A.a1_sold14), days_open: asNum(A.a1_days_open), good_day_customers: asNum(A.a2_good_day), slow_day_customers: asNum(A.a2_slow_day),
-      restock_range: A.a4_restock_range ?? null, exact_sales_kes: asNum(A.a4_exact_sales), weekly_profit_kes: asNum(A.a4_profit),
-      income_vs: code(A.a4_compare), keeps_records: code(A.a5_records), separates_money: code(A.a5_separate ?? A.habit_separate),
-      pays_self: code(A.a5_pays_self ?? A.habit_pays), set_aside: A.a4_set_aside === 'Yes' ? true : A.a4_set_aside === 'Not enough' ? false : null,
-      saves_weekly: code(A.habit_saves), home_use: code(A.a5_home_use), meal_skipped: code(A.a6_meal), knows_breakeven: code(A.a4_knows_breakeven),
-      tracks_key_number: yesNo(A.a5_key_number), used_calc: yesNo(A.a5_used_calc), confidence: asNum(A.a7_confidence),
-      referral_needed: yesNo(A.a6_referral), challenge_category: code(A.a7_category), challenge_words: longText(A.a7_words, 1000),
-      support_used: code(A.b4_used), can_continue: code(A.b1_continue), household_changes: list(A.b3_household),
-      in_savings_group: yesNo(A.b4_savings_group), recommend: yesNo(A.b5_recommend), story_consent: STORY(A.b6_story), next_step: longText(A.b6_next, 300),
+      sold_14_days: operating, weekly_profit_kes: profitKes(A.a4_profit, A.a4_profit_band), income_vs: incomeVs,
+      keeps_records: code(A.a5_records), separates_money: SEPARATES(A.a5_separate), pays_self: PAYS_SELF(A.a5_pays_self),
+      used_calc: yesNo(A.a5_used_calc), confidence: asNum(A.a7_confidence),
+      challenge_category: code(challenges[0]), challenge_words: challenges.join(', ') || null,
+      support_used: SUPPORT_USED[String(A.b1_received ?? '')] ?? null, next_step: longText(nextStep, 300),
     };
     const base = {
       stage, cohort_id: cohort, enrolment_id: enrolment, officer_id: officer, officer_text: officer ? null : (officerText || 'Unknown Google Form respondent'),
       participant_name: participant, participant_phone: pphone || null, visited_on: visited ?? new Date().toISOString().slice(0, 10),
-      business_status: status, urgent: answers.c_urgent === 'Yes', operating, sales_range: answers.a4_sales_range ?? null, stock_value_kes: asNum(answers.a3_stock_value),
-      answers: JSON.stringify({ ...answers, ...(rid ? { _response_id: rid } : {}) }), response_id: rid || null, routed_to: routed,
+      business_status: status, urgent: safety, operating, sales_range: A.a4_profit_band ?? null, stock_value_kes: asNum(A.a3_stock_value),
+      answers: JSON.stringify({ ...answers, a7_words: challenges.join(', '), ...(rid ? { _response_id: rid } : {}) }), response_id: rid || null, routed_to: routed,
       ...typed,
     };
     const cols = Object.keys(base);
@@ -96,15 +100,14 @@ export async function POST(req: Request) {
              sold_within_14_days = excluded.sold_within_14_days, income_direction = excluded.income_direction, weekly_sales_range = excluded.weekly_sales_range,
              stock_cash_value_kes = excluded.stock_cash_value_kes, knows_breakeven = excluded.knows_breakeven, tracks_key_metric = excluded.tracks_key_metric,
              used_calc_for_decision = excluded.used_calc_for_decision, confidence = excluded.confidence, challenges = excluded.challenges, notes = excluded.notes`,
-          [sched, visited, operating, typed.sold_14_days, INCOME[String(answers.a4_compare ?? '')] ?? null, answers.a4_sales_range ?? null, asNum(answers.a3_stock_value),
-           answers.a4_knows_breakeven ? answers.a4_knows_breakeven === 'Yes' : null, typed.tracks_key_number, typed.used_calc,
-           typed.confidence && typed.confidence >= 1 && typed.confidence <= 5 ? typed.confidence : null,
-           answers.a7_category ? [String(answers.a7_category)] : [], String(answers.a7_words ?? '').slice(0, 2000) || null, officer]);
+          [sched, visited, operating, operating, INCOME_SHORT[String(incomeVs)] ?? null, A.a4_profit_band ?? null, asNum(A.a3_stock_value),
+           null, null, typed.used_calc, typed.confidence && typed.confidence >= 1 && typed.confidence <= 5 ? typed.confidence : null,
+           challenges.map((c) => code(c)).filter(Boolean), String(A.c_impact ?? '').slice(0, 2000) || null, officer]);
         await q("update followup_schedule set status = 'done', attempts = attempts + 1 where id = $1 and status <> 'done'", [sched]);
         linked = true;
       }
     }
-    return { id: row.id, matchedParticipant: !!enrolment, matchedCohort: !!cohort, updatedStandardRecord: linked };
+    return { id: row.id, urgent: safety, matchedParticipant: !!enrolment, matchedCohort: !!cohort, updatedStandardRecord: linked };
   });
   if (!(out as any).duplicate) await notify();
   return NextResponse.json({ ok: true, ...out });

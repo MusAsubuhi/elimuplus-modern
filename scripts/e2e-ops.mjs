@@ -24,17 +24,17 @@ check('trainee sees the Trainee report', /Trainee Facilitator report/.test(tx) &
 check('trainee does not see a money question', !/Money spent today/.test(tx));
 await t.selectOption('select[name=cohort]', { index: 1 });
 await t.fill('input[name=day_number]', '3'); await t.fill('input[name=headcount]', '27');
-await t.check('input[name=started_on_time][value="Yes"]'); await t.check('input[name=room_ok][value="Mostly"]');
+await t.check('input[name=venue_ok][value="All fine"]');
 await t.check('input[name=engagement][value="4"]', { force: true });
-await t.fill('textarea[name=best_moment]', 'The group wall gallery'); await t.fill('textarea[name=surprised_me]', 'Three girls arrived late because of a long walk');
+await t.fill('textarea[name=surprised_me]', 'Three girls arrived late because of a long walk');
 await t.check('input[name=concern][value="Keep an eye on it"]');
 await submit(t, 'button:has-text("Send report")');
 check('trainee is asked to explain the concern', /Please say what happened/.test(await text(t)));
 await t.selectOption('select[name=cohort]', { index: 1 });
 await t.fill('input[name=day_number]', '3'); await t.fill('input[name=headcount]', '27');
-await t.check('input[name=started_on_time][value="Yes"]'); await t.check('input[name=room_ok][value="Mostly"]');
+await t.check('input[name=venue_ok][value="All fine"]');
 await t.check('input[name=engagement][value="4"]', { force: true });
-await t.fill('textarea[name=best_moment]', 'The group wall gallery'); await t.fill('textarea[name=surprised_me]', 'Three girls arrived late because of a long walk');
+await t.fill('textarea[name=surprised_me]', 'Three girls arrived late because of a long walk');
 await t.check('input[name=concern][value="Keep an eye on it"]');
 await t.fill('textarea[name=concern_note]', 'Girls walk 5 km in the dark');
 await submit(t, 'button:has-text("Send report")');
@@ -54,7 +54,7 @@ const c2 = await as(P(202));
 tx = await go(c2, '/portal/reports?show=queue');
 check('an unrelated certified facilitator does not see the trainee report', !/Girls walk 5 km/.test(tx));
 tx = await go(c2, '/portal/reports');
-check('certified facilitator sees the full report', /Certified Facilitator report/.test(tx) && /Money spent today/.test(tx));
+check('certified facilitator sees the full report, with no money question', /Certified Facilitator report/.test(tx) && /learned today/.test(tx) && !/Money spent today/.test(tx));
 
 // ---- founder alerts
 const f = await as(P(101));
@@ -149,7 +149,7 @@ const post = (body, secret = SECRET) => fetch(base + '/api/forms/report', { meth
 let r = await post({ level: 0, answers: {} }, 'wrong');
 check('webhook refuses a wrong secret', r.status === 401);
 const body = { level: 0, response_id: 'resp-1', respondent_name: 'Wanjiku Mutua', respondent_phone: '0700 000 205', cohort: 'Bandari Cohort A (demo) [00000000]', routed_email: '', phase: 'training',
-  answers: { 'Which training day was this?': '2', 'How many participants were in the room?': '30', 'What surprised you today, good or bad? Anything we may not have expected.': 'Parents came to watch', 'Is there anything we should look at?': 'Urgent, someone should call me', 'If so, what happened?': 'A participant fainted' } };
+  answers: { 'Training day number': '2', 'Participants present': '30', 'What surprised you today, good or bad?': 'Parents came to watch', 'Overall concern': 'Urgent, someone should call me', 'If there is a concern, what happened? If you need help tomorrow, say what.': 'A participant fainted' } };
 r = await post(body); const j = await r.json();
 check('webhook accepts a Google Form response', r.status === 200 && j.ok, JSON.stringify(j));
 r = await post(body); const j2 = await r.json();

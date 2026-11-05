@@ -11,8 +11,8 @@ const mkItem = (type) => { const it = { type }; p = chain(it); return p; };
 const FormApp = {
   ItemType: { LIST: 'LIST' }, PageNavigationType: { SUBMIT: 'SUBMIT', CONTINUE: 'CONTINUE' }, DestinationType: { SPREADSHEET: 'S' },
   create(title) { const id = 'form' + ++n; const items = []; const f = { id, title, items,
-    getId: () => id, getPublishedUrl: () => 'https://forms/' + id, getEditUrl: () => 'https://edit/' + id,
-    setDescription() { return f; }, setCollectEmail() { return f; }, setProgressBar() { return f; }, setAllowResponseEdits() { return f; }, setShowLinkToRespondAgain() { return f; }, setConfirmationMessage() { return f; },
+    setTitle(t) { f.title = t; return f; }, getId: () => id, getPublishedUrl: () => 'https://forms/' + id, getEditUrl: () => 'https://edit/' + id,
+    setDescription(d) { f.description = d; return f; }, getDescription: () => f.description || '', setAcceptingResponses(v) { f.accepting = v; return f; }, setCollectEmail() { return f; }, setProgressBar() { return f; }, setAllowResponseEdits() { return f; }, setShowLinkToRespondAgain() { return f; }, setConfirmationMessage() { return f; },
     setDestination() {}, getDestinationId: () => 'sheet' + id, getTitle: () => f.title, getResponses: () => [{ getTimestamp: () => new Date('2026-10-18T09:00:00Z') }], getItems: () => items.filter((i) => i.type === 'LIST').map((i) => ({ asListItem: () => i })),
   };
   for (const [m, t] of [['addListItem', 'LIST'], ['addTextItem', 'TEXT'], ['addParagraphTextItem', 'PARA'], ['addMultipleChoiceItem', 'CHOICE'], ['addScaleItem', 'SCALE'], ['addCheckboxItem', 'CHECKBOX'], ['addDateItem', 'DATE'], ['addPageBreakItem', 'PAGE']]) f[m] = () => { const it = { type: t, getTitle: () => it.title, setChoiceValues(v) { it.choices = v; return it; }, setTitle(x) { it.title = x; return it; }, setRequired(x) { it.required = x; return it; }, setHelpText() { return it; }, setValidation() { return it; }, setBounds() { return it; }, setLabels() { return it; }, setGoToPage() { return it; }, setChoices(c) { it.choices = c; return it; }, createChoice(l) { return l; }, setPoints() { return it; }, setRequired2() { return it; } }; items.push(it); return it; };
@@ -42,6 +42,7 @@ check('four forms are created, one per level', made.length === 4, made.length);
 check('each form starts with a routing dropdown', made.every((f) => f.items[0].title === 'Send this report to'));
 check('the cohort dropdown is filled from the portal', made[0].items.find((i) => i.title === 'Which cohort is this about').choices.length > 1);
 check('the trainee form has the surprise question, the master form has scores', made[0].items.some((i) => /surprised you/.test(i.title)) && made[3].items.some((i) => /Preparation/.test(i.title)));
+check('every form starts with the same Elimu+ header', made.every((f) => /^ELIMU\+  \|  Start\. Start small\. Start to finish\./.test(f.description)), made.map((f) => f.description).join(' / ').slice(0, 200));
 check('a submit trigger is installed for every form', triggers.filter((t) => t === 'onFormSubmit').length === 4);
 
 // a trainee submits
@@ -51,12 +52,12 @@ const ir = (title, resp) => ({ getItem: () => ({ getTitle: () => title }), getRe
 ctx.__e = { source: forms[ids['0']], response: { getId: () => 'gform-resp-77', getItemResponses: () => [
   ir('Send this report to', lists.leaders[0]?.label ?? 'x'), ir('Your full name', 'Wanjiku Mutua'), ir('Your phone number (the one you sign in to Elimu+ with)', '0700 000 205'),
   ir('Which cohort is this about', cohort), ir('This report is about', 'The training'),
-  ir('Which training day was this?', '4'), ir('How many participants were in the room?', '31'),
-  ir('What surprised you today, good or bad? Anything we may not have expected.', 'A parent offered the hall for free'),
-  ir('Is there anything we should look at?', 'Keep an eye on it'), ir('If so, what happened?', 'Power went off twice'),
+  ir('Training day number', '4'), ir('Participants present', '31'),
+  ir('What surprised you today, good or bad?', 'A parent offered the hall for free'),
+  ir('Overall concern', 'Keep an eye on it'), ir('If there is a concern, what happened? If you need help tomorrow, say what.', 'Power went off twice'),
 ] } };
 vm.runInContext('onFormSubmit(__e)', ctx);
-check('the script posts a payload with level, respondent and answers', lastPayload && lastPayload.level === 0 && lastPayload.respondent_name === 'Wanjiku Mutua' && lastPayload.answers['Which training day was this?'] === '4', JSON.stringify(lastPayload));
+check('the script posts a payload with level, respondent and answers', lastPayload && lastPayload.level === 0 && lastPayload.respondent_name === 'Wanjiku Mutua' && lastPayload.answers['Training day number'] === '4', JSON.stringify(lastPayload));
 check('the chosen leader is emailed the report', lists.leaders.length === 0 || (mails.length === 1 && /Wanjiku/.test(mails[0].subject)), JSON.stringify(mails));
 
 const reportPayload = lastPayload;
@@ -87,4 +88,13 @@ const rl = await (await fetch(base + '/api/forms/links', { method: 'POST', heade
 check('the portal saves them', rl.ok && rl.saved === lastPayload.forms.length, JSON.stringify(rl));
 const rb = await fetch(base + '/api/forms/links', { method: 'POST', headers: { 'content-type': 'application/json', 'x-forms-secret': 'wrong' }, body: '{}' });
 check('a wrong secret is refused', rb.status === 401, rb.status);
+// ---- the simplified forms: old ones are closed and renamed OLD, new ones are built with the header
+const olds = Object.values(forms).filter((f) => ['baseline', 'exit', 'youth_followup'].some((k) => f.id === ids2[k]));
+vm.runInContext('createFollowUpForm()', ctx);
+const fuForm = forms[JSON.parse(store.FORM_IDS).followup];
+check('the follow-up form has the header and short pages', /^ELIMU\+/.test(fuForm.description) && fuForm.items.filter((i) => i.type === 'PAGE').length === 3 * 3 + 0 || fuForm.items.filter((i) => i.type === 'PAGE').length >= 8, fuForm.items.filter((i) => i.type === 'PAGE').length);
+vm.runInContext('createSimplifiedForms()', ctx);
+const ids3 = JSON.parse(store.FORM_IDS);
+check('the simplified run closes the old forms and renames them OLD', olds.every((f) => /^OLD /.test(f.title) && f.accepting === false), olds.map((f) => f.title).join(', '));
+check('and builds fresh ones under the same keys', ['0', '1', '2', '3', 'followup', 'baseline', 'exit', 'youth_followup'].every((k) => ids3[k] && !olds.some((f) => f.id === ids3[k])), JSON.stringify(ids3));
 console.log(bad ? `\n${bad} FAILED` : '\nall ok'); process.exit(bad ? 1 : 0);

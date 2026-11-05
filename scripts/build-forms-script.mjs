@@ -39,6 +39,42 @@ const P_NAME_Q = 'Participant name';
 const P_PHONE_Q = 'Participant phone number';
 const STAGE_Q = 'Which follow-up visit is this?';
 
+/* ---------- one header for every Elimu+ form ---------- */
+const HEADER_LINES = 'ELIMU+  |  Start. Start small. Start to finish.\\nPractical employability and entrepreneurship training  ·  Likoni, Mombasa  ·  elimuplus.com';
+const HEADER_IMAGE_URL = PORTAL_URL + '/api/forms/header';
+function withHeader_(text) { return HEADER_LINES + '\\n\\n' + String(text || ''); }
+/** Puts the Elimu+ banner at the top of a form (the Forms service cannot set the theme banner, so it is added as the first item). Safe to run twice. */
+function addHeaderImage_(form) {
+  try {
+    const first = form.getItems()[0];
+    if (first && first.getType() === FormApp.ItemType.IMAGE) return;
+    const blob = UrlFetchApp.fetch(HEADER_IMAGE_URL).getBlob();
+    const item = form.addImageItem().setImage(blob).setAlignment(FormApp.Alignment.CENTER).setWidth(640);
+    try { item.setAltText('Elimu+  Start. Start small. Start to finish.'); } catch (x) {}
+    if (form.getItems().length > 1) form.moveItem(form.getItems().length - 1, 0);
+  } catch (err) { Logger.log('Header image skipped: ' + err); }
+}
+function applyHeader_(form, description) {
+  form.setDescription(withHeader_(description));
+  addHeaderImage_(form);
+}
+/** Run once: puts the same header on every form that already exists (registration, learning check, attendance, observer forms and the rest). */
+function applyHeaderToAllForms() {
+  const ids = J_('FORM_IDS', {});
+  var n = 0;
+  Object.keys(ids).forEach(function (key) {
+    try {
+      const form = FormApp.openById(ids[key]);
+      if (/^OLD /.test(form.getTitle())) return;
+      const d = form.getDescription() || '';
+      if (d.indexOf('ELIMU+  |') !== 0) form.setDescription(withHeader_(d));
+      addHeaderImage_(form);
+      n++;
+    } catch (err) { Logger.log('Could not update ' + key + ': ' + err); }
+  });
+  Logger.log('Header applied to ' + n + ' forms.');
+}
+
 function createAllForms() {
   const props = PropertiesService.getScriptProperties();
   const ids = JSON.parse(props.getProperty('FORM_IDS') || '{}');
@@ -48,7 +84,7 @@ function createAllForms() {
     if (ids[level]) { links.push(TEMPLATES[level].short + ': already created ' + FormApp.openById(ids[level]).getPublishedUrl()); return; }
     const t = TEMPLATES[level];
     const form = FormApp.create('Elimu+ Day Report: ' + t.name);
-    form.setDescription(t.depth + '\\n\\nGoes to: ' + t.goes_to + '\\nTake five minutes. Say what you actually saw.');
+    applyHeader_(form, t.depth + '\\n\\nGoes to: ' + t.goes_to);
     form.setCollectEmail(false).setProgressBar(true).setAllowResponseEdits(false).setShowLinkToRespondAgain(true);
     form.setConfirmationMessage('Thank you. Your report has been sent.');
 
@@ -177,7 +213,7 @@ function createFollowUpForm() {
   if (ids.followup) { Logger.log('Follow-up form already created: ' + FormApp.openById(ids.followup).getPublishedUrl()); return; }
   const lists = fetchLists_();
   const form = FormApp.create('Elimu+ Follow-up Visit: Day 30, 60 and 90');
-  form.setDescription('Complete this at the business. Part A is the same at every visit so progress can be compared; Part B changes by stage; Part C closes the visit. Start with her story and her stock, and ask about money last.\\n\\nTell her that her answers will not reduce her support and may increase it.');
+  applyHeader_(form, 'Complete this in person, at the business. About ten minutes. Work out the money together and count the stock with her. The same questions are asked at Day 30, 60 and 90 so progress can be compared.\\n\\nTell her that her answers will not reduce her support and may increase it.');
   form.setCollectEmail(false).setProgressBar(true).setAllowResponseEdits(false).setShowLinkToRespondAgain(true);
   form.setConfirmationMessage('Thank you. The visit has been recorded.');
 
@@ -194,9 +230,10 @@ function createFollowUpForm() {
   ['30', '60', '90'].forEach(function (k) {
     const st = FOLLOWUP.stages[k];
     var last;
-    [['A', 'Part A: every visit', st.a, 'Same questions at 30, 60 and 90 days, so progress can be compared.'],
-     ['B', 'Part B: ' + st.name + ' only, ' + st.title, st.b, st.question],
-     ['C', 'Part C: close the visit', st.c, '']].forEach(function (sec) {
+    [['A', 'The business', st.a.slice(0, 9), 'Work out the money together. A range is fine for profit; stock and business value are counted with her.'],
+     ['A2', 'What the officer sees, and the Elimu+ ticks', st.a.slice(9), 'Tick everything that applies.'],
+     ['B', 'Support from the programme', st.b, st.question],
+     ['C', 'Support and result', st.c, 'Completed by the officer after the visit.']].filter(function (sec) { return sec[2].length; }).forEach(function (sec) {
       const pb = form.addPageBreakItem().setTitle(st.name + ' follow-up. ' + sec[1]);
       if (sec[3]) pb.setHelpText(sec[3]);
       if (sec[0] === 'A') firstPage[k] = pb;
@@ -243,12 +280,12 @@ function onFollowUpSubmit_(e) {
   if (leader && leader.email) {
     const st = FOLLOWUP.stages[String(stage)];
     const label = function (key) { const f = st.a.concat(st.b, st.c).filter(function (x) { return x.key === key; })[0]; return f ? answers[f.label] : ''; };
-    const urgent = label('c_urgent') === 'Yes';
+    const urgent = String(label('a7_risk') || '').indexOf('Personal safety concern') >= 0;
     MailApp.sendEmail({
       to: leader.email,
       subject: (urgent ? 'URGENT: ' : '') + 'Elimu+ Day ' + stage + ' follow-up: ' + pname + (label('c_status') ? ' (' + label('c_status') + ')' : ''),
       body: [officer + ' (' + ophone + ') visited ' + pname + ' for the Day ' + stage + ' follow-up.', 'Cohort: ' + cohort,
-        'Business is: ' + (label('c_status') || 'not stated'), 'Biggest challenge: ' + (label('a7_words') || 'not stated'), 'Support to give: ' + (label('c_support') || 'not stated'), '',
+        'Business is: ' + (label('c_status') || 'not stated'), 'Challenges: ' + (label('a7_challenges') || 'not stated'), 'Risk signs: ' + (label('a7_risk') || 'not stated'), 'Support needed: ' + (label('b4_support') || 'not stated'), 'Next action: ' + (label('c_next') || 'not stated') + (label('c_next_who') ? ' (' + label('c_next_who') + ')' : ''), '',
         'Everything she and the officer answered is in the portal under the cohort: ' + PORTAL_URL + '/portal/cohorts'].join('\\n')
     });
   }
@@ -263,7 +300,7 @@ function createInstrumentForm_(key) {
   if (ids[key]) { Logger.log(inst.title + ' already created: ' + FormApp.openById(ids[key]).getPublishedUrl()); return ''; }
   const lists = fetchLists_();
   const form = FormApp.create(inst.title);
-  form.setDescription(inst.description);
+  applyHeader_(form, inst.description);
   form.setCollectEmail(false).setProgressBar(true).setAllowResponseEdits(false).setShowLinkToRespondAgain(true);
   form.setConfirmationMessage('Thank you. Your answers have been recorded.');
   if (!inst.self) {
@@ -339,6 +376,38 @@ function recreateLearningForm() {
     props.setProperty('FORM_IDS', JSON.stringify(ids));
   }
   createInstrumentForm_('learning');
+}
+
+/** Closes one form: it is renamed OLD, stops taking responses, and its submit trigger is removed. Its past answers stay in the portal. */
+function closeOldForm_(ids, key) {
+  if (!ids[key]) return false;
+  const oldId = ids[key];
+  try {
+    const old = FormApp.openById(oldId);
+    if (!/^OLD /.test(old.getTitle())) old.setTitle('OLD ' + old.getTitle());
+    old.setAcceptingResponses(false);
+  } catch (err) { Logger.log('Could not close ' + key + ': ' + err); }
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getTriggerSourceId && t.getTriggerSourceId() === oldId) ScriptApp.deleteTrigger(t); });
+  delete ids[key];
+  return true;
+}
+
+/**
+ * THE SIMPLIFIED FORMS. Run this once. It closes the old facilitator day reports, adult follow-up, Day 0 baseline, exit feedback and youth follow-up
+ * (renamed OLD, past answers stay in the portal), builds the new short versions with the Elimu+ header, and puts the same header on every other form.
+ * The learning check, registration, attendance and observer forms keep their questions.
+ */
+function createSimplifiedForms() {
+  const props = PropertiesService.getScriptProperties();
+  const ids = JSON.parse(props.getProperty('FORM_IDS') || '{}');
+  ['0', '1', '2', '3', 'followup', 'baseline', 'exit', 'youth_followup'].forEach(function (k) { closeOldForm_(ids, k); });
+  props.setProperty('FORM_IDS', JSON.stringify(ids));
+  createAllForms();
+  createFollowUpForm();
+  createAllInstruments();
+  applyHeaderToAllForms();
+  try { publishFormLinks(); } catch (err) { Logger.log('Could not report form links: ' + err); }
+  Logger.log('Simplified forms are ready. Open the portal Forms page for the links.');
 }
 
 /** One submitted baseline, learning check, exit form or youth visit goes to the portal as: the instrument, the chosen branch, and the answers by question text. */
@@ -440,7 +509,7 @@ function createRegistrationForm() {
   if (ids.register) { Logger.log('Registration form already created: ' + FormApp.openById(ids.register).getPublishedUrl()); return; }
   const lists = fetchLists_();
   const form = FormApp.create('Elimu+ Cohort Registration');
-  form.setDescription('Fill this once for every participant when a cohort starts. It records who is in the room, how to reach them, and the business they run or want to start. After you submit, choose "Submit another response" for the next person.');
+  applyHeader_(form, 'Fill this once for every participant when a cohort starts. It records who is in the room, how to reach them, and the business they run or want to start. After you submit, choose "Submit another response" for the next person.');
   form.setCollectEmail(false).setProgressBar(false).setAllowResponseEdits(false).setShowLinkToRespondAgain(true);
   form.setConfirmationMessage('Registered. Choose "Submit another response" to add the next participant.');
   form.addListItem().setTitle(COHORT_Q).setChoiceValues(cohortLabels_(lists).slice(0, -1).concat([NOT_LISTED])).setRequired(true);
@@ -514,7 +583,7 @@ function sheetFor_(form, title) {
 
 function makeAttendanceForm_(key, label, made) {
   const form = FormApp.create('Elimu+ Attendance: ' + cohortTitle_(label));
-  form.setDescription('Tick everyone who is in the room today. Submit once per session. If someone came who is not on the list, say so on the next page and they will be added to the cohort.');
+  applyHeader_(form, 'Tick everyone who is in the room today. Submit once per session. If someone came who is not on the list, say so on the next page and they will be added to the cohort.');
   form.setCollectEmail(false).setProgressBar(false).setAllowResponseEdits(false).setShowLinkToRespondAgain(false);
   form.setConfirmationMessage('Attendance recorded. Thank you.');
   form.addTextItem().setTitle(NAME_Q).setHelpText('The person taking the register.').setRequired(true);
@@ -533,7 +602,7 @@ function makeAttendanceForm_(key, label, made) {
 
 function makeObserverForm_(key, label, made) {
   const form = FormApp.create('Elimu+ Observer Notes: ' + cohortTitle_(label));
-  form.setDescription('Fill this on your own, straight after the session and before you compare notes with the other observer. Two observers fill the same form separately so that the view is not shaped by one person. Rate what you saw, not what you hoped to see. Leave a participant blank if you did not see enough.');
+  applyHeader_(form, 'Fill this on your own, straight after the session and before you compare notes with the other observer. Two observers fill the same form separately so that the view is not shaped by one person. Rate what you saw, not what you hoped to see. Leave a participant blank if you did not see enough.');
   form.setCollectEmail(false).setProgressBar(true).setAllowResponseEdits(false).setShowLinkToRespondAgain(false);
   form.setConfirmationMessage('Thank you. Your notes have been recorded.');
   form.addTextItem().setTitle(NAME_Q).setHelpText('You, the observer.').setRequired(true);
@@ -621,7 +690,7 @@ function onAttendanceSubmit_(r, key) {
   setJ_('LAST_' + key, { day: day, date: a[DATE_Q] || '', n: present.length, total: total });
   const ids = J_('FORM_IDS', {});
   if (ids['att_' + key]) {
-    FormApp.openById(ids['att_' + key]).setDescription('Tick everyone who is in the room today. Submit once per session. If someone came who is not on the list, say so on the next page and they will be added to the cohort.\\n\\nLast register: Day ' + day + ', ' + present.length + ' of ' + total + ' present.');
+    FormApp.openById(ids['att_' + key]).setDescription(withHeader_('Tick everyone who is in the room today. Submit once per session. If someone came who is not on the list, say so on the next page and they will be added to the cohort.\\n\\nLast register: Day ' + day + ', ' + present.length + ' of ' + total + ' present.'));
   }
   refreshRosterForms_(key);
 }

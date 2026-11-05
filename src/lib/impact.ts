@@ -29,7 +29,7 @@ export function totals(list: { m: Impact }[]) {
     storyConsent: sum((m) => m.story_named) + sum((m) => m.story_anon),
     adult: (st: string) => ({ due: adult(st, 'due'), n: adult(st, 'n'), operating: adult(st, 'operating'), sold14: adult(st, 'sold14'), sold14Known: adult(st, 'sold14_known'),
       higher: adult(st, 'higher'), same: adult(st, 'same'), lower: adult(st, 'lower'), unreachable: adult(st, 'unreachable'), urgent: adult(st, 'urgent'),
-      recordsDaily: adult(st, 'records_daily'), separates: adult(st, 'separates_always'), mealAny: adult(st, 'meal_any'), setAside: adult(st, 'set_aside'),
+      recordsDaily: adult(st, 'records_daily'), separates: adult(st, 'separates_always'), 
       growing: adult(st, 'growing'), stable: adult(st, 'stable'), struggling: adult(st, 'struggling'), closed: adult(st, 'closed') }),
     youth: (st: string) => ({ n: youth(st, 'n'), firstIncome: youth(st, 'first_income'), cvReady: youth(st, 'cv_ready'), interviews: youth(st, 'interviews'), applications: youth(st, 'applications'),
       ventureStarted: youth(st, 'venture_started'), ventureOperating: youth(st, 'venture_operating'), onTrack: youth(st, 'on_track'), needsSupport: youth(st, 'needs_support'), disengaged: youth(st, 'disengaged') }),
