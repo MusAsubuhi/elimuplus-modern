@@ -58,7 +58,7 @@ export function PageHeader({ title, subtitle, image, children }: { title: string
   );
 }
 
-export function Table({ head, rows, empty = 'Nothing here yet.' }: { head: string[]; rows: ReactNode[][]; empty?: string }) {
+export function Table({ head, rows, empty = 'Nothing here yet.', rowAttrs }: { head: string[]; rows: ReactNode[][]; empty?: string; rowAttrs?: (i: number) => Record<string, string> }) {
   if (!rows.length) return <p className="py-4 text-sm text-slate-500">{empty}</p>;
   return (
     <div className="overflow-x-auto">
@@ -66,7 +66,7 @@ export function Table({ head, rows, empty = 'Nothing here yet.' }: { head: strin
         <thead><tr className="border-b border-teal-100 text-xs uppercase tracking-wide text-slate-500">
           {head.map((h) => <th key={h} className="py-2 pr-4 font-bold">{h}</th>)}</tr></thead>
         <tbody>{rows.map((r, i) => (
-          <tr key={i} className="border-b border-slate-100 last:border-0 hover:bg-mist">
+          <tr key={i} {...(rowAttrs ? rowAttrs(i) : {})} className="border-b border-slate-100 last:border-0 hover:bg-mist">
             {r.map((c, j) => <td key={j} className="py-2.5 pr-4 align-top">{c}</td>)}</tr>))}</tbody>
       </table>
     </div>

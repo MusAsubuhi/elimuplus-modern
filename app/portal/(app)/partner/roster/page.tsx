@@ -5,6 +5,7 @@ import { d } from '@/lib/format';
 import { addRoster, confirmExtras, removeRoster } from '../../../partner-actions';
 import { rosterRoom, supplementCost } from '@/lib/roster';
 import { kes } from '@/lib/format';
+import { RosterForm, SearchBox } from '@/components/roster-form';
 
 export default async function PartnerRoster({ searchParams }: { searchParams: Promise<{ cohort?: string }> }) {
   const me = await requirePartner();
@@ -29,25 +30,34 @@ export default async function PartnerRoster({ searchParams }: { searchParams: Pr
           <div className="mb-4 flex flex-wrap gap-2">
             {cohorts.map((c) => <a key={c.id} href={`/portal/partner/roster?cohort=${c.id}`} className={`rounded-full px-3 py-1 text-sm font-bold ${c.id === chosen.id ? 'bg-teal text-white' : 'border border-teal-100 bg-white text-teal'}`}>{c.name}</a>)}
           </div>
-          <div className="mb-6 grid gap-4 sm:grid-cols-3">
-            <Stat label="Listed so far" value={mine.filter((r) => r.status !== 'withdrawn').length} />
-            <Stat tone="gold" label="Quoted for" value={room?.cap ?? chosen.expected_participants ?? '—'} />
-            <Stat tone="teal" label="Training starts" value={d(chosen.start_date) || 'to be set'} />
+          <div className="mb-6 rounded-2xl border border-teal-100 bg-white p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-lg font-extrabold text-teal">{room?.cap ? `${Math.min(mine.length, room.cap)} of ${room.cap} places filled` : `${mine.length} listed`}</p>
+              <p className="text-sm text-slate-600">Training starts {d(chosen.start_date) || 'on a date we will confirm'}</p>
+            </div>
+            {room?.cap ? <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuemin={0} aria-valuemax={room.cap} aria-valuenow={Math.min(mine.length, room.cap)}><div className="h-full rounded-full bg-teal" style={{ width: `${Math.min(100, Math.round((mine.length / room.cap) * 100))}%` }} /></div> : null}
+            {room?.cap && mine.length >= room.cap ? <p className="mt-2 text-sm text-slate-700">All the places on your quotation are filled. Anyone you add now is held as an extra and billed on a supplemental invoice, only after you confirm.</p> : null}
           </div>
-          <div className="grid gap-4 lg:grid-cols-3">
-            <Card title="Paste your list" subtitle="One person per line, copied from Excel or Sheets" className="lg:col-span-1">
-              <form action={addRoster} className="space-y-3 text-sm">
-                <input type="hidden" name="cohort" value={chosen.id} />
-                <textarea name="list" rows={10} required className={inputCls} placeholder={'Amina Wanjiru, 0712345678, F, 2004, yes\nJuma Otieno, 0722111222, M, 2002'} />
-                <p className="text-xs text-slate-500">Columns: full name, phone, F or M, year of birth, and “yes” if a parent or guardian has agreed for anyone under 18. Only the name is required. Phone numbers help us confirm people on the day and follow up afterwards.</p>
-                <button className={submitCls}>Add to the list</button>
-              </form>
+          <div className="grid gap-4 lg:grid-cols-5">
+            <Card title="Add people" subtitle="Name, phone number, age and gender are needed for everyone" className="lg:col-span-2">
+              <RosterForm cohort={chosen.id} action={addRoster} />
+              <details className="mt-5 rounded-lg border border-teal-100 p-3 text-sm">
+                <summary className="cursor-pointer font-bold text-teal">Have a long list? Paste it from Excel</summary>
+                <form action={addRoster} className="mt-3 space-y-3">
+                  <input type="hidden" name="cohort" value={chosen.id} />
+                  <textarea name="list" rows={6} className={inputCls} placeholder={'Amina Wanjiru, 0712345678, F, 19\nJuma Otieno, 0722111222, M, 22'} />
+                  <p className="text-xs text-slate-500">One person per line: name, phone, F or M, age. For anyone under 18, add “yes” at the end to show a parent or guardian agreed.</p>
+                  <button className={submitCls}>Add the pasted list</button>
+                </form>
+              </details>
             </Card>
-            <Card title={`People listed for ${chosen.name}`} subtitle="You can remove someone until the training starts" className="lg:col-span-2">
-              <Table head={['Name', 'Phone', 'Gender', 'Born', 'Status', '']}
-                rows={mine.map((r) => [<b key="n">{r.full_name}</b>, r.phone ?? '', r.gender ?? '', r.birth_year ?? '', <Badge key="s" tone={statusTone(r.status === 'enrolled' ? 'completed' : r.status)}>{r.status === 'expected' ? 'expected' : r.status}</Badge>,
-                  r.status === 'expected' ? <form key="x" action={removeRoster}><input type="hidden" name="id" value={r.id} /><button className="text-xs font-bold text-red-700 underline">Remove</button></form> : ''])}
-                empty="Nobody listed yet. Paste your list on the left." />
+            <Card title={`People listed for ${chosen.name}`} subtitle="You can remove someone until the training starts" className="lg:col-span-3">
+              {mine.length > 10 && <SearchBox target="roster" />}
+              <Table head={['Name', 'Phone', 'Age', '']}
+                rowAttrs={() => ({ 'data-row-of': 'roster' })}
+                rows={mine.map((r) => [<b key="n">{r.full_name}</b>, r.phone ?? '', r.birth_year ? new Date().getFullYear() - r.birth_year : '',
+                  r.status === 'expected' ? <form key="x" action={removeRoster}><input type="hidden" name="id" value={r.id} /><button className="text-xs font-bold text-red-700 underline">Remove</button></form> : <Badge key="s" tone={statusTone('completed')}>enrolled</Badge>])}
+                empty="Nobody listed yet. Add your first person on the left." />
             </Card>
           </div>
           {extras.length > 0 && (
