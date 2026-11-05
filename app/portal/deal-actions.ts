@@ -72,7 +72,7 @@ export async function acceptDeal(f: FormData) {
       const co = qt.cohort_id ? (await q('select start_date, name from cohorts where id=$1', [qt.cohort_id]))[0] : null;
       await q("update quotes set status='signed', accepted_at=now() where id=$1", [id]);
       if (qt.cohort_id) await q("update cohorts set status='confirmed' where id=$1 and status in ('requested','quoted')", [qt.cohort_id]);
-      const due = co?.start_date ? String(co.start_date).slice(0, 10) : addDays(14);
+      const due = co?.start_date ? (co.start_date instanceof Date ? co.start_date.toISOString().slice(0, 10) : String(co.start_date).slice(0, 10)) : addDays(14);
       if (training > 0) await createInvoice(q, { quoteId: id, orgId: qt.organisation_id, cohortId: qt.cohort_id, kind: 'training', amount: training, description: `Training${co ? `: ${co.name}` : ''}, ${qt.participants ?? ''} participants, ${qt.sessions} sessions`, dueOn: due });
     });
   } catch (e: any) {

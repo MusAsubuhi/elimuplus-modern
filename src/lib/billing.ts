@@ -83,10 +83,11 @@ export async function alertFounders(q: Q, title: string, body: string, link: str
   await q(`insert into founder_alerts(kind, severity, title, body, link, source_table) values ($5,$1,$2,$3,$4,'invoices')`, [severity, title, body, link, kind]);
 }
 
-const plus = (iso: string, n: number) => { const x = new Date(String(iso).slice(0, 10) + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+const isoDay = (x: any) => (x instanceof Date ? x.toISOString().slice(0, 10) : String(x ?? '').slice(0, 10)); // pg returns date columns as Date objects; String(Date) is not an ISO date
+const plus = (iso: any, n: number) => { const x = new Date(isoDay(iso) + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
 /** When training finishes: the recorded end date, else the start date plus the length of the programme. */
 export const trainingEnds = (c: { start_date?: any; end_date?: any; format?: string }): string | null =>
-  c.end_date ? String(c.end_date).slice(0, 10) : c.start_date ? plus(String(c.start_date), c.format === '12-day' ? 11 : 4) : null;
+  c.end_date ? isoDay(c.end_date) : c.start_date ? plus(c.start_date, c.format === '12-day' ? 11 : 4) : null;
 /** The 30, 60 and 90 day visit dates a partner can expect, counted from the end of training. */
 export const visitDates = (c: { start_date?: any; end_date?: any; format?: string }) => {
   const e = trainingEnds(c);

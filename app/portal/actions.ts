@@ -310,7 +310,8 @@ export async function recordPayment(f: FormData) {
   const me = await requireMe('founder');
   const inv = s(f, 'invoice');
   const amount = Number(s(f, 'amount'));
-  if (!(amount > 0)) back('/portal/finance', 'Enter an amount.', 'err');
+  const dest = s(f, 'back') === '/portal/deals' ? '/portal/deals' : '/portal/finance';
+  if (!(amount > 0)) back(dest, 'Enter an amount.', 'err');
   await asUser(me.id, async (q) => {
     const pay = (await q('insert into payments(invoice_id,amount_kes,method,reference,received_on,recorded_by) values($1,$2,$3,$4,current_date,$5) returning id',
       [inv, amount, s(f, 'method') || 'mpesa', s(f, 'reference'), me.id]))[0];
@@ -319,7 +320,7 @@ export async function recordPayment(f: FormData) {
     await q('update invoices set status=$2 where id=$1', [inv, r.p >= r.a ? 'paid' : 'part_paid']);
   });
   revalidatePath('/portal', 'layout');
-  back('/portal/finance', 'Payment recorded and receipt issued. Send it from Proposals and receipts.');
+  back(dest, dest === '/portal/deals' ? 'Payment recorded and receipt issued. You will find the receipt in the Receipts list below; press Email to send it to the partner.' : 'Payment recorded and receipt issued. Send it from Proposals and receipts.');
 }
 
 /* ---------- leaving or completing the programme ---------- */

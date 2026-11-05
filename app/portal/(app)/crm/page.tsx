@@ -22,7 +22,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<{ ta
       where i.status in ('nominated','approved') order by s.called, i.created_at`),
   }));
   const today0 = today();
-  const overdue = (dt?: string | null) => !!dt && String(dt).slice(0, 10) < today0;
+  const overdue = (dt?: string | Date | null) => !!dt && (dt instanceof Date ? dt.toISOString().slice(0, 10) : String(dt).slice(0, 10)) < today0;
   const notReady = orgs.filter((o) => !(o.called && o.visited && o.checks_complete));
   const tabLink = (k: string, label: string) => <Link href={`/portal/crm?tab=${k}`} className={`rounded-lg px-4 py-2 text-sm font-bold ${tab === k ? 'bg-teal text-white' : 'border border-teal-100 bg-white text-teal'}`}>{label}</Link>;
   return (

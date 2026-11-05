@@ -20,7 +20,12 @@ export default async function RequestTraining() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Your request">
           {pending > 0 ? <p className="rounded-lg bg-mist p-3 text-sm text-slate-700">We are preparing your proposal and quotation. You will get them by email and find them under Invoices and payments shortly.</p>
-          : orgs.length === 0 ? <p className="rounded-lg bg-mist p-3 text-sm text-slate-700">Your organisation already has a quotation with us. To plan another cohort, please contact Elimu+ on {CONTACT.phone} or {CONTACT.email}.</p>
+          : orgs.length === 0 ? <div className="space-y-3 rounded-lg bg-mist p-3 text-sm text-slate-700">
+            <p>Your request is in, and your organisation now has a quotation with us. The request form is hidden because each organisation can ask for one quotation on its own. You can see it under Invoices and payments, and add your participants under Add participants.</p>
+            <p>To plan another cohort or change this one, write to us and we will prepare the next quotation.</p>
+            <a className={`${submitCls} inline-block`} href={`mailto:${CONTACT.email}?subject=${encodeURIComponent('Request for another training cohort')}`}>Request another training</a>
+            <p className="text-xs text-slate-500">Or call {CONTACT.phone}.</p>
+          </div>
           : <form action={requestCohort} className="space-y-3 text-sm">
             <label className="block font-bold">Organisation<select name="org" className={inputCls}>{orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
             <label className="block font-bold">Name for this cohort<input name="name" placeholder="e.g. Youth cohort, March" className={inputCls} /></label>
