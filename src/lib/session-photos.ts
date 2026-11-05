@@ -3,7 +3,7 @@ import { supabaseAdmin } from './supabase-admin';
 import { photosEnabled } from './stories';
 
 export const SESSION_BUCKET = 'session-photos';
-export const MAX_SESSION_PHOTOS = 5;
+export const MAX_SESSION_PHOTOS_PER_DAY = 5;
 
 export interface SessionPhoto { id: string; cohort_id: string; day_number: number; storage_path: string; caption: string | null; status: string; uploaded_by: string | null }
 

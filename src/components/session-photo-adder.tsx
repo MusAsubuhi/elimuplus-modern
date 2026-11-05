@@ -11,10 +11,10 @@ async function shrink(file: File): Promise<Blob> {
   return await new Promise<Blob>((r) => c.toBlob((b) => r(b ?? file), 'image/jpeg', 0.8));
 }
 
-export default function SessionPhotoAdder({ cohortId, days, isFounder }: { cohortId: string; days: number[]; isFounder: boolean }) {
+export default function SessionPhotoAdder({ cohortId, days, isFounder }: { cohortId: string; days: { n: number; left: number }[]; isFounder: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [msg, setMsg] = useState('');
-  const [behind, setBehind] = useState(false); const [day, setDay] = useState(String(days[0] ?? ''));
+  const [behind, setBehind] = useState(false); const [day, setDay] = useState(String(days[0]?.n ?? ''));
   async function pick(files: FileList | null) {
     if (!files?.[0]) return;
     setErr(''); setMsg('');
@@ -27,19 +27,19 @@ export default function SessionPhotoAdder({ cohortId, days, isFounder }: { cohor
     else { setMsg(j.pending ? 'Added. A founder will check it before the partner sees it.' : 'Added and visible to the partner.'); router.refresh(); }
     setBusy(false);
   }
-  if (!days.length) return <p className="text-sm text-slate-600">Every day has a photo, or the cohort has reached five. Remove one to replace it.</p>;
+  if (!days.length) return <p className="text-sm text-slate-600">Every day already has five photos. Remove one to add another.</p>;
   return (
     <div className="space-y-3 text-sm">
       <label className="flex items-start gap-2"><input type="checkbox" checked={behind} onChange={(e) => setBehind(e.target.checked)} className="mt-1" />
         <span><b>Taken from behind or at a distance.</b> No face can be recognised. We do not have written consent from participants.</span></label>
       <div className="flex flex-wrap items-end gap-3">
-        <label className="font-bold">Day<select value={day} onChange={(e) => setDay(e.target.value)} className="mt-1 block rounded-lg border border-teal-100 bg-white px-3 py-2 font-normal">{days.map((n) => <option key={n} value={n}>Day {n}</option>)}</select></label>
+        <label className="font-bold">Day<select value={day} onChange={(e) => setDay(e.target.value)} className="mt-1 block rounded-lg border border-teal-100 bg-white px-3 py-2 font-normal">{days.map((x) => <option key={x.n} value={x.n}>Day {x.n} ({x.left} left)</option>)}</select></label>
         <label className="font-bold">Photo<input type="file" accept="image/*" capture="environment" disabled={busy} onChange={(e) => { pick(e.target.files); e.target.value = ''; }} className="mt-1 block text-sm font-normal" /></label>
       </div>
       {busy && <p className="text-xs text-slate-500">Uploading...</p>}
       {msg && <p className="text-xs font-semibold text-emerald-700">{msg}</p>}
       {err && <p role="alert" className="text-xs font-semibold text-red-700">{err}</p>}
-      {!isFounder && <p className="text-xs text-slate-500">Up to five photos, one per day. A founder checks each one before the partner sees it.</p>}
+      {!isFounder && <p className="text-xs text-slate-500">Up to five photos for each training day. A founder checks each one before the partner sees it.</p>}
     </div>
   );
 }
