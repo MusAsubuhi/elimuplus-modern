@@ -67,9 +67,9 @@ export default async function Pathway({ searchParams }: { searchParams: Promise<
   if (!who || tier === 0) {
     return (
       <>
-        <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who?.full_name ?? 'Trainer'}’s pathway`} subtitle="From Foundation Facilitator to Accredited ToT Lead." />
+        <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who?.full_name ?? 'Trainer'}’s pathway`} subtitle="From Trainee to Master Trainer." />
         <Card title={own ? 'You are not on the facilitator pathway yet' : 'This person is not on the facilitator pathway'}>
-          <p className="text-sm text-slate-700">{own ? 'Founders go through the pathway like every trainer. Start at Tier 1 and your co-founder certifies each step.' : 'They hold no facilitator role. Give them one from the Team page.'}</p>
+          <p className="text-sm text-slate-700">{own ? 'Founders go through the pathway like every trainer. Start as a Trainee and your co-founder certifies each step.' : 'They hold no facilitator role. Give them one from the Team page.'}</p>
           <Link href={own ? '/portal/journey' : '/portal/team'} className="mt-3 inline-block rounded-lg bg-teal px-4 py-2 text-sm font-bold text-white">{own ? 'Start my facilitator pathway' : 'Open the Team page'}</Link>
         </Card>
       </>
@@ -81,7 +81,7 @@ export default async function Pathway({ searchParams }: { searchParams: Promise<
   const young = who.birth_year && new Date().getFullYear() - who.birth_year < 18;
   return (
     <>
-      <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who.full_name}’s pathway`} subtitle="From Foundation Facilitator to Accredited ToT Lead: what is held, what is needed next, and what keeps a trainer certified." />
+      <PageHeader image="/images/trainer-hero.jpg" title={own ? 'My pathway' : `${who.full_name}’s pathway`} subtitle="From Trainee to Master Trainer: what is held, what is needed next, and what keeps a trainer certified." />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Current tier" value={`Tier ${tier}`} sub={TIER_TITLES[tier]} />
         <Stat tone="gold" label="Certificate" value={s.cert?.number ?? '—'} sub={s.cert ? <>Issued {d(s.cert.issued_on)} · <a className="underline" href={`/d/certificate/${s.cert.share_token}`} target="_blank">Open</a></> : undefined} />

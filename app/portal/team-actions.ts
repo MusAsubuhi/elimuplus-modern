@@ -215,7 +215,7 @@ export async function startJourney(f: FormData) {
       if (kind === 'facilitator') {
         if (!me.roles.includes('founder')) return; // trainers already hold a facilitator role
         const has = await q("select 1 from role_assignments where person_id=$1 and role='facilitator' and status='active'", [me.id]);
-        if (!has.length) await q("insert into role_assignments(person_id, role, tier) values ($1,'facilitator',1)", [me.id]);
+        if (!has.length) await q("insert into role_assignments(person_id, role, tier) values ($1,'facilitator',0)", [me.id]);
         return;
       }
       let org = (await q('select id from organisations where is_internal limit 1'))[0];

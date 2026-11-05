@@ -37,7 +37,7 @@ export default async function Journey() {
             </form>
           )}
         </Card>
-        <Card title="2. As a facilitator" subtitle="Start at Tier 1 like everyone else. Tiers come only through a certificate issued by a founder.">
+        <Card title="2. As a facilitator" subtitle="Everyone starts as a Trainee and moves up one level at a time. Each level comes only through a certificate or decision by a founder.">
           {hasFacRole ? (
             <div className="space-y-3 text-sm">
               <div className="flex items-center gap-2"><Badge tone="teal">Tier {stats.cert?.tier ?? 1}</Badge><span className="font-semibold">{TIER_TITLES[stats.cert?.tier ?? 1]}</span></div>
@@ -48,8 +48,8 @@ export default async function Journey() {
           ) : (
             <form action={startJourney} className="space-y-3 text-sm">
               <input type="hidden" name="kind" value="facilitator" />
-              <p>Adds the Tier 1 facilitator role to your account, so you can be assigned to cohorts, take attendance and request expenses like any trainer.</p>
-              {canStart ? <button className={submitCls}>Start my facilitator pathway</button> : <p className="text-xs text-slate-500">You have view access only.</p>}
+              <p>Starts you as a Trainee Facilitator (Tier 0): you observe cohorts and file short reports, and a founder certifies each step up.</p>
+              {canStart ? <button className={submitCls}>Start as a Trainee</button> : <p className="text-xs text-slate-500">You have view access only.</p>}
             </form>
           )}
         </Card>

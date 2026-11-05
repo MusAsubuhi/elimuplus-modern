@@ -23,7 +23,7 @@ export const ROLE_OPTIONS: { group: string; items: [string, string][] }[] = [
   { group: 'Trainers', items: [
     ['facilitator:0', 'Trainee Facilitator (Tier 0, observes and reports, works under a supervisor)'],
     ['facilitator:1', 'Associate Facilitator (Tier 1, Foundation)'], ['facilitator:2', 'Certified Facilitator (Tier 2, Programme)'],
-    ['facilitator:3', 'Master Trainer (Tier 3, Senior Facilitator)'], ['facilitator:4', 'Master Trainer (Tier 4, Accredited ToT Lead)'],
+    ['facilitator:3', 'Master Trainer (Tier 3)'], ['facilitator:4', 'Master Trainer (Tier 4, ToT Lead)'],
     ['trainer_candidate', 'Trainer candidate (not yet certified)']] },
   { group: 'Participants', items: [['participant', 'Participant']] },
   { group: 'Partner organisations', items: [['org_admin', 'Partner admin (roster, requests, invoices)'], ['org_viewer', 'Partner viewer (read only)']] },

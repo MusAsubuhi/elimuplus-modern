@@ -59,7 +59,8 @@ export default async function Doc({ params }: { params: Promise<{ kind: string; 
       const org = (await q('select * from organisations where id=$1', [qt.organisation_id]))[0];
       const co = qt.cohort_id ? (await q('select * from cohorts where id=$1', [qt.cohort_id]))[0] : null;
       const lines = await q('select * from quote_lines where quote_id=$1 order by kind', [qt.id]);
-      return { qt, org, co, lines };
+      const proof = (await q("select value from settings where key='proposal_proof'"))[0]?.value ?? null;
+      return { qt, org, co, lines, proof: typeof proof === 'string' ? proof : null };
     });
     if (!x) notFound();
     return kind === 'quote' ? <Quotation {...x} /> : <Proposal {...x} />;
@@ -210,7 +211,7 @@ function Receipt({ r, p, inv, org, total }: any) {
   );
 }
 
-function Proposal({ qt, org, co }: any) {
+function Proposal({ qt, org, co, proof }: any) {
   const n = Number(qt.participants) || Number(co?.expected_participants) || 15;
   const t = training(n, Number(qt.sessions) || 5), f = followups(n);
   const fmt = co?.format === '12-day' ? '12-Day Programme' : '5-Day Foundation';
@@ -229,7 +230,7 @@ function Proposal({ qt, org, co }: any) {
         <h2 className={h2}>The problem we solve</h2>
         <p className="break-inside-avoid mt-2 text-sm leading-relaxed">Across Mombasa’s low-income communities many women and youth have already received training and start-up capital, yet most of those businesses collapse within months. The failure is not a lack of motivation. It is a lack of practical tools, localised content and follow-through: training designed for classrooms and not market stalls, capital without systems to separate business money from household money, and organisations that train, report and move on.</p>
         <h2 className={h2}>Proof of traction</h2>
-        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">At KE358 Deliverance Church Likoni CDC, 30 days after training, <b>90%</b> of businesses were still operating and <b>70%</b> reported growing income, across ten businesses and KES 153,000 of total support mobilised. Three programmes have been delivered so far, and follow-up continues.</p>
+        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">{proof ?? 'Every participant leaves with a completed SEE Canvas, and we visit at 30, 60 and 90 days to record whether their business is still trading and how their income has changed. Results from our completed cohorts are available on request.'}</p>
         <h2 className={h2}>Our core tool: the SEE Canvas</h2>
         <p className="break-inside-avoid mt-2 text-sm leading-relaxed">The SEE Canvas (Solutions for Employability and Entrepreneurship) is a 12-section bilingual business planning tool covering problem, solution, customers, pricing, costs, break-even and profit. Every participant keeps their completed canvas as a reference after training ends.</p>
         <h2 className={h2}>The programme for {org.name}</h2>
