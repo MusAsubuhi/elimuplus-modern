@@ -31,7 +31,11 @@ export async function prepareReport(me: Me, p: ReportParams) {
   }));
   const chosen = p.cohorts.length ? all.filter((c) => p.cohorts.includes(c.id)) : all;
   const ids = new Set(chosen.map((c) => c.id));
-  const chosenPhotos = (photos as any[]).filter((x) => ids.has(x.cohort_id)).slice(0, 10);
+  const pool = (photos as any[]).filter((x) => ids.has(x.cohort_id));
+  // a report holds at most 12 photos, spread across the days (first photo of each day first) so it stays light enough to email
+  const seen: Record<string, number> = {};
+  const ranked = pool.map((x) => ({ x, r: (seen[`${x.cohort_id}:${x.day_number}`] = (seen[`${x.cohort_id}:${x.day_number}`] ?? -1) + 1) }));
+  const chosenPhotos = ranked.sort((a, b) => a.r - b.r).slice(0, 12).map((o) => o.x).sort((a, b) => (a.cohort_name === b.cohort_name ? a.day_number - b.day_number : a.cohort_name.localeCompare(b.cohort_name)));
   const model = buildModel(chosen, chosenPhotos.length);
   const orgName = org ?? chosen[0]?.org ?? 'Partner organisation';
   const title = p.title || `${orgName}: training results${chosen.length === 1 ? `, ${chosen[0].name}` : ''}`;

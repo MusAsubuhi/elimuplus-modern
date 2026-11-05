@@ -11,7 +11,7 @@ export const REPORT_SECTIONS: { key: string; label: string; blurb: string }[] = 
   { key: 'followup', label: 'Business results after training', blurb: 'Trading, income and money habits at 30, 60 and 90 days.' },
   { key: 'youth', label: 'Youth pathways', blurb: 'First income, CV readiness and interviews for youth participants.' },
   { key: 'feedback', label: 'Participant feedback', blurb: 'Ratings and whether participants would recommend the training.' },
-  { key: 'photos', label: 'Session photos', blurb: 'Up to five photos from the training, taken from behind, one per day. Only photos a founder has approved.' },
+  { key: 'photos', label: 'Session photos', blurb: 'Photos from the training, taken from behind (up to 12 in a report, spread across the days). Only photos a founder has approved.' },
 ];
 export const SECTION_KEYS = REPORT_SECTIONS.map((s) => s.key);
 

@@ -4,7 +4,7 @@ import { asAdmin, asUser } from '@/lib/db';
 import { getMe } from '@/lib/session';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { photosEnabled } from '@/lib/stories';
-import { SESSION_BUCKET, MAX_SESSION_PHOTOS } from '@/lib/session-photos';
+import { SESSION_BUCKET, MAX_SESSION_PHOTOS_PER_DAY } from '@/lib/session-photos';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -33,9 +33,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!file || file.size === 0) return bad('Choose a photo first.');
   if (file.size > 3_500_000) return bad('That photo is too large. Try a smaller one or take it again.');
 
-  const have = await asAdmin((q) => q('select day_number from session_photos where cohort_id=$1', [id]));
-  if (have.length >= MAX_SESSION_PHOTOS) return bad(`A cohort can have up to ${MAX_SESSION_PHOTOS} session photos. Remove one first.`);
-  if (have.some((r) => r.day_number === day)) return bad(`Day ${day} already has a photo. Remove it first to replace it.`);
+  const have = Number((await asAdmin((q) => q('select count(*)::int n from session_photos where cohort_id=$1 and day_number=$2', [id, day])))[0].n);
+  if (have >= MAX_SESSION_PHOTOS_PER_DAY) return bad(`Day ${day} already has ${MAX_SESSION_PHOTOS_PER_DAY} photos. Remove one first to add another.`);
 
   let out: { data: Buffer; info: { width: number; height: number; size: number } };
   try {
