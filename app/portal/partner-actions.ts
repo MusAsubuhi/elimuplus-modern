@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { asAdmin, asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { normPhone } from '@/lib/accounts';
-import { alertFounders } from '@/lib/billing';
+import { alertFounders, createInvoice } from '@/lib/billing';
+import { rosterRoom, supplementCost } from '@/lib/roster';
+import { FOLLOWUP_PER_PARTICIPANT } from '@/lib/pricing';
 import { audit } from '@/lib/audit';
 
 const s = (f: FormData, k: string, n = 500) => String(f.get(k) ?? '').trim().slice(0, n);
@@ -61,27 +63,61 @@ export async function addRoster(f: FormData) {
   if (!cohort) go(P, 'Choose the cohort first.', 'err');
   const { rows, bad } = parseRoster(String(f.get('list') ?? '').slice(0, 60000));
   if (!rows.length) go(P, bad.length ? `Nothing could be added. ${bad.slice(0, 3).join('; ')}` : 'Paste at least one name.', 'err');
-  let added = 0, dup = 0;
+  let added = 0, dup = 0, held = 0;
   try {
-    await asUser(me.id, async (q) => {
-      const co = (await q('select organisation_id from cohorts where id=$1', [cohort]))[0];
-      if (!co) throw new Error('cohort');
-      for (const r of rows) {
-        const x = await q(
-          `insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by)
-           values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict do nothing returning id`,
-          [cohort, co.organisation_id, r.name, r.phone, r.gender, r.year, r.consent, me.id]);
-        if (x.length) added++; else dup++;
-      }
-    });
+    const { co, room } = await asUser(me.id, async (q) => ({
+      co: (await q('select organisation_id from cohorts where id=$1', [cohort]))[0],
+      room: await rosterRoom(q, cohort),
+    }));
+    if (!co) throw new Error('cohort');
+    let left = room.room;
+    for (const r of rows) {
+      const within = left > 0;
+      const args = [cohort, co.organisation_id, r.name, r.phone, r.gender, r.year, r.consent, me.id];
+      // People beyond the quoted number are kept apart as extras; only the server may create those, so a partner cannot get round the limit.
+      const x = within
+        ? await asUser(me.id, (q) => q(`insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by)
+             values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict do nothing returning id`, args))
+        : await asAdmin((q) => q(`insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by, status)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,'pending_extra') on conflict do nothing returning id`, args));
+      if (!x.length) dup++; else if (within) { added++; left--; } else held++;
+    }
   } catch (e) { console.error('[roster]', e); go(P, 'We could not add those. Make sure the cohort is one of yours.', 'err'); }
   revalidatePath(P);
-  go(P, `${added} added${dup ? `, ${dup} already on the list` : ''}${bad.length ? `, ${bad.length} skipped (${bad.slice(0, 2).join('; ')})` : ''}.`);
+  go(P, `${added} added${held ? `, ${held} held as extra (beyond the number on your quotation, see below)` : ''}${dup ? `, ${dup} already on the list` : ''}${bad.length ? `, ${bad.length} skipped (${bad.slice(0, 2).join('; ')})` : ''}.`);
+}
+
+/** The partner agrees to the extra people: they join the list and a supplemental invoice is raised for the founders to review and send. */
+export async function confirmExtras(f: FormData) {
+  const me = await requireMe('org_admin');
+  const P = '/portal/partner/roster';
+  const cohort = s(f, 'cohort');
+  let msg = '';
+  try {
+    const mine = await asUser(me.id, (q) => q('select c.id, c.name, c.organisation_id, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [cohort]));
+    if (!mine.length) throw new Error('cohort');
+    const c = mine[0];
+    msg = await asAdmin(async (q) => {
+      const room = await rosterRoom(q, cohort);
+      const extras = await q("select id from cohort_roster where cohort_id=$1 and status='pending_extra' order by created_at", [cohort]);
+      if (!extras.length || !room.quoted) throw new Error('none');
+      const cost = supplementCost(room.cap ?? room.quoted, extras.length, room.sessions);
+      const qt = (await q('select id from quotes where cohort_id=$1 order by issued_on desc limit 1', [cohort]))[0];
+      const due = new Date(); due.setDate(due.getDate() + 14);
+      const inv = await createInvoice(q, { quoteId: qt?.id ?? null, orgId: c.organisation_id, cohortId: cohort, kind: 'other', amount: cost.total, dueOn: due.toISOString().slice(0, 10),
+        description: `Supplemental invoice: ${extras.length} additional participant${extras.length === 1 ? '' : 's'} added to ${c.name} after the quotation (${extras.length} × KES ${cost.rate} × ${room.sessions} sessions, plus follow-up at KES ${FOLLOWUP_PER_PARTICIPANT} each)` });
+      await q("update cohort_roster set status='expected', extra_invoice_id=$2 where cohort_id=$1 and status='pending_extra'", [cohort, inv.id]);
+      await alertFounders(q, `Supplemental invoice ready to review: ${c.org_name}`, `${extras.length} extra participant${extras.length === 1 ? '' : 's'} confirmed for ${c.name}. Invoice ${inv.number}, KES ${cost.total.toLocaleString('en-KE')}. Review it on Proposals and receipts, then email it.`, '/portal/deals', 'attention');
+      return `${extras.length} extra ${extras.length === 1 ? 'person has' : 'people have'} joined the list. We have prepared a supplemental invoice for ${inv.number}, KES ${cost.total.toLocaleString('en-KE')}; you will find it under Invoices and payments once we have checked and sent it.`;
+    });
+  } catch (e) { console.error('[roster]', e); go(P, 'We could not confirm the extra people. There may be none waiting.', 'err'); }
+  revalidatePath(P);
+  go(P, msg);
 }
 
 export async function removeRoster(f: FormData) {
   const me = await requireMe('org_admin');
-  await asUser(me.id, (q) => q("delete from cohort_roster where id=$1 and status='expected'", [s(f, 'id')]));
+  await asUser(me.id, (q) => q("delete from cohort_roster where id=$1 and status in ('expected','pending_extra')", [s(f, 'id')]));
   revalidatePath('/portal/partner/roster');
   go('/portal/partner/roster', 'Removed.');
 }

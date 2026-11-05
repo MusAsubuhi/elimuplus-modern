@@ -69,7 +69,7 @@ export async function orgContacts(orgId: string): Promise<string[]> {
 }
 
 /** Create an invoice from a quote. Used by the founders' Deals page and by the daily job that bills follow-ups. */
-export async function createInvoice(q: Q, o: { quoteId: string; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string }) {
+export async function createInvoice(q: Q, o: { quoteId: string | null; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string }) {
   const org = (await q('select name, code from organisations where id=$1', [o.orgId]))[0];
   const num = await nextInvoiceNumber(q, orgCode(org.name, org.code));
   const r = (await q(
