@@ -3,6 +3,7 @@ import { asUser } from './db';
 import { loadImpact } from './impact';
 import { buildModel, SECTION_KEYS } from './org-report';
 import { renderReportPdf } from './report-pdf';
+import { loadPhotoBytes } from './session-photos';
 import type { Me } from './session';
 
 const UUID = /^[0-9a-f-]{36}$/;
@@ -22,21 +23,25 @@ export function readParams(get: (k: string) => string | null | undefined, getAll
 
 /** Loads only what this person can already see: the database limits the cohorts to the organisation, and only aggregates are read. */
 export async function prepareReport(me: Me, p: ReportParams) {
-  const { all, label, org } = await asUser(me.id, async (q) => ({
+  const { all, label, org, photos } = await asUser(me.id, async (q) => ({
+    photos: p.sections.includes('photos') ? await q("select p.id, p.day_number, p.storage_path, p.caption, c.name cohort_name, p.cohort_id from session_photos p join cohorts c on c.id=p.cohort_id where p.status='approved' order by c.seq, p.day_number").catch(() => []) : [],
     all: await loadImpact(q),
     label: (await q("select confidentiality_label l from agreements where confidentiality_label is not null limit 1"))[0]?.l as string | undefined,
     org: me.orgIds?.length ? (await q('select name from organisations where id = any($1::uuid[]) limit 1', [me.orgIds]))[0]?.name as string | undefined : undefined,
   }));
   const chosen = p.cohorts.length ? all.filter((c) => p.cohorts.includes(c.id)) : all;
-  const model = buildModel(chosen);
+  const ids = new Set(chosen.map((c) => c.id));
+  const chosenPhotos = (photos as any[]).filter((x) => ids.has(x.cohort_id)).slice(0, 10);
+  const model = buildModel(chosen, chosenPhotos.length);
   const orgName = org ?? chosen[0]?.org ?? 'Partner organisation';
   const title = p.title || `${orgName}: training results${chosen.length === 1 ? `, ${chosen[0].name}` : ''}`;
-  return { all, chosen, model, orgName, title, confidentiality: label ?? 'Confidential: prepared for the named organisation only' };
+  return { all, chosen, model, photos: chosenPhotos as { id: string; day_number: number; storage_path: string; caption: string | null; cohort_name: string }[], orgName, title, confidentiality: label ?? 'Confidential: prepared for the named organisation only' };
 }
 
 export async function makePdf(me: Me, p: ReportParams) {
   const r = await prepareReport(me, p);
-  const bytes = await renderReportPdf({ title: r.title, org: r.orgName, model: r.model, sections: p.sections, confidentiality: r.confidentiality, preparedBy: me.displayName ?? me.name ?? 'Partner', generatedOn: new Date(), note: p.note || undefined });
+  const pics = (await Promise.all(r.photos.map(async (x) => ({ cohort: x.cohort_name, day: x.day_number, caption: x.caption, bytes: await loadPhotoBytes(x.storage_path) })))).filter((x): x is { cohort: string; day: number; caption: string | null; bytes: Uint8Array } => !!x.bytes);
+  const bytes = await renderReportPdf({ photos: pics, title: r.title, org: r.orgName, model: r.model, sections: p.sections, confidentiality: r.confidentiality, preparedBy: me.displayName ?? me.name ?? 'Partner', generatedOn: new Date(), note: p.note || undefined });
   return { ...r, bytes };
 }
 export const fileName = (title: string, ext: string) => `${title.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 60) || 'elimu-report'}.${ext}`;

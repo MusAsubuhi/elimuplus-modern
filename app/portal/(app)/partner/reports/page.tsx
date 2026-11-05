@@ -6,6 +6,7 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/com
 import { BarCard } from '@/components/charts';
 import { d } from '@/lib/format';
 import { sendOrgReport } from '../../../partner-report-actions';
+import { signSessionPhotos } from '@/lib/session-photos';
 
 const CSV_NOTE = 'The CSV holds the same figures, one row per cohort, for your own spreadsheets or funder templates.';
 
@@ -20,6 +21,7 @@ export default async function OrgReports({ searchParams }: { searchParams: Promi
   const chosen = new Set(r.chosen.map((c) => c.id));
   const t = r.model.total;
   const link = (f: string) => `/portal/partner/reports/file?f=${f}&c=${r.chosen.map((c) => c.id).join(',')}&s=${p.sections.join(',')}&t=${encodeURIComponent(p.title)}&n=${encodeURIComponent(p.note)}`;
+  const signed = await signSessionPhotos(r.photos.map((x) => x.storage_path));
   const names = r.model.rows.map((x) => x.name);
   const ser = (k: keyof (typeof r.model.rows)[number]) => r.model.rows.map((x) => (x[k] as number | null) ?? 0);
 
@@ -56,6 +58,7 @@ export default async function OrgReports({ searchParams }: { searchParams: Promi
           <Card key={s.key} title={s.label}>
             {hasData(r.model, s.key) ? (<>
               <ul className="mb-3 list-disc space-y-1 pl-5 text-sm text-slate-700">{takeaways(r.model, s.key).map((x) => <li key={x}>{x}</li>)}</ul>
+              {s.key === 'photos' && <div className="grid gap-2 sm:grid-cols-2">{r.photos.map((x) => (/* eslint-disable-next-line @next/next/no-img-element */ <figure key={x.id}>{signed[x.storage_path] && <img src={signed[x.storage_path]} alt={`${x.cohort_name} day ${x.day_number}`} className="aspect-[4/3] w-full rounded-lg object-cover" />}<figcaption className="mt-1 text-xs text-slate-500">{x.cohort_name}, day {x.day_number}</figcaption></figure>))}</div>}
               {s.key === 'reach' && <BarCard data={names.map((n, i) => ({ cohort: n, Enrolled: ser('enrolled')[i], Completed: ser('completed')[i] }))} x="cohort" bars={[{ key: 'Enrolled', label: 'Enrolled', color: '#0D3B3B' }, { key: 'Completed', label: 'Completed', color: '#D4A843' }]} height={200} />}
               {s.key === 'learning' && <BarCard data={names.map((n, i) => ({ cohort: n, Before: ser('prePct')[i], After: ser('postPct')[i] }))} x="cohort" bars={[{ key: 'Before', label: 'Before %', color: '#6A8CAF' }, { key: 'After', label: 'After %', color: '#2E8B7A' }]} height={200} />}
               {s.key === 'followup' && <BarCard data={t.stages.map((x) => ({ stage: `Day ${x.stage}`, Trading: x.trading ?? 0, Higher: x.higher ?? 0 }))} x="stage" bars={[{ key: 'Trading', label: 'Trading %', color: '#0D3B3B' }, { key: 'Higher', label: 'Income higher %', color: '#D4A843' }]} height={200} />}

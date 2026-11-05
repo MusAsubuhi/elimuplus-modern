@@ -4,11 +4,14 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls }
 import { d, kes } from '@/lib/format';
 import { audit } from '@/lib/audit';
 import { decideExpense, markExpensePaid } from '../../actions';
+import SessionPhotoGrid from '@/components/session-photo-grid';
+import { signSessionPhotos } from '@/lib/session-photos';
 
 export default async function Approvals() {
   const me = await requireMe('founder');
   await audit(me.id, 'view approvals', 'expense_requests');
-  const { reqs, thr } = await asUser(me.id, async (q) => ({
+  const { reqs, thr, waitingPhotos } = await asUser(me.id, async (q) => ({
+    waitingPhotos: await q("select p.id, p.day_number, p.storage_path, p.caption, p.status, c.name cohort_name from session_photos p join cohorts c on c.id=p.cohort_id where p.status='pending' order by p.created_at").catch(() => []),
     reqs: await q(`select r.*, p.display_name requester, c.name cohort, k.name category,
         (select string_agg(a.approver_id::text || ':' || a.decision, ',') from expense_approvals a where a.request_id=r.id) votes,
         (select count(distinct approver_id)::int from expense_approvals a where a.request_id=r.id and a.decision='approve') approvals
@@ -16,6 +19,7 @@ export default async function Approvals() {
         order by case r.status when 'submitted' then 0 when 'queried' then 1 when 'approved' then 2 else 3 end, r.created_at desc`),
     thr: Number((await q("select value from settings where key='expense_threshold_kes'"))[0]?.value ?? 20000),
   }));
+  const signed = await signSessionPhotos(waitingPhotos.map((x: any) => x.storage_path));
   const queue = reqs.filter((r) => ['submitted', 'queried'].includes(r.status));
   const toPay = reqs.filter((r) => r.status === 'approved');
   const history = reqs.filter((r) => !['submitted', 'queried', 'approved'].includes(r.status));
@@ -27,6 +31,11 @@ export default async function Approvals() {
         <Stat tone="green" label="Approved, not yet paid" value={toPay.length} sub={kes(toPay.reduce((s, r) => s + r.amount_kes, 0))} />
         <Stat label="Threshold for two approvals" value={kes(thr)} />
       </div>
+      {waitingPhotos.length > 0 && (
+        <Card title={`Session photos to check (${waitingPhotos.length})`} subtitle="Approve only if no face can be recognised and nothing private is in view. Approved photos become visible to the partner." className="mb-4">
+          <SessionPhotoGrid photos={waitingPhotos.map((x: any) => ({ ...x, url: signed[x.storage_path] }))} mode="founder" back="/portal/approvals" />
+        </Card>
+      )}
       <div className="space-y-4">
         {queue.map((r) => {
           const need = r.amount_kes > thr ? 2 : 1;
