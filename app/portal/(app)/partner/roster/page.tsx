@@ -2,7 +2,9 @@ import { asUser } from '@/lib/db';
 import { requirePartner } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { d } from '@/lib/format';
-import { addRoster, removeRoster } from '../../../partner-actions';
+import { addRoster, confirmExtras, removeRoster } from '../../../partner-actions';
+import { rosterRoom, supplementCost } from '@/lib/roster';
+import { kes } from '@/lib/format';
 
 export default async function PartnerRoster({ searchParams }: { searchParams: Promise<{ cohort?: string }> }) {
   const me = await requirePartner();
@@ -14,7 +16,11 @@ export default async function PartnerRoster({ searchParams }: { searchParams: Pr
     rows: await q(`select * from cohort_roster order by created_at`),
   }));
   const chosen = cohorts.find((c) => c.id === sp.cohort) ?? cohorts[0];
-  const mine = rows.filter((r) => r.cohort_id === chosen?.id);
+  const room = chosen ? await asUser(me.id, (q) => rosterRoom(q, chosen.id)) : null;
+  const all = rows.filter((r) => r.cohort_id === chosen?.id);
+  const mine = all.filter((r) => r.status !== 'pending_extra');
+  const extras = all.filter((r) => r.status === 'pending_extra');
+  const cost = room && room.quoted && extras.length ? supplementCost(room.cap ?? room.quoted, extras.length, room.sessions) : null;
   return (
     <>
       <PageHeader image="/images/partner-process-meeting.jpg" title="Add your participants" subtitle="Load the people you want us to train before the first day, so the register is ready when we arrive." />
@@ -25,7 +31,7 @@ export default async function PartnerRoster({ searchParams }: { searchParams: Pr
           </div>
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
             <Stat label="Listed so far" value={mine.filter((r) => r.status !== 'withdrawn').length} />
-            <Stat tone="gold" label="Quoted for" value={chosen.expected_participants ?? '—'} />
+            <Stat tone="gold" label="Quoted for" value={room?.cap ?? chosen.expected_participants ?? '—'} />
             <Stat tone="teal" label="Training starts" value={d(chosen.start_date) || 'to be set'} />
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -44,6 +50,14 @@ export default async function PartnerRoster({ searchParams }: { searchParams: Pr
                 empty="Nobody listed yet. Paste your list on the left." />
             </Card>
           </div>
+          {extras.length > 0 && (
+            <Card title={`${extras.length} extra ${extras.length === 1 ? 'person' : 'people'} waiting for your confirmation`} subtitle="These are beyond the number on your quotation, so they are not on the cohort yet" className="mt-4">
+              <p className="text-sm text-slate-700">Your quotation covers {room?.cap ?? '—'} people and you have listed {room?.active ?? 0}. Adding anyone else while the programme is running is billed on a supplemental invoice, not a new quotation.{cost ? ` For ${extras.length} extra ${extras.length === 1 ? 'person' : 'people'} that comes to ${kes(cost.total)} (${kes(cost.rate)} × ${room?.sessions} sessions plus ${kes(cost.followup / extras.length)} follow-up, for each person).` : ''} Nothing is invoiced until you confirm; we check the invoice before it is sent to you.</p>
+              <Table head={['Name', 'Phone', 'Gender', 'Born', '']} rows={extras.map((r) => [<b key="n">{r.full_name}</b>, r.phone ?? '', r.gender ?? '', r.birth_year ?? '',
+                <form key="x" action={removeRoster}><input type="hidden" name="id" value={r.id} /><button className="text-xs font-bold text-red-700 underline">Remove</button></form>])} />
+              <form action={confirmExtras} className="mt-3"><input type="hidden" name="cohort" value={chosen.id} /><button className={submitCls}>Confirm {extras.length} extra and request the supplemental invoice</button></form>
+            </Card>
+          )}
         </>
       )}
     </>
