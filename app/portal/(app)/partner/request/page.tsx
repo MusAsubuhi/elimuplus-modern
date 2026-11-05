@@ -9,9 +9,8 @@ import { CONTACT } from '@/lib/pricing';
 export default async function RequestTraining() {
   const me = await requirePartner();
   await releaseDueQuotes().catch(() => {});
-  const { orgs, reqs, qcount, pending } = await asUser(me.id, async (q) => ({
-    orgs: await q('select id, name from organisations where id in (select app.my_org_admin_orgs()) order by name'),
-    qcount: (await q('select count(*)::int n from quotes'))[0].n,
+  const { orgs, reqs, pending } = await asUser(me.id, async (q) => ({
+    orgs: await q('select id, name from organisations o where id in (select app.my_org_admin_orgs()) and not exists (select 1 from quotes x where x.organisation_id=o.id) order by name'),
     pending: (await q("select count(*)::int n from quotes where self_service and status='draft'"))[0].n,
     reqs: await q(`select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.status in ('requested','quoted','confirmed') order by c.created_at desc`),
   }));
@@ -21,7 +20,7 @@ export default async function RequestTraining() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Your request">
           {pending > 0 ? <p className="rounded-lg bg-mist p-3 text-sm text-slate-700">We are preparing your proposal and quotation. You will get them by email and find them under Invoices and payments shortly.</p>
-          : qcount > 0 ? <p className="rounded-lg bg-mist p-3 text-sm text-slate-700">Your organisation already has a quotation with us. To plan another cohort, please contact Elimu+ on {CONTACT.phone} or {CONTACT.email}.</p>
+          : orgs.length === 0 ? <p className="rounded-lg bg-mist p-3 text-sm text-slate-700">Your organisation already has a quotation with us. To plan another cohort, please contact Elimu+ on {CONTACT.phone} or {CONTACT.email}.</p>
           : <form action={requestCohort} className="space-y-3 text-sm">
             <label className="block font-bold">Organisation<select name="org" className={inputCls}>{orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
             <label className="block font-bold">Name for this cohort<input name="name" placeholder="e.g. Youth cohort, March" className={inputCls} /></label>

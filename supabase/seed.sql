@@ -43,7 +43,8 @@ insert into public.people(id,full_name,display_name,phone,preferred_language,bir
  ('00000000-0000-4000-8000-000000000305','Mwanaisha (demo)','Mwanaisha','+254700000305','sw',1979),
  ('00000000-0000-4000-8000-000000000306','Salim (demo)','Salim','+254700000306','sw',2004),
  ('00000000-0000-4000-8000-000000000401','Pastor Mary (KE358 admin)','Mary','+254700000401','en',1975),
- ('00000000-0000-4000-8000-000000000402','Mr Otieno (School admin)','Otieno','+254700000402','en',1980);
+ ('00000000-0000-4000-8000-000000000402','Mr Otieno (School admin)','Otieno','+254700000402','en',1980),
+ ('00000000-0000-4000-8000-000000000403','Ms Achieng (College admin)','Achieng','+254700000403','en',1983);
 
 insert into public.role_assignments(person_id,role,tier,organisation_id) values
  ('00000000-0000-4000-8000-000000000101','founder',null,null),
@@ -60,7 +61,8 @@ insert into public.role_assignments(person_id,role,tier,organisation_id) values
  ('00000000-0000-4000-8000-000000000305','participant',null,'00000000-0000-4000-8000-0000000000a3'),
  ('00000000-0000-4000-8000-000000000306','participant',null,'00000000-0000-4000-8000-0000000000a3'),
  ('00000000-0000-4000-8000-000000000401','org_admin',null,'00000000-0000-4000-8000-0000000000a1'),
- ('00000000-0000-4000-8000-000000000402','org_admin',null,'00000000-0000-4000-8000-0000000000a3');
+ ('00000000-0000-4000-8000-000000000402','org_admin',null,'00000000-0000-4000-8000-0000000000a3'),
+ ('00000000-0000-4000-8000-000000000403','org_admin',null,'00000000-0000-4000-8000-0000000000a4');
 
 insert into public.cohorts(id,organisation_id,name,format,language,audience,start_date,end_date,venue,expected_participants,status) values
  ('00000000-0000-4000-8000-000000000501','00000000-0000-4000-8000-0000000000a2','KE358 Cohort 1 (demo figures)','5-day','sw','Youth and caregivers','2026-07-06','2026-07-10','Likoni',4,'followup'),

@@ -232,7 +232,7 @@ export async function requestCohort(f: FormData) {
   try {
     const cohort = (await asUser(me.id, (q) => q(
       `insert into cohorts(organisation_id,name,format,language,audience,start_date,venue,expected_participants,status)
-       values($1,$2,$3,$4,$5,$6,$7,$8,'quoted') returning id`,
+       values($1,$2,$3,$4,$5,$6,$7,$8,'requested') returning id`,
       [org, s(f, 'name') || 'New cohort request', format, s(f, 'language') === 'en' ? 'en' : 'sw', s(f, 'audience'), s(f, 'start') || null, s(f, 'venue'), size])))[0];
     const delayMin = 40 + Math.floor(Math.random() * 110); // 40 to 150 minutes
     await asAdmin(async (q) => {
@@ -242,6 +242,8 @@ export async function requestCohort(f: FormData) {
          values ($1,$2,$3,$4,$5,current_date + 30,'draft',true,$6, now() + ($7 || ' minutes')::interval) returning id`,
         [org, cohort.id, num, size, sessions, me.id, String(delayMin)]))[0];
       for (const l of quoteLines(size, sessions)) await q('insert into quote_lines(quote_id, kind, description, qty, unit_kes) values ($1,$2,$3,$4,$5)', [qt.id, l.kind, l.description, l.qty, l.unit_kes]);
+      // Partners may only create a cohort as 'requested' (database rule); it becomes 'quoted' once the quotation exists.
+      await q("update cohorts set status='quoted' where id=$1 and status='requested'", [cohort.id]);
       await alertFounders(q, `${mine.name} requested a quotation`, `${size} participants, ${format}. It will be released to them automatically in about ${delayMin} minutes. Open Proposals and receipts to review or change it.`, '/portal/deals', 'info');
     });
   } catch (e) { console.error("[portal action]", e); back(P, 'Could not send the request.', 'err'); }
