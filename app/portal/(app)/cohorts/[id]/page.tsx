@@ -8,6 +8,9 @@ import { d, daysFromToday, iso, pct } from '@/lib/format';
 import { markAttendance, recordVisit, saveSessionLog, toggleUnlock } from '../../../actions';
 import { enrolRoster, publishDaySummary } from '../../../partner-actions';
 import { issueParticipantCertificates } from '../../../cert-actions';
+import SessionPhotoAdder from '@/components/session-photo-adder';
+import SessionPhotoGrid from '@/components/session-photo-grid';
+import { signSessionPhotos, MAX_SESSION_PHOTOS } from '@/lib/session-photos';
 
 export default async function CohortPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }) {
   const me = await requireMe('facilitator', 'founder');
@@ -37,12 +40,15 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       q('select e.id, count(*) filter (where a.present)::int p, count(a.id)::int t from enrolments e left join attendance a on a.enrolment_id=e.id where e.cohort_id=$1 group by e.id', [id]),
       q('select enrolment_id, number, share_token from participant_certificates where cohort_id=$1', [id]),
     ]);
+    const photos = await q('select id, day_number, storage_path, caption, status, uploaded_by from session_photos where cohort_id=$1 order by day_number', [id]).catch(() => []);
     const chosen = sp.session ?? sessions[0]?.id;
     const present = chosen ? await q('select enrolment_id from attendance where session_id=$1 and present', [chosen]) : [];
-    return { rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
+    return { photos, rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
   });
   if (!data) notFound();
-  const { rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
+  const { photos, rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
+  const signed = await signSessionPhotos(photos.map((x: any) => x.storage_path));
+  const photoDays = Array.from({ length: c.format === '12-day' ? 12 : 5 }, (_, i) => i + 1).filter((n) => !photos.some((x: any) => x.day_number === n));
   const boxBars = boxes.map((b) => ({ box: String(b.number), name: b.name_en, filled: answers.find((a) => a.box_number === b.number)?.n ?? 0 }));
   const attBars = att.map((a) => ({ day: `Day ${a.day_number}`, rate: pct(a.present, a.total) }));
   const statusPie = ['enrolled', 'completed', 'dropped'].map((s) => ({ name: s, value: roster.filter((r) => r.status === s).length })).filter((x) => x.value);
@@ -93,6 +99,11 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
           <form action={enrolRoster}><input type="hidden" name="cohort" value={id} /><button className={submitCls}>Enrol everyone on the list</button></form>
         </Card>
       )}
+
+      <Card title="Session photos" className="mt-4" subtitle={`Up to ${MAX_SESSION_PHOTOS}, about one a day, so the partner can report without visiting. A founder checks each photo before the partner sees it.`}>
+        <SessionPhotoGrid photos={photos.map((x: any) => ({ ...x, url: signed[x.storage_path] }))} mode={me.roles.includes('founder') ? 'founder' : 'trainer'} me={me.id} back={`/portal/cohorts/${id}`} />
+        <div className="mt-4 border-t border-teal-50 pt-4"><SessionPhotoAdder cohortId={id} days={photos.length >= MAX_SESSION_PHOTOS ? [] : photoDays} isFounder={me.roles.includes('founder')} /></div>
+      </Card>
 
       <Card title="Roster" className="mt-4" subtitle="Names are visible to trainers of this cohort only">
         <Table head={['Participant', 'Track', 'Status', 'Boxes filled', 'Business at entry']}

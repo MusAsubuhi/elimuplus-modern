@@ -9,11 +9,14 @@ import { followupStats } from '@/lib/data';
 import { nominate } from '../../actions';
 import { loadImpact, totals } from '@/lib/impact';
 import { Outcomes } from '@/components/outcomes';
+import SessionPhotoGrid from '@/components/session-photo-grid';
+import { signSessionPhotos } from '@/lib/session-photos';
 
 export default async function Partner({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const sp = await searchParams;
   const me = await requirePartner();
-  const { orgs, cohorts, follow, roster, noms, impact } = await asUser(me.id, async (q) => ({
+  const { orgs, cohorts, follow, roster, noms, impact, photos } = await asUser(me.id, async (q) => ({
+    photos: await q("select p.id, p.day_number, p.storage_path, p.caption, p.status, c.name cohort_name from session_photos p join cohorts c on c.id=p.cohort_id where p.status='approved' order by c.seq, p.day_number").catch(() => []),
     ...(await partnerData(q)),
     impact: await loadImpact(q),
     roster: await q(`select p.display_name, p.birth_year, e.status, e.track, c.name cohort_name,
@@ -21,6 +24,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
         from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.seq, p.display_name`),
     noms: await q('select * from invitations where nominated_by=$1 order by created_at desc', [me.id]),
   }));
+  const signed = await signSessionPhotos(photos.map((x: any) => x.storage_path));
   const named = roster.length > 0;
   const stats = followupStats(follow);
   const total = cohorts.reduce((s, c) => s + c.n, 0), completed = cohorts.reduce((s, c) => s + c.completed, 0);
@@ -58,6 +62,12 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
       <Card title="Cohorts" className="mt-4">
         <Table head={['Cohort', 'Format', 'Dates', 'Enrolled', 'Completed', 'Status']} rows={cohorts.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', `${d(c.start_date)} to ${d(c.end_date)}`, c.n, c.completed, <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>])} />
       </Card>
+
+      {photos.length > 0 && (
+        <Card title="Session photos" className="mt-4" subtitle="Taken from behind during training, so no one needs to attend to photograph it. Use them in your own reports.">
+          <SessionPhotoGrid photos={photos.map((x: any) => ({ ...x, url: signed[x.storage_path] }))} mode="partner" back="/portal/partner" />
+        </Card>
+      )}
 
       <Card title="Participants" className="mt-4" subtitle={named ? 'Named access is part of your agreement.' : 'Your agreement shares results as totals, without names.'}>
         {named ? <Table head={['Name', 'Cohort', 'Status', 'Canvas boxes']} rows={roster.map((r) => [<b key="n">{r.display_name}</b>, r.cohort_name, <Badge key="s" tone={statusTone(r.status)}>{r.status}</Badge>, `${r.boxes}/12`])} />

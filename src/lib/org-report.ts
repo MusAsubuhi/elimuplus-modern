@@ -11,6 +11,7 @@ export const REPORT_SECTIONS: { key: string; label: string; blurb: string }[] = 
   { key: 'followup', label: 'Business results after training', blurb: 'Trading, income and money habits at 30, 60 and 90 days.' },
   { key: 'youth', label: 'Youth pathways', blurb: 'First income, CV readiness and interviews for youth participants.' },
   { key: 'feedback', label: 'Participant feedback', blurb: 'Ratings and whether participants would recommend the training.' },
+  { key: 'photos', label: 'Session photos', blurb: 'Up to five photos from the training, taken from behind, one per day. Only photos a founder has approved.' },
 ];
 export const SECTION_KEYS = REPORT_SECTIONS.map((s) => s.key);
 
@@ -27,7 +28,7 @@ export interface Row {
   youthN: number; firstIncome: number | null; cvReady: number | null; interviews: number;
   exitN: number; rating: number | null; recommend: number | null;
 }
-export interface Model { rows: Row[]; total: Row }
+export interface Model { rows: Row[]; total: Row; photoCount: number }
 
 function stageOf(m: Impact, st: number): Stage {
   const a = m.adult?.[String(st)] ?? {};
@@ -51,7 +52,7 @@ function rowOf(c: CohortIn): Row {
     exitN: num(x.n), rating: x.n ? Math.round(num(x.rating) * 10) / 10 : null, recommend: pct(num(x.recommend), num(x.n)),
   };
 }
-export function buildModel(list: CohortIn[]): Model {
+export function buildModel(list: CohortIn[], photoCount = 0): Model {
   const rows = list.map(rowOf);
   const sum = (f: (r: Row) => number) => rows.reduce((s, r) => s + f(r), 0);
   const wavg = (f: (r: Row) => number | null, w: (r: Row) => number, dec = 0) => {
@@ -78,13 +79,13 @@ export function buildModel(list: CohortIn[]): Model {
     youthN: sum((r) => r.youthN), firstIncome: wavg((r) => r.firstIncome, (r) => r.youthN), cvReady: wavg((r) => r.cvReady, (r) => r.youthN), interviews: sum((r) => r.interviews),
     exitN: sum((r) => r.exitN), rating: wavg((r) => r.rating, (r) => r.exitN, 1), recommend: wavg((r) => r.recommend, (r) => r.exitN),
   };
-  return { rows, total };
+  return { rows, total, photoCount };
 }
 
 export const hasData = (m: Model, key: string) => {
   const r = m.total;
   return key === 'reach' ? r.enrolled > 0 : key === 'learning' ? r.prePct != null || r.postPct != null : key === 'followup' ? r.stages.some((s) => s.reached > 0)
-    : key === 'youth' ? r.youthN > 0 : key === 'feedback' ? r.exitN > 0 : false;
+    : key === 'youth' ? r.youthN > 0 : key === 'feedback' ? r.exitN > 0 : key === 'photos' ? m.photoCount > 0 : false;
 };
 
 /** Plain-language takeaways, including how cohorts compare when more than one is chosen. */
@@ -121,6 +122,7 @@ export function takeaways(m: Model, key: string): string[] {
     if (t.firstIncome != null) out.push(`${t.firstIncome}% of youth reported first income${t.cvReady != null ? ` and ${t.cvReady}% had a CV ready` : ''}.`);
     out.push(`${t.interviews} interviews were reported in total.`);
   }
+  if (key === 'photos') out.push(`${m.photoCount} photo${m.photoCount === 1 ? '' : 's'} from the training, taken from behind so no participant can be identified.`);
   if (key === 'feedback') {
     if (t.rating != null) out.push(`Participants rated the training ${t.rating} out of 5 on average${t.recommend != null ? `, and ${t.recommend}% would recommend it` : ''} (${t.exitN} responses).`);
     best((r) => r.rating, 'The rating', (v) => `${v}/5`);

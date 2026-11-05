@@ -11,7 +11,7 @@ const SERIES = [TEAL, GOLD, GREEN, RED, BLUE];
 const clean = (s: unknown) => String(s ?? '').replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7e\xa0-\xff]/g, '?');
 const day = (d: string | Date | null) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
-export interface PdfInput { title: string; org: string; model: Model; sections: string[]; confidentiality: string; preparedBy: string; generatedOn: Date; note?: string }
+export interface PdfInput { photos?: { cohort: string; day: number; caption: string | null; bytes: Uint8Array }[]; title: string; org: string; model: Model; sections: string[]; confidentiality: string; preparedBy: string; generatedOn: Date; note?: string }
 
 export async function renderReportPdf(inp: PdfInput): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
@@ -126,6 +126,22 @@ export async function renderReportPdf(inp: PdfInput): Promise<Uint8Array> {
     if (s.key === 'youth') {
       bars(names, [{ name: 'First income', values: inp.model.rows.map((r) => r.firstIncome), color: TEAL }, { name: 'CV ready', values: inp.model.rows.map((r) => r.cvReady), color: GOLD }], { max: 100, suffix: '%' });
       table(['Cohort', 'Youth reported', 'First income', 'CV ready', 'Interviews'], rowsFor((r) => [label(r), String(r.youthN), f(r.firstIncome, '%'), f(r.cvReady, '%'), String(r.interviews)]), [150, 85, 85, 80, 61]);
+    }
+    if (s.key === 'photos') {
+      const pics = inp.photos ?? [];
+      const pw = (CW - 12) / 2, ph = pw * 0.72;
+      for (let i = 0; i < pics.length; i += 2) {
+        need(ph + 34);
+        for (const [j, pic] of pics.slice(i, i + 2).entries()) {
+          const img = await doc.embedJpg(pic.bytes).catch(() => null);
+          if (!img) continue;
+          const sc = Math.min(pw / img.width, ph / img.height), w = img.width * sc, h = img.height * sc, x = M + j * (pw + 12);
+          page.drawImage(img, { x: x + (pw - w) / 2, y: y - ph + (ph - h) / 2, width: w, height: h });
+          text(`${pic.cohort}, day ${pic.day}${pic.caption ? `: ${pic.caption}` : ''}`.slice(0, 80), x, y - ph - 11, 8, reg, GREY);
+        }
+        y -= ph + 24;
+      }
+      para('Photos were taken from behind or at a distance and approved by Elimu+ before release. Please do not share them outside your organisation without checking.', 8, GREY);
     }
     if (s.key === 'feedback') {
       bars(names, [{ name: 'Rating (of 5)', values: inp.model.rows.map((r) => r.rating), color: GOLD }], { max: 5, height: 120 });
