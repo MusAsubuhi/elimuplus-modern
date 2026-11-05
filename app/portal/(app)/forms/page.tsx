@@ -15,10 +15,10 @@ const PORTAL_COUNT: Record<string, string> = {
   exit: `select count(*)::int n from exit_feedback where response_id is not null`,
 };
 const GROUPS: { kind: string; title: string; note: string }[] = [
-  { kind: 'followup', title: 'Follow-up visits (Day 30, 60 and 90)', note: 'One adult form and one youth form. Each submission says which visit it is.' },
+  { kind: 'cohort', title: 'Set up: registration, attendance and observers', note: 'Made for each cohort.' },
   { kind: 'start_end', title: 'Start and end of training', note: 'Day 0 baseline, the learning check (first and last day) and exit feedback.' },
-  { kind: 'cohort', title: 'Registration, attendance and observers', note: 'Made for each cohort.' },
-  { kind: 'report', title: 'Facilitator day reports', note: 'One form per facilitator level.' },
+  { kind: 'report', title: 'During training: facilitator day reports', note: 'One form per facilitator level.' },
+  { kind: 'followup', title: 'After training: follow-up visits (Day 30, 60 and 90)', note: 'One adult form and one youth form. Each submission says which visit it is.' },
   { kind: 'other', title: 'Other', note: '' },
 ];
 const when = (x: any) => (x ? new Date(x).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
