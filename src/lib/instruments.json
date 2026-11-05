@@ -1,1410 +1,1185 @@
 {
- "version": 1,
- "instruments": {
-  "baseline": {
-   "title": "Elimu+ Day 0 Baseline",
-   "description": "Complete this once for every participant at the start, in the first two days. It records who they are, where they start and what they hope for, so that the 30, 60 and 90 day visits can show real change. Part A is the same for everyone; then choose adult or youth. Ask money and household questions last, and gently.",
-   "common": [
-    {
-     "key": "gender",
-     "label": "Gender",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Female",
-      "Male",
-      "Other",
-      "Prefer not to say"
-     ]
+  "version": 1,
+  "instruments": {
+    "baseline": {
+      "title": "Elimu+ Day 0 Baseline",
+      "description": "Complete this once for every participant in the first two days, in person. It takes about five minutes. It records where they start, so the 30, 60 and 90 day visits can show real change. Name, phone, age and gender are already in the roster, so they are not asked again.",
+      "common": [],
+      "branch": {
+        "label": "Which group is this participant in?",
+        "options": [
+          {
+            "label": "Adult or caregiver",
+            "value": "adult",
+            "sections": [
+              {
+                "title": "The business",
+                "help": "Work out the money together. Ranges are fine.",
+                "fields": [
+                  {
+                    "key": "business_type",
+                    "label": "What is the business?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Sells goods",
+                      "Food or drink",
+                      "Service, such as a salon or repairs",
+                      "Farming or livestock",
+                      "Making or crafts",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "business_stage",
+                    "label": "How long has it been running?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Not started yet (an idea)",
+                      "Under 6 months",
+                      "6 to 12 months",
+                      "1 to 3 years",
+                      "Over 3 years"
+                    ]
+                  },
+                  {
+                    "key": "a1_operating",
+                    "label": "Is it operating now?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Yes, but reduced",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "a4_profit_band",
+                    "label": "About how much profit did the business make last week?",
+                    "type": "choice",
+                    "required": true,
+                    "help": "Work it out together: sales minus the cost of the stock sold. A range is fine.",
+                    "options": [
+                      "No profit, or a loss",
+                      "Under Ksh 1,000",
+                      "Ksh 1,000 to 2,000",
+                      "Ksh 2,000 to 4,000",
+                      "Over Ksh 4,000"
+                    ]
+                  },
+                  {
+                    "key": "a4_profit",
+                    "label": "If she can say a figure, how much was it? (Ksh)",
+                    "type": "number",
+                    "required": false
+                  },
+                  {
+                    "key": "a3_stock_level",
+                    "label": "Does she have enough stock or tools to keep trading?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Partly",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "a3_stock_value",
+                    "label": "Total business value today, stock plus cash (Ksh)",
+                    "type": "number",
+                    "required": true,
+                    "help": "Count the stock together with her and add the cash in the business."
+                  },
+                  {
+                    "key": "a7_category",
+                    "label": "What is her biggest challenge right now?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Security",
+                      "Health or family",
+                      "Debt repayment",
+                      "Not enough stock or capital",
+                      "Few customers or low sales",
+                      "Stock costs rising",
+                      "Rent, licence or location",
+                      "Transport",
+                      "Competition",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "a5_records",
+                    "label": "Does she write down sales and spending?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Daily",
+                      "Sometimes",
+                      "Not yet"
+                    ]
+                  },
+                  {
+                    "key": "a5_pays_self",
+                    "label": "Does she pay herself a set amount?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Sometimes",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "a5_separate",
+                    "label": "Does she keep business money apart from home money?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Mostly",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "a5_used_calc",
+                    "label": "In the last month, did she use a calculation (cost, price or profit) to make a decision?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "a5_used_calc_what",
+                    "label": "If yes, what was it?",
+                    "type": "text",
+                    "required": false
+                  },
+                  {
+                    "key": "confidence",
+                    "label": "How confident is she about running this business?",
+                    "type": "scale",
+                    "required": true,
+                    "min": 1,
+                    "max": 5,
+                    "minLabel": "Not at all",
+                    "maxLabel": "Very confident"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Youth",
+            "value": "youth",
+            "sections": [
+              {
+                "title": "The young person",
+                "help": "Let them answer in their own words. Ranges are fine.",
+                "fields": [
+                  {
+                    "key": "education_status",
+                    "label": "What is the young person's situation now?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "In school",
+                      "Out of school and not working",
+                      "Doing casual work",
+                      "Working in a job",
+                      "Running a small business",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "hoped_path",
+                    "label": "What do they want most from the next year?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "A job",
+                      "My own business",
+                      "Both",
+                      "To study",
+                      "Not sure"
+                    ]
+                  },
+                  {
+                    "key": "skills_have",
+                    "label": "Which skills do they already have?",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Selling",
+                      "Handling money",
+                      "A trade or craft",
+                      "Computer or phone skills",
+                      "Cooking",
+                      "Farming",
+                      "Talking to customers",
+                      "None yet",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "a7_category",
+                    "label": "What stops them most from moving forward?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "No money",
+                      "No experience",
+                      "No contacts",
+                      "No skills certificate",
+                      "No idea where to start",
+                      "Family or health",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "prior_work",
+                    "label": "Work experience so far",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "None",
+                      "Informal or casual",
+                      "Formal job"
+                    ]
+                  },
+                  {
+                    "key": "earning_range",
+                    "label": "Money earned in the last 30 days",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Nothing yet",
+                      "Under Ksh 1,000",
+                      "Ksh 1,000 to 3,000",
+                      "Ksh 3,000 to 6,000",
+                      "Over Ksh 6,000"
+                    ]
+                  },
+                  {
+                    "key": "has_cv",
+                    "label": "Do they have a CV?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "applied_recently",
+                    "label": "Have they applied for work or started something in the last three months?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "can_explain",
+                    "label": "Can they explain their skill to an employer or customer in a few sentences?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "A bit",
+                      "Not yet"
+                    ]
+                  },
+                  {
+                    "key": "confidence",
+                    "label": "How confident are they about their next step?",
+                    "type": "scale",
+                    "required": true,
+                    "min": 1,
+                    "max": 5,
+                    "minLabel": "Not at all",
+                    "maxLabel": "Very confident"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
-    {
-     "key": "birth_year",
-     "label": "Year of birth",
-     "type": "number",
-     "required": true,
-     "help": "Four digits, for example 1988."
-    },
-    {
-     "key": "education",
-     "label": "Highest level of schooling",
-     "type": "choice",
-     "options": [
-      "No formal schooling",
-      "Some primary",
-      "Completed primary (KCPE)",
-      "Some secondary",
-      "Completed secondary (KCSE)",
-      "TVET or vocational certificate",
-      "Diploma",
-      "Bachelor's degree",
-      "Postgraduate"
-     ]
-    },
-    {
-     "key": "disability",
-     "label": "Does the participant live with a disability?",
-     "type": "choice",
-     "options": [
-      "No",
-      "Yes",
-      "Prefer not to say"
-     ],
-     "help": "Ask privately. This helps us plan access and report fairly."
-    },
-    {
-     "key": "partner_ref",
-     "label": "Partner reference, if the participant is linked to a partner",
-     "type": "text",
-     "help": "For example the CDC child or family number. Leave blank if none."
-    },
-    {
-     "key": "guardian_name",
-     "label": "If under 18: name of parent or guardian",
-     "type": "text"
-    },
-    {
-     "key": "guardian_phone",
-     "label": "If under 18: guardian phone number",
-     "type": "text"
-    },
-    {
-     "key": "guardian_consent",
-     "label": "If under 18: has the guardian agreed to take part?",
-     "type": "choice",
-     "options": [
-      "Yes",
-      "No",
-      "Not applicable (18 or over)"
-     ]
-    },
-    {
-     "key": "story_consent",
-     "label": "May Elimu+ share this person's story?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Yes, with their name",
-      "Yes, without their name",
-      "No"
-     ],
-     "help": "Read it out and wait for the answer. It can be changed later."
-    },
-    {
-     "key": "photo_consent",
-     "label": "May Elimu+ use photos of this person?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Yes",
-      "No"
-     ]
-    }
-   ],
-   "branch": {
-    "label": "Which group is this participant in?",
-    "options": [
-     {
-      "label": "Adult or caregiver",
-      "value": "adult",
-      "sections": [
-       {
-        "title": "Part B: the business",
-        "help": "Count the stock together. Ranges are fine for money.",
-        "fields": [
-         {
-          "key": "business_stage",
-          "label": "Where is the business today?",
+    "learning": {
+      "title": "Elimu+ Learning Check",
+      "description": "Six short questions and one confidence rating, taken on the first day and again on the last day. It is not a pass or fail test. It shows us what the training changes. Please answer alone and do not look at anyone else's paper.",
+      "common": [
+        {
+          "key": "stage",
+          "label": "When is this check being taken?",
           "type": "choice",
           "required": true,
           "options": [
-           "Running now",
-           "Starting soon (stock or place ready)",
-           "Only an idea"
-          ]
-         },
-         {
-          "key": "business_type",
-          "label": "What does she sell or do?",
-          "type": "text"
-         },
-         {
-          "key": "a1_days_open",
-          "label": "Days open in the last 7 days",
-          "type": "number"
-         },
-         {
-          "key": "a2_good_day",
-          "label": "Customers on a good day",
-          "type": "number"
-         },
-         {
-          "key": "a2_slow_day",
-          "label": "Customers on a slow day",
-          "type": "number"
-         },
-         {
-          "key": "a3_stock_level",
-          "label": "Stock level overall",
-          "type": "choice",
-          "options": [
-           "Full",
-           "Half",
-           "Low",
-           "Empty",
-           "No stock yet"
-          ]
-         },
-         {
-          "key": "a3_stock_value",
-          "label": "Total stock value (Ksh)",
-          "type": "number",
-          "help": "Quantity times selling price, added up. Count the stock together with her."
-         },
-         {
-          "key": "a4_sales_range",
-          "label": "Sales in the last 7 days (money received, before costs)",
-          "type": "choice",
-          "options": [
-           "Under 1,000",
-           "1,000 to 2,999",
-           "3,000 to 5,999",
-           "6,000 to 9,999",
-           "10,000 to 19,999",
-           "20,000 or more"
+            "Start of the programme",
+            "End of the programme"
           ],
-          "help": "Ask money last. Ranges are fine; do not push."
-         },
-         {
-          "key": "a4_restock_range",
-          "label": "Spent on restocking in the last 7 days",
+          "help": "Everyone does the same short check on the first and the last day. It is not marked against them; it shows what the training changes."
+        },
+        {
+          "key": "q1",
+          "label": "A woman sells 20 mandazi at KES 10 each. The flour, oil and charcoal for them cost KES 120. What is her profit?",
           "type": "choice",
+          "required": true,
           "options": [
-           "None",
-           "Under 1,000",
-           "1,000 to 2,999",
-           "3,000 to 5,999",
-           "6,000 or more"
-          ]
-         },
-         {
-          "key": "a4_profit",
-          "label": "Rough weekly profit, worked out together (Ksh)",
-          "type": "number"
-         },
-         {
-          "key": "a5_records",
-          "label": "Keeps written records?",
-          "type": "choice",
-          "options": [
-           "Daily",
-           "Sometimes",
-           "No"
-          ]
-         },
-         {
-          "key": "a5_separate",
-          "label": "Keeps business money separate from home money?",
-          "type": "choice",
-          "options": [
-           "Always",
-           "Sometimes",
-           "Not yet"
-          ]
-         },
-         {
-          "key": "a5_pays_self",
-          "label": "Does she pay herself?",
-          "type": "choice",
-          "options": [
-           "Regularly",
-           "Sometimes",
-           "Not yet"
-          ]
-         },
-         {
-          "key": "a4_set_aside",
-          "label": "Enough set aside for the next restock?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "Not enough"
-          ]
-         },
-         {
-          "key": "savings_group",
-          "label": "Already in a savings group or SACCO?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         }
-        ]
-       },
-       {
-        "title": "Part C: household, support and confidence",
-        "help": "",
-        "fields": [
-         {
-          "key": "household_size",
-          "label": "People living in the household (including her)",
-          "type": "number"
-         },
-         {
-          "key": "dependants",
-          "label": "People who depend on the household income",
-          "type": "number"
-         },
-         {
-          "key": "children_in_school",
-          "label": "Children of school age currently in school",
-          "type": "number"
-         },
-         {
-          "key": "a6_meal",
-          "label": "In the past week, did the household go without a meal or something needed because of money?",
-          "type": "choice",
-          "options": [
-           "No",
-           "Sometimes",
-           "Often"
+            "KES 200",
+            "KES 120",
+            "KES 80",
+            "KES 20"
           ],
-          "help": "Private. Ask gently."
-         },
-         {
-          "key": "income_sources",
-          "label": "Where does the household income come from?",
-          "type": "checkbox",
-          "options": [
-           "This business",
-           "Another business",
-           "Casual work",
-           "Salaried work",
-           "Farming",
-           "Family or remittances",
-           "Church or community support",
-           "Other"
-          ]
-         },
-         {
-          "key": "a7_category",
-          "label": "Biggest challenge right now",
+          "correct": "KES 80"
+        },
+        {
+          "key": "q2",
+          "label": "Which of these is a fixed cost for a small shop (one you pay whether you sell or not)?",
           "type": "choice",
+          "required": true,
           "options": [
-           "Customers",
-           "Stock",
-           "Capital",
-           "Prices",
-           "Location",
-           "Health",
-           "Family",
-           "Safety",
-           "Licence or permit",
-           "Other"
+            "Rent for the stall",
+            "Stock bought each week",
+            "Transport for each delivery",
+            "Packaging for each sale"
+          ],
+          "correct": "Rent for the stall"
+        },
+        {
+          "key": "q3",
+          "label": "What does 'break-even' mean?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Sales equal total costs, so there is no profit and no loss",
+            "The day with the highest sales",
+            "All the stock is sold",
+            "The business has borrowed money"
+          ],
+          "correct": "Sales equal total costs, so there is no profit and no loss"
+        },
+        {
+          "key": "q4",
+          "label": "A juice seller sells a bottle for KES 70. The fruit, bottle and ice for that one bottle cost KES 45. How much does each bottle contribute towards the rent and the profit?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "KES 115",
+            "KES 70",
+            "KES 45",
+            "KES 25"
+          ],
+          "correct": "KES 25"
+        },
+        {
+          "key": "q5",
+          "label": "Before starting a business, the best first step is to:",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Buy as much stock as possible",
+            "Copy the neighbour's business",
+            "Ask possible customers what problem they want solved",
+            "Borrow a large loan"
+          ],
+          "correct": "Ask possible customers what problem they want solved"
+        },
+        {
+          "key": "q6",
+          "label": "A woman buys a KES 6,000 blender once for her juice stall. If she closes the business, she cannot get that money back. This is called a:",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Sunk cost",
+            "Variable cost",
+            "Sale",
+            "Saving"
+          ],
+          "correct": "Sunk cost"
+        },
+        {
+          "key": "confidence",
+          "label": "How confident are you that you could work out the profit of a small business? (1 = not at all, 5 = very)",
+          "type": "scale",
+          "required": true,
+          "min": 1,
+          "max": 5,
+          "minLabel": "Not at all",
+          "maxLabel": "Very"
+        }
+      ],
+      "self": true
+    },
+    "exit": {
+      "title": "Elimu+ End of Training Feedback",
+      "description": "Completed on the last training day. Six short questions. Your honest answers help us improve the programme.",
+      "common": [
+        {
+          "key": "rating",
+          "label": "Overall, how was the training?",
+          "type": "scale",
+          "required": true,
+          "min": 1,
+          "max": 5,
+          "minLabel": "Poor",
+          "maxLabel": "Excellent"
+        },
+        {
+          "key": "clarity",
+          "label": "How clear was the facilitator?",
+          "type": "scale",
+          "required": true,
+          "min": 1,
+          "max": 5,
+          "minLabel": "Not clear",
+          "maxLabel": "Very clear"
+        },
+        {
+          "key": "most_useful",
+          "label": "Which topic helped you most?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Session 1: Introduction to employability and entrepreneurship",
+            "Session 2: Designing your product or personal value proposition",
+            "Session 3: Defining your target audience",
+            "Session 4: Designing operations",
+            "Session 5: Pricing, compensation and workplace culture",
+            "Session 6: Hiring, teamwork and relationships"
           ]
-         },
-         {
-          "key": "a7_words",
-          "label": "The challenge, in her own words",
-          "type": "longtext"
-         },
-         {
-          "key": "hope_words",
-          "label": "What does she hope will be different in three months? (her own words)",
-          "type": "longtext"
-         },
-         {
-          "key": "support_promised",
-          "label": "Support promised to her: each item, and what it is for",
+        },
+        {
+          "key": "change_suggestion",
+          "label": "What is one thing we should improve?",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "recommend",
+          "label": "Would you recommend this training to a friend?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "Yes",
+            "Not sure",
+            "No"
+          ]
+        },
+        {
+          "key": "confidence",
+          "label": "How confident do you feel about starting or improving your business or job search?",
+          "type": "scale",
+          "required": true,
+          "min": 1,
+          "max": 5,
+          "minLabel": "Not at all",
+          "maxLabel": "Very confident"
+        },
+        {
+          "key": "concern",
+          "label": "Did anything happen during the training that was unsafe or unfair?",
+          "type": "choice",
+          "required": true,
+          "options": [
+            "No",
+            "Yes"
+          ]
+        },
+        {
+          "key": "concern_note",
+          "label": "If yes, tell us what you are comfortable sharing",
           "type": "longtext",
-          "help": "This is checked against what she received at the Day 30 visit."
-         },
-         {
-          "key": "support_promised_kes",
-          "label": "Total value of the support promised (Ksh)",
-          "type": "number"
-         },
-         {
-          "key": "confidence",
-          "label": "How confident is she about running or starting the business? (1 = not at all, 5 = very)",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Not at all",
-          "maxLabel": "Very"
-         }
+          "required": false
+        }
+      ],
+      "self": true
+    },
+    "youth_followup": {
+      "title": "Elimu+ Youth Follow-up Visit: Day 30, 60 and 90",
+      "description": "Complete this in person with the young person. About ten minutes. Ask about safety and welfare first, and let them say it in their own words.",
+      "common": [],
+      "branch": {
+        "label": "Which follow-up visit is this?",
+        "options": [
+          {
+            "label": "Day 30",
+            "value": "30",
+            "sections": [
+              {
+                "title": "Day 30 follow-up. The visit",
+                "help": "In person. Ask about safety and welfare first, and let the young person say it in their own words.",
+                "fields": [
+                  {
+                    "key": "visited_on",
+                    "label": "Date of visit",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "key": "status",
+                    "label": "What is the young person doing now?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Employed",
+                      "Self-employed",
+                      "Casual work",
+                      "Studying",
+                      "Looking for work",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "earning_range",
+                    "label": "Money earned in the last 30 days",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Nothing yet",
+                      "Under Ksh 1,000",
+                      "Ksh 1,000 to 3,000",
+                      "Ksh 3,000 to 6,000",
+                      "Over Ksh 6,000"
+                    ]
+                  },
+                  {
+                    "key": "earning_figure",
+                    "label": "If they can say a figure, how much was it? (Ksh)",
+                    "type": "number",
+                    "required": false
+                  },
+                  {
+                    "key": "income_vs",
+                    "label": "Compared with before the training, they earn",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "More",
+                      "The same",
+                      "Less"
+                    ]
+                  },
+                  {
+                    "key": "income_why",
+                    "label": "Why did it change? (one line)",
+                    "type": "text",
+                    "required": false
+                  },
+                  {
+                    "key": "since_training",
+                    "label": "Since the training (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Applied for work or an opportunity",
+                      "Had an interview",
+                      "Started a business or side income",
+                      "Earning from a skill",
+                      "Updated or written a CV",
+                      "None yet"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Day 30 follow-up. What the officer sees",
+                "fields": [
+                  {
+                    "key": "challenges",
+                    "label": "Challenges (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Family or transport",
+                      "No money",
+                      "No work found",
+                      "No contacts",
+                      "Health",
+                      "Lack of confidence",
+                      "Other",
+                      "None at the moment"
+                    ]
+                  },
+                  {
+                    "key": "progress",
+                    "label": "Signs of progress (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "New income",
+                      "New skill used",
+                      "New contacts",
+                      "More confident",
+                      "Saving",
+                      "None yet"
+                    ]
+                  },
+                  {
+                    "key": "risks",
+                    "label": "Risk signs (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "help": "A safety or welfare concern alerts the founders straight away.",
+                    "options": [
+                      "Personal safety or welfare concern",
+                      "Giving up",
+                      "Pressure from family",
+                      "Losing contact",
+                      "None"
+                    ]
+                  },
+                  {
+                    "key": "plan_ready",
+                    "label": "Do they have a written plan or canvas they are using?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Started",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "cv_status",
+                    "label": "Do they have a CV ready to send?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "In progress",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "confidence",
+                    "label": "How confident are they about their next step?",
+                    "type": "scale",
+                    "required": true,
+                    "min": 1,
+                    "max": 5,
+                    "minLabel": "Not at all",
+                    "maxLabel": "Very confident"
+                  }
+                ]
+              },
+              {
+                "title": "Day 30 follow-up. Support and result",
+                "fields": [
+                  {
+                    "key": "support_needed",
+                    "label": "Support needed",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "A job lead",
+                      "Small capital",
+                      "A skill course",
+                      "Mentoring",
+                      "CV or application help",
+                      "Nothing"
+                    ]
+                  },
+                  {
+                    "key": "action_taken",
+                    "label": "Action taken at this visit (one line)",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "officer_view",
+                    "label": "Result of this visit",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "On track",
+                      "Stuck",
+                      "Lost contact"
+                    ]
+                  },
+                  {
+                    "key": "next_step",
+                    "label": "Next action: what needs to happen",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "next_who",
+                    "label": "Next action: who will do it",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "next_date",
+                    "label": "Next action: by when",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "key": "impact_note",
+                    "label": "What has changed for the young person and their family?",
+                    "type": "longtext",
+                    "required": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Day 60",
+            "value": "60",
+            "sections": [
+              {
+                "title": "Day 60 follow-up. The visit",
+                "help": "In person. Ask about safety and welfare first, and let the young person say it in their own words.",
+                "fields": [
+                  {
+                    "key": "visited_on",
+                    "label": "Date of visit",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "key": "status",
+                    "label": "What is the young person doing now?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Employed",
+                      "Self-employed",
+                      "Casual work",
+                      "Studying",
+                      "Looking for work",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "earning_range",
+                    "label": "Money earned in the last 30 days",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Nothing yet",
+                      "Under Ksh 1,000",
+                      "Ksh 1,000 to 3,000",
+                      "Ksh 3,000 to 6,000",
+                      "Over Ksh 6,000"
+                    ]
+                  },
+                  {
+                    "key": "earning_figure",
+                    "label": "If they can say a figure, how much was it? (Ksh)",
+                    "type": "number",
+                    "required": false
+                  },
+                  {
+                    "key": "income_vs",
+                    "label": "Compared with before the training, they earn",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "More",
+                      "The same",
+                      "Less"
+                    ]
+                  },
+                  {
+                    "key": "income_why",
+                    "label": "Why did it change? (one line)",
+                    "type": "text",
+                    "required": false
+                  },
+                  {
+                    "key": "since_training",
+                    "label": "Since the training (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Applied for work or an opportunity",
+                      "Had an interview",
+                      "Started a business or side income",
+                      "Earning from a skill",
+                      "Updated or written a CV",
+                      "None yet"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Day 60 follow-up. What the officer sees",
+                "fields": [
+                  {
+                    "key": "challenges",
+                    "label": "Challenges (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Family or transport",
+                      "No money",
+                      "No work found",
+                      "No contacts",
+                      "Health",
+                      "Lack of confidence",
+                      "Other",
+                      "None at the moment"
+                    ]
+                  },
+                  {
+                    "key": "progress",
+                    "label": "Signs of progress (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "New income",
+                      "New skill used",
+                      "New contacts",
+                      "More confident",
+                      "Saving",
+                      "None yet"
+                    ]
+                  },
+                  {
+                    "key": "risks",
+                    "label": "Risk signs (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "help": "A safety or welfare concern alerts the founders straight away.",
+                    "options": [
+                      "Personal safety or welfare concern",
+                      "Giving up",
+                      "Pressure from family",
+                      "Losing contact",
+                      "None"
+                    ]
+                  },
+                  {
+                    "key": "plan_ready",
+                    "label": "Do they have a written plan or canvas they are using?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Started",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "cv_status",
+                    "label": "Do they have a CV ready to send?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "In progress",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "confidence",
+                    "label": "How confident are they about their next step?",
+                    "type": "scale",
+                    "required": true,
+                    "min": 1,
+                    "max": 5,
+                    "minLabel": "Not at all",
+                    "maxLabel": "Very confident"
+                  }
+                ]
+              },
+              {
+                "title": "Day 60 follow-up. Support and result",
+                "fields": [
+                  {
+                    "key": "support_needed",
+                    "label": "Support needed",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "A job lead",
+                      "Small capital",
+                      "A skill course",
+                      "Mentoring",
+                      "CV or application help",
+                      "Nothing"
+                    ]
+                  },
+                  {
+                    "key": "action_taken",
+                    "label": "Action taken at this visit (one line)",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "officer_view",
+                    "label": "Result of this visit",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "On track",
+                      "Stuck",
+                      "Lost contact"
+                    ]
+                  },
+                  {
+                    "key": "next_step",
+                    "label": "Next action: what needs to happen",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "next_who",
+                    "label": "Next action: who will do it",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "next_date",
+                    "label": "Next action: by when",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "key": "impact_note",
+                    "label": "What has changed for the young person and their family?",
+                    "type": "longtext",
+                    "required": false
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Day 90",
+            "value": "90",
+            "sections": [
+              {
+                "title": "Day 90 follow-up. The visit",
+                "help": "In person. Ask about safety and welfare first, and let the young person say it in their own words.",
+                "fields": [
+                  {
+                    "key": "visited_on",
+                    "label": "Date of visit",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "key": "status",
+                    "label": "What is the young person doing now?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Employed",
+                      "Self-employed",
+                      "Casual work",
+                      "Studying",
+                      "Looking for work",
+                      "Other"
+                    ]
+                  },
+                  {
+                    "key": "earning_range",
+                    "label": "Money earned in the last 30 days",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Nothing yet",
+                      "Under Ksh 1,000",
+                      "Ksh 1,000 to 3,000",
+                      "Ksh 3,000 to 6,000",
+                      "Over Ksh 6,000"
+                    ]
+                  },
+                  {
+                    "key": "earning_figure",
+                    "label": "If they can say a figure, how much was it? (Ksh)",
+                    "type": "number",
+                    "required": false
+                  },
+                  {
+                    "key": "income_vs",
+                    "label": "Compared with before the training, they earn",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "More",
+                      "The same",
+                      "Less"
+                    ]
+                  },
+                  {
+                    "key": "income_why",
+                    "label": "Why did it change? (one line)",
+                    "type": "text",
+                    "required": false
+                  },
+                  {
+                    "key": "since_training",
+                    "label": "Since the training (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Applied for work or an opportunity",
+                      "Had an interview",
+                      "Started a business or side income",
+                      "Earning from a skill",
+                      "Updated or written a CV",
+                      "None yet"
+                    ]
+                  }
+                ]
+              },
+              {
+                "title": "Day 90 follow-up. What the officer sees",
+                "fields": [
+                  {
+                    "key": "challenges",
+                    "label": "Challenges (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "Family or transport",
+                      "No money",
+                      "No work found",
+                      "No contacts",
+                      "Health",
+                      "Lack of confidence",
+                      "Other",
+                      "None at the moment"
+                    ]
+                  },
+                  {
+                    "key": "progress",
+                    "label": "Signs of progress (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "New income",
+                      "New skill used",
+                      "New contacts",
+                      "More confident",
+                      "Saving",
+                      "None yet"
+                    ]
+                  },
+                  {
+                    "key": "risks",
+                    "label": "Risk signs (tick all that apply)",
+                    "type": "checkbox",
+                    "required": true,
+                    "help": "A safety or welfare concern alerts the founders straight away.",
+                    "options": [
+                      "Personal safety or welfare concern",
+                      "Giving up",
+                      "Pressure from family",
+                      "Losing contact",
+                      "None"
+                    ]
+                  },
+                  {
+                    "key": "plan_ready",
+                    "label": "Do they have a written plan or canvas they are using?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "Started",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "cv_status",
+                    "label": "Do they have a CV ready to send?",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "Yes",
+                      "In progress",
+                      "No"
+                    ]
+                  },
+                  {
+                    "key": "confidence",
+                    "label": "How confident are they about their next step?",
+                    "type": "scale",
+                    "required": true,
+                    "min": 1,
+                    "max": 5,
+                    "minLabel": "Not at all",
+                    "maxLabel": "Very confident"
+                  }
+                ]
+              },
+              {
+                "title": "Day 90 follow-up. Support and result",
+                "fields": [
+                  {
+                    "key": "support_needed",
+                    "label": "Support needed",
+                    "type": "checkbox",
+                    "required": true,
+                    "options": [
+                      "A job lead",
+                      "Small capital",
+                      "A skill course",
+                      "Mentoring",
+                      "CV or application help",
+                      "Nothing"
+                    ]
+                  },
+                  {
+                    "key": "action_taken",
+                    "label": "Action taken at this visit (one line)",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "officer_view",
+                    "label": "Result of this visit",
+                    "type": "choice",
+                    "required": true,
+                    "options": [
+                      "On track",
+                      "Stuck",
+                      "Lost contact"
+                    ]
+                  },
+                  {
+                    "key": "next_step",
+                    "label": "Next action: what needs to happen",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "next_who",
+                    "label": "Next action: who will do it",
+                    "type": "text",
+                    "required": true
+                  },
+                  {
+                    "key": "next_date",
+                    "label": "Next action: by when",
+                    "type": "date",
+                    "required": true
+                  },
+                  {
+                    "key": "impact_note",
+                    "label": "What has changed for the young person and their family?",
+                    "type": "longtext",
+                    "required": false
+                  }
+                ]
+              }
+            ]
+          }
         ]
-       }
-      ]
-     },
-     {
-      "label": "Youth",
-      "value": "youth",
-      "sections": [
-       {
-        "title": "Part B: where the young person starts",
-        "help": "",
-        "fields": [
-         {
-          "key": "education_status",
-          "label": "What is the young person doing now?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "In school",
-           "Out of school",
-           "In college or university",
-           "Working",
-           "Self-employed",
-           "Looking for work"
-          ]
-         },
-         {
-          "key": "school_class",
-          "label": "Class, form or course, if studying",
-          "type": "text"
-         },
-         {
-          "key": "prior_work",
-          "label": "Any work or business experience so far",
-          "type": "longtext"
-         },
-         {
-          "key": "has_cv",
-          "label": "Has a CV (written or on a phone)?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "hoped_path",
-          "label": "What do they hope to do?",
-          "type": "choice",
-          "options": [
-           "Get a job",
-           "Start their own business",
-           "Both",
-           "Not sure yet"
-          ]
-         },
-         {
-          "key": "digital_access",
-          "label": "Phone and money access",
-          "type": "checkbox",
-          "options": [
-           "Own smartphone",
-           "Shared smartphone",
-           "Internet bundles most weeks",
-           "M-Pesa account",
-           "Email address",
-           "None of these"
-          ]
-         },
-         {
-          "key": "skill_communication",
-          "label": "Self-rating: speaking up and explaining ideas (1 = weak, 5 = strong)",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Weak",
-          "maxLabel": "Strong"
-         },
-         {
-          "key": "skill_teamwork",
-          "label": "Self-rating: working in a team",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Weak",
-          "maxLabel": "Strong"
-         },
-         {
-          "key": "skill_money",
-          "label": "Self-rating: handling money, costs and prices",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Weak",
-          "maxLabel": "Strong"
-         },
-         {
-          "key": "skill_customer",
-          "label": "Self-rating: dealing with customers or clients",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Weak",
-          "maxLabel": "Strong"
-         },
-         {
-          "key": "skill_problem",
-          "label": "Self-rating: solving a problem step by step",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Weak",
-          "maxLabel": "Strong"
-         }
-        ]
-       },
-       {
-        "title": "Part C: challenges and hopes",
-        "help": "",
-        "fields": [
-         {
-          "key": "a7_category",
-          "label": "Biggest challenge right now",
-          "type": "choice",
-          "options": [
-           "Money",
-           "Transport",
-           "Family duties",
-           "No opportunities nearby",
-           "Skills gap",
-           "Health",
-           "Safety",
-           "Motivation",
-           "Other"
-          ]
-         },
-         {
-          "key": "a7_words",
-          "label": "The challenge, in their own words",
-          "type": "longtext"
-         },
-         {
-          "key": "hope_words",
-          "label": "What do they hope will be different in three months? (their own words)",
-          "type": "longtext"
-         },
-         {
-          "key": "confidence",
-          "label": "How confident are they about getting work or starting something? (1 = not at all, 5 = very)",
-          "type": "scale",
-          "min": 1,
-          "max": 5,
-          "minLabel": "Not at all",
-          "maxLabel": "Very"
-         }
-        ]
-       }
-      ]
-     }
-    ]
-   }
-  },
-  "learning": {
-   "title": "Elimu+ Learning Check",
-   "description": "Six short questions and one confidence rating, taken on the first day and again on the last day. It is not a pass or fail test. It shows us what the training changes. Please answer alone and do not look at anyone else's paper.",
-   "common": [
-    {
-     "key": "stage",
-     "label": "When is this check being taken?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Start of the programme",
-      "End of the programme"
-     ],
-     "help": "Everyone does the same short check on the first and the last day. It is not marked against them; it shows what the training changes."
-    },
-    {
-     "key": "q1",
-     "label": "A woman sells 20 mandazi at KES 10 each. The flour, oil and charcoal for them cost KES 120. What is her profit?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "KES 200",
-      "KES 120",
-      "KES 80",
-      "KES 20"
-     ],
-     "correct": "KES 80"
-    },
-    {
-     "key": "q2",
-     "label": "Which of these is a fixed cost for a small shop (one you pay whether you sell or not)?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Rent for the stall",
-      "Stock bought each week",
-      "Transport for each delivery",
-      "Packaging for each sale"
-     ],
-     "correct": "Rent for the stall"
-    },
-    {
-     "key": "q3",
-     "label": "What does 'break-even' mean?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Sales equal total costs, so there is no profit and no loss",
-      "The day with the highest sales",
-      "All the stock is sold",
-      "The business has borrowed money"
-     ],
-     "correct": "Sales equal total costs, so there is no profit and no loss"
-    },
-    {
-     "key": "q4",
-     "label": "A juice seller sells a bottle for KES 70. The fruit, bottle and ice for that one bottle cost KES 45. How much does each bottle contribute towards the rent and the profit?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "KES 115",
-      "KES 70",
-      "KES 45",
-      "KES 25"
-     ],
-     "correct": "KES 25"
-    },
-    {
-     "key": "q5",
-     "label": "Before starting a business, the best first step is to:",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Buy as much stock as possible",
-      "Copy the neighbour's business",
-      "Ask possible customers what problem they want solved",
-      "Borrow a large loan"
-     ],
-     "correct": "Ask possible customers what problem they want solved"
-    },
-    {
-     "key": "q6",
-     "label": "A woman buys a KES 6,000 blender once for her juice stall. If she closes the business, she cannot get that money back. This is called a:",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Sunk cost",
-      "Variable cost",
-      "Sale",
-      "Saving"
-     ],
-     "correct": "Sunk cost"
-    },
-    {
-     "key": "confidence",
-     "label": "How confident are you that you could work out the profit of a small business? (1 = not at all, 5 = very)",
-     "type": "scale",
-     "required": true,
-     "min": 1,
-     "max": 5,
-     "minLabel": "Not at all",
-     "maxLabel": "Very"
+      }
     }
-   ],
-   "self": true
-  },
-  "exit": {
-   "title": "Elimu+ End of Training Feedback",
-   "description": "Completed on the last training day. Your honest answers help us improve the programme and show our partners what it achieved.",
-   "common": [
-    {
-     "key": "rating",
-     "label": "Overall, how useful was the training? (1 = not useful, 5 = very useful)",
-     "type": "scale",
-     "required": true,
-     "min": 1,
-     "max": 5,
-     "minLabel": "Not useful",
-     "maxLabel": "Very useful"
-    },
-    {
-     "key": "confidence",
-     "label": "How confident are you now about running or starting a business or finding work? (1 = not at all, 5 = very)",
-     "type": "scale",
-     "required": true,
-     "min": 1,
-     "max": 5,
-     "minLabel": "Not at all",
-     "maxLabel": "Very"
-    },
-    {
-     "key": "recommend",
-     "label": "Would you recommend this training to a friend?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "Yes",
-      "No"
-     ]
-    },
-    {
-     "key": "most_useful",
-     "label": "The most useful session or idea",
-     "type": "text"
-    },
-    {
-     "key": "least_useful",
-     "label": "The least useful session",
-     "type": "text"
-    },
-    {
-     "key": "change_suggestion",
-     "label": "One thing we should add or change",
-     "type": "longtext"
-    },
-    {
-     "key": "first_step",
-     "label": "What is the first thing you will do after this training?",
-     "type": "longtext"
-    },
-    {
-     "key": "support_needed",
-     "label": "What would help you most now?",
-     "type": "checkbox",
-     "options": [
-      "Stock or tools",
-      "Money to start",
-      "A mentor",
-      "More training",
-      "A savings group or SACCO",
-      "Customers or markets",
-      "Childcare",
-      "Other",
-      "Nothing right now"
-     ]
-    },
-    {
-     "key": "concern",
-     "label": "Is there anything worrying you, at home or in the group, that we should know about?",
-     "type": "choice",
-     "required": true,
-     "options": [
-      "No",
-      "Yes"
-     ],
-     "help": "If yes, the trainer will follow up privately."
-    },
-    {
-     "key": "concern_note",
-     "label": "If yes, tell us what you are comfortable sharing",
-     "type": "longtext"
-    }
-   ],
-   "self": true
-  },
-  "youth_followup": {
-   "title": "Elimu+ Youth Follow-up Visit: Day 30, 60 and 90",
-   "description": "Complete this with the young person. Part A is the same at every visit so progress can be compared; Part B changes by stage; Part C closes the visit. Ask about safety and welfare first, and let the young person say it in their own words.",
-   "common": [],
-   "branch": {
-    "label": "Which follow-up visit is this?",
-    "options": [
-     {
-      "label": "Day 30",
-      "value": "30",
-      "sections": [
-       {
-        "title": "Day 30 follow-up. Part A: every visit",
-        "help": "Same questions at 30, 60 and 90 days, so progress can be compared.",
-        "fields": [
-         {
-          "key": "visited_on",
-          "label": "Date of visit",
-          "type": "date",
-          "required": true
-         },
-         {
-          "key": "status",
-          "label": "What is the young person doing now?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Employed",
-           "Casual or piece work",
-           "Own business",
-           "Internship or apprenticeship",
-           "Studying",
-           "Looking for work",
-           "Nothing yet"
-          ]
-         },
-         {
-          "key": "earning_range",
-          "label": "Money earned in the last 30 days, from work or a business",
-          "type": "choice",
-          "options": [
-           "None",
-           "Under 1,000",
-           "1,000 to 2,999",
-           "3,000 to 5,999",
-           "6,000 to 9,999",
-           "10,000 or more"
-          ]
-         },
-         {
-          "key": "first_income",
-          "label": "Has the young person earned any money from work or a business since the training?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "cv_ready",
-          "label": "Has a CV (written or on a phone)?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "applications",
-          "label": "Job, internship or tender applications sent since the last visit",
-          "type": "number"
-         },
-         {
-          "key": "interviews",
-          "label": "Interviews attended since the last visit",
-          "type": "number"
-         },
-         {
-          "key": "venture_started",
-          "label": "Has started a business or income activity?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "venture_operating",
-          "label": "If yes, is it operating now?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No",
-           "Not applicable"
-          ]
-         },
-         {
-          "key": "team_project_done",
-          "label": "Finished the team project started in the training?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "Partly",
-           "No",
-           "Not applicable"
-          ]
-         },
-         {
-          "key": "skills_used",
-          "label": "Which training skills have they used?",
-          "type": "checkbox",
-          "options": [
-           "Teamwork",
-           "Communication",
-           "Pricing and costing",
-           "Customer care",
-           "Saving",
-           "Time keeping",
-           "Using the canvas or plan",
-           "None yet"
-          ]
-         },
-         {
-          "key": "challenge_category",
-          "label": "Biggest challenge now",
-          "type": "choice",
-          "options": [
-           "Money",
-           "Transport",
-           "Family duties",
-           "No opportunities nearby",
-           "Skills gap",
-           "Health",
-           "Safety",
-           "Motivation",
-           "Other"
-          ]
-         },
-         {
-          "key": "challenge_words",
-          "label": "The challenge, in their own words",
-          "type": "longtext"
-         },
-         {
-          "key": "support_needed",
-          "label": "Support still needed",
-          "type": "checkbox",
-          "options": [
-           "A mentor",
-           "Placement or introduction",
-           "Start-up tools or stock",
-           "Further training",
-           "Interview coaching",
-           "A savings group or SACCO",
-           "Counselling or welfare",
-           "Other"
-          ]
-         },
-         {
-          "key": "safety_concern",
-          "label": "Any safety or welfare concern?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "No",
-           "Yes, but it can wait",
-           "Yes, urgent"
-          ]
-         }
-        ]
-       },
-       {
-        "title": "Day 30 follow-up. Part B: First steps",
-        "help": "What has the young person done with what they learned?",
-        "fields": [
-         {
-          "key": "b_done",
-          "label": "What have they done with the training so far?",
-          "type": "longtext"
-         },
-         {
-          "key": "b_stuck",
-          "label": "Where did they get stuck?",
-          "type": "longtext"
-         }
-        ]
-       },
-       {
-        "title": "Day 30 follow-up. Part C: close the visit",
-        "help": "",
-        "fields": [
-         {
-          "key": "officer_view",
-          "label": "Officer assessment: the young person is",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "On track",
-           "Needs support",
-           "Disengaged"
-          ]
-         },
-         {
-          "key": "urgent",
-          "label": "Needs urgent attention?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "next_step",
-          "label": "Next actions (action, person responsible, date)",
-          "type": "longtext"
-         },
-         {
-          "key": "story_consent",
-          "label": "Willing to share their story?",
-          "type": "choice",
-          "options": [
-           "Yes, with their name",
-           "Yes, without their name",
-           "No"
-          ],
-          "help": "Check that it matches the consent given at Day 0."
-         }
-        ]
-       }
-      ]
-     },
-     {
-      "label": "Day 60",
-      "value": "60",
-      "sections": [
-       {
-        "title": "Day 60 follow-up. Part A: every visit",
-        "help": "Same questions at 30, 60 and 90 days, so progress can be compared.",
-        "fields": [
-         {
-          "key": "visited_on",
-          "label": "Date of visit",
-          "type": "date",
-          "required": true
-         },
-         {
-          "key": "status",
-          "label": "What is the young person doing now?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Employed",
-           "Casual or piece work",
-           "Own business",
-           "Internship or apprenticeship",
-           "Studying",
-           "Looking for work",
-           "Nothing yet"
-          ]
-         },
-         {
-          "key": "earning_range",
-          "label": "Money earned in the last 30 days, from work or a business",
-          "type": "choice",
-          "options": [
-           "None",
-           "Under 1,000",
-           "1,000 to 2,999",
-           "3,000 to 5,999",
-           "6,000 to 9,999",
-           "10,000 or more"
-          ]
-         },
-         {
-          "key": "first_income",
-          "label": "Has the young person earned any money from work or a business since the training?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "cv_ready",
-          "label": "Has a CV (written or on a phone)?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "applications",
-          "label": "Job, internship or tender applications sent since the last visit",
-          "type": "number"
-         },
-         {
-          "key": "interviews",
-          "label": "Interviews attended since the last visit",
-          "type": "number"
-         },
-         {
-          "key": "venture_started",
-          "label": "Has started a business or income activity?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "venture_operating",
-          "label": "If yes, is it operating now?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No",
-           "Not applicable"
-          ]
-         },
-         {
-          "key": "team_project_done",
-          "label": "Finished the team project started in the training?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "Partly",
-           "No",
-           "Not applicable"
-          ]
-         },
-         {
-          "key": "skills_used",
-          "label": "Which training skills have they used?",
-          "type": "checkbox",
-          "options": [
-           "Teamwork",
-           "Communication",
-           "Pricing and costing",
-           "Customer care",
-           "Saving",
-           "Time keeping",
-           "Using the canvas or plan",
-           "None yet"
-          ]
-         },
-         {
-          "key": "challenge_category",
-          "label": "Biggest challenge now",
-          "type": "choice",
-          "options": [
-           "Money",
-           "Transport",
-           "Family duties",
-           "No opportunities nearby",
-           "Skills gap",
-           "Health",
-           "Safety",
-           "Motivation",
-           "Other"
-          ]
-         },
-         {
-          "key": "challenge_words",
-          "label": "The challenge, in their own words",
-          "type": "longtext"
-         },
-         {
-          "key": "support_needed",
-          "label": "Support still needed",
-          "type": "checkbox",
-          "options": [
-           "A mentor",
-           "Placement or introduction",
-           "Start-up tools or stock",
-           "Further training",
-           "Interview coaching",
-           "A savings group or SACCO",
-           "Counselling or welfare",
-           "Other"
-          ]
-         },
-         {
-          "key": "safety_concern",
-          "label": "Any safety or welfare concern?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "No",
-           "Yes, but it can wait",
-           "Yes, urgent"
-          ]
-         }
-        ]
-       },
-       {
-        "title": "Day 60 follow-up. Part B: Momentum",
-        "help": "What has changed since Day 30?",
-        "fields": [
-         {
-          "key": "b_changed",
-          "label": "What has changed since the Day 30 visit?",
-          "type": "longtext"
-         },
-         {
-          "key": "b_help",
-          "label": "Who or what has helped most?",
-          "type": "text"
-         }
-        ]
-       },
-       {
-        "title": "Day 60 follow-up. Part C: close the visit",
-        "help": "",
-        "fields": [
-         {
-          "key": "officer_view",
-          "label": "Officer assessment: the young person is",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "On track",
-           "Needs support",
-           "Disengaged"
-          ]
-         },
-         {
-          "key": "urgent",
-          "label": "Needs urgent attention?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "next_step",
-          "label": "Next actions (action, person responsible, date)",
-          "type": "longtext"
-         },
-         {
-          "key": "story_consent",
-          "label": "Willing to share their story?",
-          "type": "choice",
-          "options": [
-           "Yes, with their name",
-           "Yes, without their name",
-           "No"
-          ],
-          "help": "Check that it matches the consent given at Day 0."
-         }
-        ]
-       }
-      ]
-     },
-     {
-      "label": "Day 90",
-      "value": "90",
-      "sections": [
-       {
-        "title": "Day 90 follow-up. Part A: every visit",
-        "help": "Same questions at 30, 60 and 90 days, so progress can be compared.",
-        "fields": [
-         {
-          "key": "visited_on",
-          "label": "Date of visit",
-          "type": "date",
-          "required": true
-         },
-         {
-          "key": "status",
-          "label": "What is the young person doing now?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Employed",
-           "Casual or piece work",
-           "Own business",
-           "Internship or apprenticeship",
-           "Studying",
-           "Looking for work",
-           "Nothing yet"
-          ]
-         },
-         {
-          "key": "earning_range",
-          "label": "Money earned in the last 30 days, from work or a business",
-          "type": "choice",
-          "options": [
-           "None",
-           "Under 1,000",
-           "1,000 to 2,999",
-           "3,000 to 5,999",
-           "6,000 to 9,999",
-           "10,000 or more"
-          ]
-         },
-         {
-          "key": "first_income",
-          "label": "Has the young person earned any money from work or a business since the training?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "cv_ready",
-          "label": "Has a CV (written or on a phone)?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "applications",
-          "label": "Job, internship or tender applications sent since the last visit",
-          "type": "number"
-         },
-         {
-          "key": "interviews",
-          "label": "Interviews attended since the last visit",
-          "type": "number"
-         },
-         {
-          "key": "venture_started",
-          "label": "Has started a business or income activity?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "venture_operating",
-          "label": "If yes, is it operating now?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No",
-           "Not applicable"
-          ]
-         },
-         {
-          "key": "team_project_done",
-          "label": "Finished the team project started in the training?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "Partly",
-           "No",
-           "Not applicable"
-          ]
-         },
-         {
-          "key": "skills_used",
-          "label": "Which training skills have they used?",
-          "type": "checkbox",
-          "options": [
-           "Teamwork",
-           "Communication",
-           "Pricing and costing",
-           "Customer care",
-           "Saving",
-           "Time keeping",
-           "Using the canvas or plan",
-           "None yet"
-          ]
-         },
-         {
-          "key": "challenge_category",
-          "label": "Biggest challenge now",
-          "type": "choice",
-          "options": [
-           "Money",
-           "Transport",
-           "Family duties",
-           "No opportunities nearby",
-           "Skills gap",
-           "Health",
-           "Safety",
-           "Motivation",
-           "Other"
-          ]
-         },
-         {
-          "key": "challenge_words",
-          "label": "The challenge, in their own words",
-          "type": "longtext"
-         },
-         {
-          "key": "support_needed",
-          "label": "Support still needed",
-          "type": "checkbox",
-          "options": [
-           "A mentor",
-           "Placement or introduction",
-           "Start-up tools or stock",
-           "Further training",
-           "Interview coaching",
-           "A savings group or SACCO",
-           "Counselling or welfare",
-           "Other"
-          ]
-         },
-         {
-          "key": "safety_concern",
-          "label": "Any safety or welfare concern?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "No",
-           "Yes, but it can wait",
-           "Yes, urgent"
-          ]
-         }
-        ]
-       },
-       {
-        "title": "Day 90 follow-up. Part B: Outcomes and next step",
-        "help": "Did they reach what they hoped for at the start, and what next?",
-        "fields": [
-         {
-          "key": "b_goal",
-          "label": "Did they reach the goal they set at the start?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "Partly",
-           "No"
-          ]
-         },
-         {
-          "key": "b_words",
-          "label": "In their words: what is different now?",
-          "type": "longtext"
-         },
-         {
-          "key": "b_next",
-          "label": "Recommended next step",
-          "type": "choice",
-          "options": [
-           "No further follow-up needed",
-           "Placement or introduction",
-           "Further training",
-           "Link to mentor",
-           "Link to savings group or SACCO",
-           "Referral",
-           "Other"
-          ]
-         },
-         {
-          "key": "b_recommend",
-          "label": "Would they recommend the programme to a friend?",
-          "type": "choice",
-          "options": [
-           "Yes",
-           "No"
-          ]
-         }
-        ]
-       },
-       {
-        "title": "Day 90 follow-up. Part C: close the visit",
-        "help": "",
-        "fields": [
-         {
-          "key": "officer_view",
-          "label": "Officer assessment: the young person is",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "On track",
-           "Needs support",
-           "Disengaged"
-          ]
-         },
-         {
-          "key": "urgent",
-          "label": "Needs urgent attention?",
-          "type": "choice",
-          "required": true,
-          "options": [
-           "Yes",
-           "No"
-          ]
-         },
-         {
-          "key": "next_step",
-          "label": "Next actions (action, person responsible, date)",
-          "type": "longtext"
-         },
-         {
-          "key": "story_consent",
-          "label": "Willing to share their story?",
-          "type": "choice",
-          "options": [
-           "Yes, with their name",
-           "Yes, without their name",
-           "No"
-          ],
-          "help": "Check that it matches the consent given at Day 0."
-         }
-        ]
-       }
-      ]
-     }
-    ]
-   }
   }
- }
 }

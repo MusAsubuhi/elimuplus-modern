@@ -58,22 +58,19 @@ export default async function Participant({ params }: { params: Promise<{ id: st
       </Card>
 
       {b && !isYouth && (
-        <Card title="Business and household, Day 0 to Day 90" className="mt-4">
+        <Card title="Business, Day 0 to Day 90" className="mt-4">
           <Table head={['', 'Day 0', 'Day 30', 'Day 60', 'Day 90']} rows={[
             row('Status', t(b.business_stage), (a) => t(a.business_status)),
-            row('Weekly sales', b.weekly_sales_range, (a) => a.sales_range),
-            row('Weekly profit', b.weekly_profit_kes ? kes(b.weekly_profit_kes) : null, (a) => (a.weekly_profit_kes ? kes(a.weekly_profit_kes) : null)),
-            row('Customers on a good day', b.customers_good_day, (a) => a.good_day_customers),
-            row('Stock value', b.stock_value_kes ? kes(b.stock_value_kes) : null, (a) => (a.stock_value_kes ? kes(a.stock_value_kes) : null)),
+            row('Weekly profit range', b.weekly_sales_range, (a) => a.sales_range),
+            row('Weekly profit (figure or estimate)', b.weekly_profit_kes ? kes(b.weekly_profit_kes) : null, (a) => (a.weekly_profit_kes ? kes(a.weekly_profit_kes) : null)),
+            row('Business value (stock plus cash)', b.stock_value_kes ? kes(b.stock_value_kes) : null, (a) => (a.stock_value_kes ? kes(a.stock_value_kes) : null)),
             row('Keeps records', t(b.keeps_records), (a) => t(a.keeps_records)),
             row('Separates business money', t(b.separates_money), (a) => t(a.separates_money)),
             row('Pays self', t(b.pays_self), (a) => t(a.pays_self)),
-            row('Sets money aside', yn(b.set_aside), (a) => yn(a.set_aside)),
-            row('Skipped a meal', t(b.meal_skipped), (a) => t(a.meal_skipped)),
             row('Confidence (1 to 5)', b.confidence, (a) => a.confidence),
             row('Income compared with before', '', (a) => t(a.income_vs)),
           ]} />
-          <p className="mt-3 text-xs text-slate-600">Household of {b.household_size ?? '—'}, {b.dependants ?? '—'} dependants, {b.children_in_school ?? '—'} children in school.{b.hope_words ? ` In their words: “${b.hope_words}”` : ''}</p>
+          
         </Card>
       )}
 

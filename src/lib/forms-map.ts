@@ -93,3 +93,24 @@ export function insertParts(row: Record<string, unknown>, firstParam = 1) {
     update: (skip: string[]) => keys.filter((k) => !skip.includes(k)).map((k) => `${k} = excluded.${k}`).join(', '),
   };
 }
+
+/** Which of a checkbox question's options were ticked, in the order the options are listed. Google joins ticks with ", ", and some options contain a comma themselves. */
+export const ticked = (raw: unknown, options: string[]): string[] => {
+  const hay = ', ' + String(raw ?? '') + ', ';
+  return options.filter((o) => hay.includes(', ' + o + ', '));
+};
+
+/** Weekly profit bands (and the matching estimate used when only a band is given, so averages still work). A figure typed on the form always wins. */
+const PROFIT_MID: [RegExp, number][] = [[/^no profit/i, 0], [/^under/i, 500], [/1,000 to 2,000/, 1500], [/2,000 to 4,000/, 3000], [/^over/i, 5000]];
+export const profitKes = (figure: unknown, band: unknown): number | null => {
+  const f = asNum(figure);
+  if (f !== null) return f;
+  const t = String(band ?? '').trim();
+  const hit = PROFIT_MID.find(([re]) => re.test(t));
+  return hit ? hit[1] : null;
+};
+
+/** The three money habits are asked as Yes / Sometimes (or Mostly) / No; the impact figures count them under these codes. */
+export const SEPARATES = (v: unknown) => pick(v, [[/^yes/i, 'always'], [/^mostly/i, 'mostly'], [/^no/i, 'no']]);
+export const PAYS_SELF = (v: unknown) => pick(v, [[/^yes/i, 'regularly'], [/^sometimes/i, 'sometimes'], [/^no/i, 'not_yet']]);
+export const INCOME_VS = (v: unknown) => pick(v, [[/^increas|^more/i, 'higher'], [/^about|^the same/i, 'about_the_same'], [/^decreas|^less/i, 'lower']]);
