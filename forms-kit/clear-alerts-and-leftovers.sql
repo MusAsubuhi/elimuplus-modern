@@ -18,11 +18,12 @@ begin
   delete from seminars;                    -- the October participants' forum record
   delete from settings where key = 'cohort1_support_total_kes';   -- the KES 153,940 figure
 
-  -- People: keep anyone who holds a role (the two founders and the KE0740 organisation admin).
+  -- People: keep anyone who holds a role (the two founders and the KE0740 organisation admin)
+-- and every record named Musa Asubuhi or James Kimani.
   -- Ideas they wrote stay, with the author cleared; everything else linked to them is already gone.
-  update social_ideas  set author_id = null where author_id in (select id from people where id not in (select person_id from role_assignments));
-  update organisations set crm_owner = null where crm_owner in (select id from people where id not in (select person_id from role_assignments));
-  delete from people where id not in (select person_id from role_assignments);
+  update social_ideas  set author_id = null where author_id in (select id from people where id not in (select person_id from role_assignments) and full_name not in ('Musa Asubuhi','James Kimani'));
+  update organisations set crm_owner = null where crm_owner in (select id from people where id not in (select person_id from role_assignments) and full_name not in ('Musa Asubuhi','James Kimani'));
+  delete from people where id not in (select person_id from role_assignments) and full_name not in ('Musa Asubuhi','James Kimani');
 
   select string_agg(t || '=' || n, ', ' order by t) into report from (
     select 'founder_alerts' t, count(*) n from founder_alerts union all
