@@ -26,7 +26,8 @@ export async function GET(req: Request) {
     const actual = await asAdmin((q) => q(`select sc.visit, min(sc.due_date) due from followup_schedule sc join enrolments e on e.id=sc.enrolment_id where e.cohort_id=$1 group by sc.visit`, [c.id]));
     const amounts = splitFollowup(c.fee);
     for (const pv of planned) {
-      const due = String(actual.find((a: any) => a.visit === pv.visit)?.due ?? pv.due).slice(0, 10);
+      const dueRaw: any = actual.find((a: any) => a.visit === pv.visit)?.due ?? pv.due;
+      const due = dueRaw instanceof Date ? dueRaw.toISOString().slice(0, 10) : String(dueRaw).slice(0, 10);
       if (due > horizon || due < earliest) continue;
       try {
         const inv = await asAdmin(async (q) => {

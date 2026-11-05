@@ -4,6 +4,7 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls }
 import { d, kes } from '@/lib/format';
 import { docUrl } from '@/lib/billing';
 import { training, followups } from '@/lib/pricing';
+import { recordPayment } from '../../actions';
 import { acceptDeal, confirmNotice, createDeal, declineDeal, rejectNotice, resendReceipt, sendDeal, sendInvoice } from '../../deal-actions';
 
 const mini = 'rounded border border-teal-100 bg-white px-2 py-1 text-xs font-bold text-teal hover:bg-mist';
@@ -105,7 +106,21 @@ export default async function Deals() {
           rows={X.invoices.map((i) => [<b key="n">{i.number}</b>, i.org_name, i.kind, kes(i.amount_kes), kes(i.paid), d(i.due_on), <Badge key="s" tone={statusTone(i.status)}>{i.status}</Badge>,
             <div key="a" className="flex gap-2"><a className={mini} href={docUrl('invoice', i.share_token)} target="_blank">Open</a>
               <form action={sendInvoice}><Hidden k="invoice" v={i.id} /><button className={mini}>{i.sent_at ? 'Resend' : 'Email'}</button></form></div>])} />
-        <p className="mt-3 text-xs text-slate-500">To record a payment you received without a notice from the partner, use Finance. It issues a receipt too.</p>
+        {X.invoices.some((i) => i.amount_kes - i.paid > 0) && (
+          <form action={recordPayment} className="mt-4 rounded-lg bg-mist p-3 text-sm">
+            <p className="mb-2 font-bold text-teal">Record a payment you received</p>
+            <Hidden k="back" v="/portal/deals" />
+            <div className="grid gap-2 sm:grid-cols-5">
+              <select name="invoice" className={inputCls}>{X.invoices.filter((i) => i.amount_kes - i.paid > 0).map((i) => <option key={i.id} value={i.id}>{i.number} · {i.org_name} · {kes(i.amount_kes - i.paid)} due</option>)}</select>
+              <input name="amount" type="number" min="1" placeholder="Amount received (KES)" required className={inputCls} />
+              <select name="method" className={inputCls}><option value="mpesa">M-Pesa</option><option value="bank">Bank</option><option value="cash">Cash</option></select>
+              <input name="reference" placeholder="M-Pesa code / reference" className={inputCls} />
+              <button className={submitCls}>Record payment</button>
+            </div>
+            <p className="mt-2 text-xs text-slate-500">Recording a payment marks the invoice paid (or part paid) and creates the receipt. It appears in the Receipts list at the bottom of this page, where you press Email to send it. If the partner told you they paid through their portal, confirm it in the box at the top instead.</p>
+          </form>
+        )}
+        <p className="mt-3 text-xs text-slate-500">The flow: quotation accepted, invoice raised, partner pays, you record the payment (or confirm their notice), the receipt is created below and emailed.</p>
       </Card>
 
       <Card title="Receipts" className="mt-4">
