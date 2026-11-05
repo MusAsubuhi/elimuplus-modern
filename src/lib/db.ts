@@ -54,6 +54,7 @@ async function makeDemo(): Promise<Driver> {
   await db.exec(sql('migrations/0026_trainer_payouts.sql'));
   await db.exec(sql('migrations/0027_report_exports.sql'));
   await db.exec(sql('migrations/0028_business_book.sql'));
+  await db.exec(sql('migrations/0029_cohort_seq_grant.sql'));
   await db.exec(sql('seed.sql'));
   await db.exec(`
     create temp table _auth_map as select id, gen_random_uuid() as aid from public.people;
@@ -62,7 +63,6 @@ async function makeDemo(): Promise<Driver> {
     drop table _auth_map;
     grant usage on schema public, app, auth to authenticated;
     grant select, insert, update, delete on all tables in schema public to authenticated;
-    grant usage, select on all sequences in schema public to authenticated;
     grant execute on all functions in schema app to authenticated;
   `);
   const wrap = (tx: any): Q => async (s, p = []) => (await tx.query(s, p)).rows as Row[];
