@@ -7,13 +7,17 @@ import { advanceReport } from '../../actions';
 
 export default async function QA() {
   const me = await requireMe('master', 'founder');
-  const { facs, visits, reports, cands } = await asUser(me.id, async (q) => ({
+  const { facs, visits, reports, cands, juniors } = await asUser(me.id, async (q) => ({
     facs: await q(`select p.id, p.display_name, c.tier, c.number, c.status, c.issued_on,
         (select count(*) from cohort_facilitators cf join cohorts co on co.id=cf.cohort_id where cf.person_id=p.id and cf.role='lead')::int led,
         (select max(observed_on) from qa_visits v where v.facilitator_id=p.id) last_qa
       from certifications c join people p on p.id=c.person_id order by c.tier desc, p.display_name`),
     visits: await q(`select v.*, f.display_name facilitator, o.display_name observer from qa_visits v join people f on f.id=v.facilitator_id left join people o on o.id=v.observer_id order by v.observed_on desc`),
     reports: await q(`select r.*, o.name org_name from reports r join organisations o on o.id=r.organisation_id order by case r.status when 'draft' then 0 when 'reviewed' then 1 else 2 end, r.created_at desc`),
+    juniors: await q(`select p.display_name, r.tier, (select sp.display_name from supervision s join people sp on sp.id=s.supervisor_id where s.person_id=p.id and s.status='active') supervisor,
+        (select count(*) from day_reports d where d.author_id=p.id)::int reports, (select max(report_date) from day_reports d where d.author_id=p.id) last_report
+      from role_assignments r join people p on p.id=r.person_id where r.role='facilitator' and r.status='active' and r.tier in (0,1)
+      and not exists (select 1 from certifications c where c.person_id=p.id) order by r.tier, p.display_name`),
     cands: await q(`select i.*, o.name org_name from invitations i left join organisations o on o.id=i.organisation_id where i.role in ('trainer_candidate','facilitator') order by i.created_at desc`),
   }));
   const isFounder = me.roles.includes('founder');
@@ -45,6 +49,12 @@ export default async function QA() {
               f.last_qa ? d(f.last_qa) : <Badge key="x" tone="gold">none yet</Badge>,
               due ? <span key="d" className={daysFromToday(due) < 60 ? 'font-bold text-[#C8553D]' : ''}>{d(due)}</span> : '—'];
           })} />
+      </Card>
+
+      <Card title="Trainees and associates" subtitle="Not yet certified. Their reports go to their supervisor first, and the founders see a summary." className="mt-4">
+        <Table head={['Name', 'Level', 'Supervisor', 'Reports filed', 'Last report']}
+          rows={juniors.map((j) => [<b key="n">{j.display_name}</b>, j.tier === 0 ? 'Trainee' : 'Associate', j.supervisor ?? <Badge key="x" tone="gold">none assigned</Badge>, j.reports, j.last_report ? d(j.last_report) : '—'])}
+          empty="No trainees or associates yet." />
       </Card>
 
       <Card title="Report review queue" subtitle="Draft, then reviewed by a master trainer, then released by a founder" className="mt-4">

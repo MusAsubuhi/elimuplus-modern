@@ -27,11 +27,16 @@ function Input({ f }: { f: Field }) {
 
 const concernTone = (c: string) => (c === 'urgent' ? 'red' : c === 'watch' ? 'gold' : 'green');
 
-export default async function Reports({ searchParams }: { searchParams: Promise<{ show?: string; cohort?: string }> }) {
+export default async function Reports({ searchParams }: { searchParams: Promise<{ show?: string; cohort?: string; form?: string }> }) {
   const me = await requireMe('facilitator', 'founder');
-  const { show = 'new', cohort: pre } = await searchParams;
-  const level = me.roles.includes('founder') && me.tier === 0 ? 3 : reportLevelOf(me.tier);
+  const sp = await searchParams;
+  const { show = 'new', cohort: pre, form } = sp;
+  const founderOnly = me.roles.includes('founder') && me.tier === 0;
+  const isMaster = !founderOnly && reportLevelOf(me.tier) === 3;
+  const asDay = isMaster && form === 'day';
+  const level = asDay ? 2 : founderOnly ? 3 : reportLevelOf(me.tier);
   const tpl = templateFor(level);
+  const formTitle = asDay ? 'Day report (cohort you deliver)' : founderOnly ? 'Visit report' : level === 3 ? 'QA visit: observe a facilitator' : `${tpl.name} report`;
   const reviewer = me.roles.includes('founder') || me.roles.includes('master');
   const { cohorts, mine, queue, supervised } = await asUser(me.id, async (q) => ({
     cohorts: await q("select id, name, status from cohorts where status in ('confirmed','delivering','followup') order by seq"),
@@ -49,17 +54,19 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
     <a href={`/portal/reports?show=${k}`} className={`rounded-lg px-4 py-2 text-sm font-bold ${show === k ? 'bg-teal text-white' : 'bg-white text-teal border border-teal-100'}`}>{label}</a>);
   return (
     <>
-      <PageHeader image="/images/trainer-coaching.jpg" title="Day reports" subtitle={`You file the ${tpl.short.toLowerCase()} report. ${tpl.depth}`} />
+      <PageHeader image="/images/trainer-coaching.jpg" title="Day reports" subtitle={founderOnly ? 'As a founder you file visit reports when you observe a cohort or a trainer. Your co-founder and the other founder can read them.' : `You file the ${asDay ? 'certified-level day' : tpl.short.toLowerCase()} report. ${tpl.depth}`} />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat label="Your level" value={levelName(me.roles.includes('founder') && me.tier === 0 ? 3 : me.tier)} sub={`Report depth: ${tpl.short}`} />
-        <Stat label="Your reports go to" value={sup ?? (level >= 2 ? 'A master trainer and founders' : 'Not assigned yet')} sub={tpl.goes_to} tone={sup || level >= 2 ? 'teal' : 'red'} />
+        <Stat label="Your level" value={founderOnly ? 'Founder' : levelName(me.tier)} sub={founderOnly ? 'Visit report' : `Report depth: ${asDay ? 'Day report' : tpl.short}`} />
+        <Stat label="Your reports go to" value={founderOnly ? 'Your co-founder' : sup ?? (level >= 2 ? (level === 3 && !asDay ? 'The founders' : 'Master trainers and founders') : 'Not assigned yet')} sub={founderOnly ? 'Founders read each other’s reports.' : tpl.goes_to} tone={founderOnly || sup || level >= 2 ? 'teal' : 'red'} />
         {reviewer || supervised.length ? <Stat label="Waiting to be seen" value={waiting} tone={waiting ? 'gold' : 'green'} sub={supervised.length ? `You supervise ${supervised.map((x) => x.display_name).join(', ')}` : undefined} /> : <Stat label="Reports filed" value={mine.length} tone="gold" />}
       </div>
       <div className="mb-4 flex flex-wrap gap-2">{tab('new', 'Write a report')}{(reviewer || supervised.length > 0 || queue.length > 0) && tab('queue', `Reports to read${waiting ? ` (${waiting})` : ''}`)}{tab('mine', 'My reports')}</div>
 
       {show === 'new' && (
-        <Card title={`${tpl.name} report`} subtitle="Takes about five minutes. Write what you saw, not what you think we want to hear.">
+        <Card title={formTitle} subtitle="Takes about five minutes. Write what you saw, not what you think we want to hear.">
+          {isMaster && <p className="mb-3 text-sm">Filing for: {asDay ? <a className="font-bold text-teal underline" href="/portal/reports?show=new">QA visit instead</a> : <a className="font-bold text-teal underline" href="/portal/reports?show=new&form=day">a cohort I deliver myself (day report)</a>}</p>}
           <form action={submitDayReport} className="space-y-4">
+            {asDay && <input type="hidden" name="form" value="day" />}
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-bold">Cohort<select name="cohort" defaultValue={pre ?? ''} required className={inputCls}><option value="">Choose…</option>{cohorts.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.status})</option>)}</select></label>
               <label className="block text-sm font-bold">This report is about<select name="phase" className={inputCls}>{PHASES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>

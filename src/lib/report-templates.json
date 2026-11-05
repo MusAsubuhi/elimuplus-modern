@@ -184,7 +184,7 @@
       "name": "Certified Facilitator",
       "short": "Certified",
       "depth": "Day report with learning evidence and welfare. About three minutes.",
-      "goes_to": "A master trainer and the founders.",
+      "goes_to": "Any master trainer, and the founders see a summary.",
       "fields": [
         {
           "key": "day_number",

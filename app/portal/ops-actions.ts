@@ -18,8 +18,12 @@ const num = (v: string) => (v !== '' && Number.isFinite(Number(v)) ? Math.round(
 /* ---------- day reports ---------- */
 export async function submitDayReport(f: FormData) {
   const me = await requireMe('facilitator', 'founder');
-  const level = me.roles.includes('founder') && me.tier === 0 ? 3 : reportLevelOf(me.tier);
+  // Founders hold no facilitator tier: they file visit reports (the QA form). A master trainer may instead file a day report for a cohort they deliver.
+  const founderOnly = me.roles.includes('founder') && me.tier === 0;
+  const asDay = !founderOnly && reportLevelOf(me.tier) === 3 && s(f, 'form') === 'day';
+  const level = asDay ? 2 : founderOnly ? 3 : reportLevelOf(me.tier);
   const tpl = templateFor(level);
+  let qaNote = '';
   const answers: Record<string, any> = {};
   const core: Record<string, string> = {};
   for (const fld of tpl.fields) {
@@ -39,11 +43,22 @@ export async function submitDayReport(f: FormData) {
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'portal')`,
         [me.id, s(f, 'cohort') || null, level, tpl.kind === 'qa' ? 'qa' : 'day', phase, s(f, 'date') || new Date().toISOString().slice(0, 10),
          num(core.day_number ?? ''), num(core.headcount ?? ''), concern, core.concern_note || null, JSON.stringify(answers), sup]);
+      // A QA visit also goes on the QA register, so the Quality page and the pathway counters see it.
+      if (tpl.kind === 'qa') {
+        const name = String(answers.facilitator_name ?? '').trim();
+        const fac = name ? (await q("select p.id from people p join role_assignments r on r.person_id=p.id and r.role='facilitator' and r.status='active' where (lower(p.display_name)=lower($1) or lower(p.full_name)=lower($1)) and p.id<>$2 limit 2", [name, me.id])) : [];
+        if (fac.length === 1) {
+          const sum = ['score_preparation', 'score_delivery', 'score_participation'].reduce((a, k) => a + (Number(answers[k]) || 0), 0);
+          const outcome = ({ 'Pass': 'pass', 'Pass with actions': 'conditional', 'Needs another visit': 'conditional', 'Escalate to founders': 'concern' } as Record<string, string>)[String(answers.decision)] ?? null;
+          await q('insert into qa_visits(facilitator_id, observer_id, observed_on, score, outcome, notes) values ($1,$2,$3,$4,$5,$6)',
+            [fac[0].id, me.id, s(f, 'date') || new Date().toISOString().slice(0, 10), Math.round((sum * 18) / 15), outcome, String(answers.improve ?? '') || null]);
+        } else qaNote = ' It was not put on the QA register: type the facilitator’s name exactly as it appears on the Team page.';
+      }
     });
   } catch (e) { console.error('[portal action]', e); back('/portal/reports', 'Could not save the report. Check the cohort and date and try again.', 'err'); }
   await notify();
   revalidatePath('/portal/reports');
-  back('/portal/reports', 'Report sent. Thank you.');
+  back('/portal/reports', `Report sent. Thank you.${qaNote}`);
 }
 
 export async function markReportSeen(f: FormData) {
