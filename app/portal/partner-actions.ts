@@ -36,22 +36,51 @@ export async function notifyPayment(f: FormData) {
   go(P, 'Thank you. We will match it against our statement and send your receipt.');
 }
 
-/** Lines of "Name, phone, F/M, birth year, consent" pasted from a spreadsheet or typed. */
+type RosterRow = { name: string; phone: string; gender: 'F' | 'M'; year: number; consent: boolean };
+const THIS_YEAR = () => new Date().getFullYear();
+
+/** One person, checked. Name, phone, age and gender are all required; anyone under 18 also needs a parent or guardian's agreement. */
+function checkPerson(nameRaw: string, phoneRaw: string, genderRaw: string, ageRaw: string, consentRaw: boolean): { row?: RosterRow; error?: string } {
+  const name = nameRaw.replace(/\s+/g, ' ').trim();
+  if (name.length < 2) return { error: `${name || 'A line'}: name is missing` };
+  const phone = normPhone(phoneRaw);
+  if (!phone) return { error: `${name}: a valid phone number is needed (for example 0712345678)` };
+  const g = /^f/i.test(genderRaw.trim()) ? 'F' : /^m/i.test(genderRaw.trim()) ? 'M' : null;
+  if (!g) return { error: `${name}: gender is needed (F or M)` };
+  const n = Number(String(ageRaw).trim());
+  // Someone may type an age (17) or a year of birth (2009); both are accepted and stored as a birth year.
+  const year = n >= 1900 ? n : n > 0 ? THIS_YEAR() - n : 0;
+  const age = THIS_YEAR() - year;
+  if (!year || age < 5 || age > 100) return { error: `${name}: age is needed (a number such as 19)` };
+  if (age < 18 && !consentRaw) return { error: `${name}: under 18, so a parent or guardian must have agreed` };
+  return { row: { name, phone, gender: g, year, consent: consentRaw } };
+}
+
+/** Lines of "Name, phone, F/M, age, guardian agreed (yes, only for under 18)" pasted from a spreadsheet or typed. */
 function parseRoster(text: string) {
-  const rows: { name: string; phone: string | null; gender: string | null; year: number | null; consent: boolean }[] = [];
+  const rows: RosterRow[] = [];
   const bad: string[] = [];
   for (const line of text.split(/\r?\n/)) {
     const t = line.trim();
     if (!t) continue;
     const c = t.split(/[,\t;]/).map((x) => x.trim());
     if (/^(name|full name|jina)\b/i.test(c[0])) continue;
-    const name = c[0].replace(/\s+/g, ' ');
-    if (!name || name.length < 2) { bad.push(t); continue; }
-    const phone = c[1] ? normPhone(c[1]) : '';
-    if (c[1] && !phone) { bad.push(`${name}: phone not valid`); continue; }
-    const g = /^f/i.test(c[2] ?? '') ? 'F' : /^m/i.test(c[2] ?? '') ? 'M' : null;
-    const y = Number(c[3]);
-    rows.push({ name, phone: phone || null, gender: g, year: y > 1950 && y <= new Date().getFullYear() ? y : null, consent: /^(y|yes|true|1)/i.test(c[4] ?? '') });
+    const r = checkPerson(c[0] ?? '', c[1] ?? '', c[2] ?? '', c[3] ?? '', /^(y|yes|true|1)/i.test(c[4] ?? ''));
+    if (r.row) rows.push(r.row); else bad.push(r.error!);
+  }
+  return { rows, bad };
+}
+
+/** The simple form: one block of fields per person, numbered name_0, phone_0 and so on. */
+function parseRosterFields(f: FormData) {
+  const rows: RosterRow[] = [];
+  const bad: string[] = [];
+  const n = Math.min(60, Number(f.get('count')) || 0);
+  for (let i = 0; i < n; i++) {
+    const name = s(f, `name_${i}`), phone = s(f, `phone_${i}`), age = s(f, `age_${i}`), gender = s(f, `gender_${i}`);
+    if (!name && !phone && !age) continue; // an empty row is simply ignored
+    const r = checkPerson(name, phone, gender, age, f.get(`consent_${i}`) === 'on');
+    if (r.row) rows.push(r.row); else bad.push(r.error!);
   }
   return { rows, bad };
 }
@@ -61,8 +90,11 @@ export async function addRoster(f: FormData) {
   const P = '/portal/partner/roster';
   const cohort = s(f, 'cohort');
   if (!cohort) go(P, 'Choose the cohort first.', 'err');
-  const { rows, bad } = parseRoster(String(f.get('list') ?? '').slice(0, 60000));
-  if (!rows.length) go(P, bad.length ? `Nothing could be added. ${bad.slice(0, 3).join('; ')}` : 'Paste at least one name.', 'err');
+  const fromForm = parseRosterFields(f);
+  const fromPaste = parseRoster(String(f.get('list') ?? '').slice(0, 60000));
+  const rows = [...fromForm.rows, ...fromPaste.rows];
+  const bad = [...fromForm.bad, ...fromPaste.bad];
+  if (!rows.length) go(P, bad.length ? `Nothing could be added. ${bad.slice(0, 3).join('; ')}` : 'Enter at least one person.', 'err');
   let added = 0, dup = 0, held = 0;
   try {
     const { co, room } = await asUser(me.id, async (q) => ({
