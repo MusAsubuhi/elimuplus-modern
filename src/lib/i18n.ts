@@ -34,4 +34,11 @@ const D = {
 
 export type Key = keyof typeof D;
 export const t = (lang: Lang, k: Key) => D[k][lang];
+/** Time-of-day greeting in Kenya time (EAT), so it is right wherever the server runs. Morning to 11:59, afternoon to 4:59 pm, evening after that. */
+export function greeting(lang: Lang, name: string, now: Date = new Date()) {
+  const h = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hour12: false, timeZone: 'Africa/Nairobi' }).format(now)) % 24;
+  const part = h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : 'evening';
+  const words = { morning: { en: 'Good morning', sw: 'Habari za asubuhi' }, afternoon: { en: 'Good afternoon', sw: 'Habari za mchana' }, evening: { en: 'Good evening', sw: 'Habari za jioni' } }[part][lang];
+  return `${words}, ${name}`;
+}
 export const phaseKey = (n: number): Key => (`phase${n}` as Key);

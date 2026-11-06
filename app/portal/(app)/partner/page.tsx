@@ -1,3 +1,4 @@
+import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requirePartner } from '@/lib/session';
@@ -35,7 +36,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
   const myOrg = orgs.find((o) => me.orgIds.includes(o.id)) ?? orgs[0];
   return (
     <>
-      <PageHeader image="/images/partner-hero.jpg" title={myOrg?.name ?? 'Partner'} subtitle="Your cohorts, how participants are doing at 30, 60 and 90 days, and the documents we have released to you.">
+      <PageHeader image="/images/partner-hero.jpg" title={greeting('en', me.displayName)} subtitle={`${myOrg?.name ?? 'Partner'}. Your cohorts, how participants are doing at 30, 60 and 90 days, and the documents we have released to you.`}>
         <Link href="/portal/partner/request" className="rounded-lg bg-gold px-4 py-2 text-sm font-bold text-teal">Request a training</Link>
       </PageHeader>
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

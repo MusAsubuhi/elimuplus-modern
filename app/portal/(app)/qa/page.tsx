@@ -1,3 +1,4 @@
+import { greeting } from '@/lib/i18n';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, statusTone, submitCls } from '@/components/ui';
@@ -27,7 +28,7 @@ export default async function QA() {
   const awaiting = reports.filter((r) => r.status !== 'released').length;
   return (
     <>
-      <PageHeader image="/images/trainer-team.jpg" title="Quality and reports" subtitle="Facilitators by tier, QA visits and scores, and the report review queue before anything reaches a partner." />
+      <PageHeader image="/images/trainer-team.jpg" title="Quality and reports" subtitle={`${greeting('en', me.displayName)}. Facilitators by tier, QA visits and scores, and the report review queue before anything reaches a partner.`} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Certified facilitators" value={facs.length} />
         <Stat tone="green" label="QA visits on record" value={visits.length} />

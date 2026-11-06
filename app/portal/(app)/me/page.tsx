@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { getLang, requireMe } from '@/lib/session';
 import { participantContext, PHASES } from '@/lib/data';
-import { t, phaseKey } from '@/lib/i18n';
+import { t, phaseKey, greeting } from '@/lib/i18n';
 import { Badge, Card, ImgBand, PageHeader, ProgressBar, Stat, statusTone } from '@/components/ui';
 import { BarCard, Gauge } from '@/components/charts';
 import { d } from '@/lib/format';
@@ -21,7 +21,7 @@ export default async function MyJourney() {
   const stLabel = (s: string) => (lang === 'sw' ? { done: 'Imekamilika', scheduled: 'Imepangwa', missed: 'Imekosekana', unreachable: 'Hajapatikana' }[s] : s) ?? s;
   return (
     <>
-      <PageHeader image="/images/home-canvas-hands.jpg" title={`${t(lang, 'welcome')}, ${me.displayName}`} subtitle={`${en.cohort_name} · ${en.org_name}`}>
+      <PageHeader image="/images/home-canvas-hands.jpg" title={greeting(lang, me.displayName)} subtitle={`${en.cohort_name} · ${en.org_name}`}>
         <Link href="/portal/canvas" className="rounded-lg bg-gold px-4 py-2 text-sm font-bold text-teal">{t(lang, 'myCanvas')} →</Link>
         <Link href="/portal/canvas/print" className="rounded-lg border border-white/50 px-4 py-2 text-sm font-bold text-white">{t(lang, 'print')}</Link>
       </PageHeader>
