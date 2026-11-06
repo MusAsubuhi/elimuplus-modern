@@ -11,4 +11,5 @@ body { font-family: Lato, system-ui, -apple-system, 'Segoe UI', sans-serif; back
   body { background: #fff; }
   @page { size: A4; margin: 12mm; }
   .print-page { break-after: page; }
+  .print-page:last-child { break-after: auto; }
 }
