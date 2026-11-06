@@ -14,7 +14,8 @@ const STAGES = ['submitted', 'approved', 'paid', 'reconciled'];
 export default async function Requests({ searchParams }: { searchParams: Promise<{ cohort?: string; purpose?: string }> }) {
   const me = await requireMe('facilitator', 'founder');
   const { cohort: preCohort = '', purpose: prePurpose = '' } = await searchParams;
-  const { reqs, cats, cohorts, pay, receipts } = await asUser(me.id, async (q) => ({
+  const { reqs, cats, cohorts, pay, receipts, sups } = await asUser(me.id, async (q) => ({
+    sups: await q("select id, name, categories, regions from suppliers where status='active' order by name").catch(() => []),
     receipts: await q('select request_id, storage_path, kind from expense_receipts order by created_at').catch(() => []),
     reqs: await q(`select r.*, c.name cohort_name, c.status cohort_status, k.name category from expense_requests r left join cohorts c on c.id=r.cohort_id left join expense_categories k on k.id=r.category_id where r.requester_id=$1 order by r.created_at desc`, [me.id]),
     cats: await q('select * from expense_categories order by name'),
@@ -43,6 +44,7 @@ export default async function Requests({ searchParams }: { searchParams: Promise
             <label className="block font-bold">Which cohort is this for?<select name="cohort" defaultValue={preCohort} className={inputCls}><option value="">No cohort (general cost)</option>{cohorts.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.status})</option>)}</select></label>
             <label className="block font-bold">Training, follow-up or something else?<select name="purpose" defaultValue={prePurpose || 'training'} className={inputCls}>{PHASES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
             <label className="block font-bold">Category<select name="category" className={inputCls}><option value="">Other</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <label className="block font-bold">Supplier <span className="font-normal text-slate-500">(if you paid one; <a href="/portal/suppliers" className="underline">suggest a new supplier</a>)</span><select name="supplier" className={inputCls}><option value="">None / not listed</option>{sups.map((x: any) => <option key={x.id} value={x.id}>{x.name} ({x.categories.join(', ')}{x.regions.length ? ` · ${x.regions.join(', ')}` : ''})</option>)}</select></label>
             <label className="block font-bold">Amount (KES)<input name="amount" type="number" min="1" required className={inputCls} /></label>
             <label className="block font-bold">What was it for?<textarea name="reason" rows={3} required className={inputCls} /></label>
             <label className="block font-bold">Reference <span className="font-normal text-slate-500">(M-Pesa code, bank reference, receipt number)</span><input name="reference" className={inputCls} /></label>

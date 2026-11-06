@@ -15,7 +15,7 @@ export default async function Approvals() {
   const { reqs, thr, waitingPhotos, receipts } = await asUser(me.id, async (q) => ({
     receipts: await q('select request_id, storage_path, kind from expense_receipts order by created_at').catch(() => []),
     waitingPhotos: await q("select p.id, p.day_number, p.storage_path, p.caption, p.status, c.name cohort_name from session_photos p join cohorts c on c.id=p.cohort_id where p.status='pending' order by p.created_at").catch(() => []),
-    reqs: await q(`select r.*, p.display_name requester, c.name cohort, k.name category,
+    reqs: await q(`select r.*, p.display_name requester, c.name cohort, k.name category, (select sp.name from suppliers sp where sp.id=r.supplier_id) supplier_name,
         (select string_agg(a.approver_id::text || ':' || a.decision, ',') from expense_approvals a where a.request_id=r.id) votes,
         (select count(distinct approver_id)::int from expense_approvals a where a.request_id=r.id and a.decision='approve') approvals
         from expense_requests r join people p on p.id=r.requester_id left join cohorts c on c.id=r.cohort_id left join expense_categories k on k.id=r.category_id
@@ -52,7 +52,7 @@ export default async function Approvals() {
                   <p className="text-sm text-slate-600">{r.requester} · {r.category ?? 'Other'} · {r.cohort ?? 'General'} · {d(r.created_at)}</p></div>
                 <div className="text-right"><Badge tone={statusTone(r.status)}>{r.status}</Badge><div className="mt-1 text-xs text-slate-500">{r.approvals}/{need} approval{need > 1 ? 's' : ''}{need > 1 ? ' (above threshold)' : ''}</div></div>
               </div>
-              <p className="mt-2 text-sm"><Badge tone={r.paid_from === 'to_be_paid' ? 'gold' : 'teal'}>{PAID_FROM[r.paid_from] ?? r.paid_from}</Badge>{r.spent_on ? ` spent ${d(r.spent_on)}` : ''}{r.reference ? ` · ref ${r.reference}` : ''}{r.late ? ' · late (cohort closed)' : ''}</p>
+              <p className="mt-2 text-sm"><Badge tone={r.paid_from === 'to_be_paid' ? 'gold' : 'teal'}>{PAID_FROM[r.paid_from] ?? r.paid_from}</Badge>{r.spent_on ? ` spent ${d(r.spent_on)}` : ''}{r.reference ? ` · ref ${r.reference}` : ''}{r.late ? ' · late (cohort closed)' : ''}{r.supplier_name ? ` · supplier ${r.supplier_name}` : ''}</p>
               <p className="mt-1 text-sm">{(() => { const mine = receipts.filter((x: any) => x.request_id === r.id); return mine.length ? mine.map((m: any, i: number) => <a key={i} href={signedR[m.storage_path]} target="_blank" rel="noreferrer" className="mr-3 font-bold text-teal underline">{m.kind === 'pdf' ? 'PDF receipt' : 'Receipt'} {i + 1}</a>) : <span className={r.paid_from === 'to_be_paid' ? 'text-slate-500' : 'font-semibold text-[#C8553D]'}>{r.paid_from === 'to_be_paid' ? 'No receipt yet (not needed until it is spent)' : 'No receipt attached yet'}</span>; })()}</p>
               {own ? <p className="mt-3 text-sm font-semibold text-[#C8553D]">This is your own record. The other founder must confirm it.</p>
                 : (

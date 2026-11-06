@@ -10,7 +10,7 @@ import { levelName } from '@/lib/levels';
 import { allowedFeatures } from '@/lib/access';
 import { FEATURES, SECTIONS } from '@/lib/features';
 
-type Item = { href: string; label: string; icon: string };
+type Item = { href: string; label: string; icon: string; tab?: string };
 const NAV: Record<Role, { title: string; items: Item[] }> = {
   participant: { title: 'Participant', items: [
     { href: '/portal/me', label: 'My journey', icon: '◎' },
@@ -20,22 +20,24 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/recognition', label: 'Recognition', icon: '✧' },
     { href: '/portal/stories', label: 'My story', icon: '❝' },
     { href: '/portal/directory', label: 'Biashara za Elimu+', icon: '❖' }] },
-  facilitator: { title: 'Facilitator', items: [
+  facilitator: { title: 'My work', items: [
     { href: '/portal/cohorts', label: 'My cohorts', icon: '◧' },
     { href: '/portal/reports', label: 'Day reports', icon: '✎' },
-    { href: '/portal/requests', label: 'My requests', icon: '₭' },
-    { href: '/portal/earnings', label: 'My earnings', icon: '◈' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
     { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
     { href: '/portal/recognition', label: 'Recognition', icon: '✧' },
-    { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
-  master: { title: 'Master trainer', items: [
-    { href: '/portal/earnings', label: 'My earnings', icon: '◈' },
-    { href: '/portal/plan', label: 'Improvement plans', icon: '↗' },
-    { href: '/portal/recognition', label: 'Recognition', icon: '✧' },
+    { href: '/portal/requests', label: 'Money for Elimu+', icon: '₭', tab: 'Money' },
+    { href: '/portal/earnings', label: 'My earnings', icon: '◈', tab: 'Money' },
+    { href: '/portal/suppliers', label: 'Suppliers', icon: '⌂', tab: 'People' },
+    { href: '/portal/invite', label: 'Suggest people and partners', icon: '+', tab: 'People' }] },
+  master: { title: 'Programme', items: [
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
-    { href: '/portal/invite', label: 'Suggest people and partners', icon: '+' }] },
+    { href: '/portal/earnings', label: 'My earnings', icon: '◈', tab: 'Money' },
+    { href: '/portal/plan', label: 'Improvement plans', icon: '↗', tab: 'My work' },
+    { href: '/portal/recognition', label: 'Recognition', icon: '✧', tab: 'My work' },
+    { href: '/portal/suppliers', label: 'Suppliers', icon: '⌂', tab: 'People' },
+    { href: '/portal/invite', label: 'Suggest people and partners', icon: '+', tab: 'People' }] },
   org_admin: { title: 'Partner', items: [
     { href: '/portal/partner', label: 'Overview', icon: '◉' },
     { href: '/portal/partner/request', label: 'Request training', icon: '✎' },
@@ -66,10 +68,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     items.forEach((f) => seen.add(f.href));
     navGroups.push({ title: sec, items: items.map((f) => ({ href: f.href, label: f.label, icon: f.icon, badge: f.href === '/portal/alerts' ? unread : 0 })) });
   }
+  const order = ['My work', 'Programme', 'Partners', 'Money', 'People'];
+  const addTo = (title: string, items: NavGroup['items']) => {
+    const ex = navGroups.find((n) => n.title === title);
+    if (ex) ex.items.push(...items); else navGroups.push({ title, items });
+  };
+  // each role's own tools join the same tabs, so facilitators are not a separate menu: Programme, Money, People and My work
   for (const g of groups.filter((x) => x !== 'founder')) {
-    const items = NAV[g].items.filter((i) => !seen.has(i.href) && seen.add(i.href));
-    if (items.length) navGroups.push({ title: NAV[g].title, items });
+    for (const i of NAV[g].items) {
+      if (seen.has(i.href)) continue;
+      seen.add(i.href);
+      addTo(i.tab ?? NAV[g].title, [{ href: i.href, label: i.label, icon: i.icon }]);
+    }
   }
+  if (!isFounder && me.roles.some((r) => r === 'facilitator' || r === 'master')) navGroups.sort((a, b) => (order.indexOf(a.title) < 0 ? 99 : order.indexOf(a.title)) - (order.indexOf(b.title) < 0 ? 99 : order.indexOf(b.title)) || 0);
   if (shared.length > 0) navGroups.push({ title: 'Shared with you', items: shared.map((f) => ({ href: f.href, label: f.label, icon: f.icon })) });
   return (
     <div className="min-h-screen">
