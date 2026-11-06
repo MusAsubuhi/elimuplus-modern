@@ -24,6 +24,7 @@ export const FEATURES: Feature[] = [
   { key: 'needs', label: 'Needs my decision', section: 'Home', href: '/portal/needs', icon: '✔', delegable: false, roles: ['founder'], note: 'Everything waiting for a founder, from every part of the portal.' },
   { key: 'cohorts', label: 'Cohorts', section: 'Programme', href: '/portal/cohorts', icon: '◧', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Each person sees the cohorts they deliver; founders see all.' },
   { key: 'attendance', label: 'Daily attendance', section: 'Programme', href: '/portal/attendance', icon: '☑', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Confirm who came each day of a programme.' },
+  { key: 'consent', label: 'Consent forms', section: 'Programme', href: '/portal/consent', icon: '✍', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Print adult and parent or guardian consent forms, including photo and video permission.' },
   { key: 'qa', label: 'Quality and reports', section: 'Programme', href: '/portal/qa', icon: '✓', delegable: false, roles: ['founder', 'master'], note: 'QA visits, reports and the supervision register.' },
   { key: 'alerts', label: 'Alerts', section: 'Home', href: '/portal/alerts', icon: '⚑', delegable: false, roles: ['founder'], note: 'Welfare, urgent and system alerts.' },
   { key: 'approvals', label: 'Approvals', section: 'Home', href: '/portal/approvals', icon: '✔', delegable: false, roles: ['founder'], note: 'Founder decisions.' },

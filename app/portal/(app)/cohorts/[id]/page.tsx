@@ -73,6 +73,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
     <>
       <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${dateRange(c, d)} · ${c.venue ?? ''}`}>
         <Link href={`/portal/cohorts/${id}/outcomes`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Outcomes</Link>
+        <Link href={`/portal/consent?cohort=${id}`} className="rounded-lg bg-white/15 px-3 py-1 text-xs font-bold">Print consent forms</Link>
         {me.roles.includes('founder') && (
           <details className="rounded-lg bg-white/15 px-3 py-1 text-xs font-bold">
             <summary className="cursor-pointer">Change dates</summary>
