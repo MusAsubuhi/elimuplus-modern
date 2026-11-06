@@ -1,4 +1,5 @@
 'use server';
+import { syncDaySummary } from '@/lib/sessions';
 import { alertFounders, issueReceipt, nextQuoteNumber, orgCode, quoteLines } from '@/lib/billing';
 import { CONTACT, MIN_SESSIONS } from '@/lib/pricing';
 import { cookies } from 'next/headers';
@@ -133,9 +134,10 @@ export async function markAttendance(f: FormData) {
                on conflict (session_id,enrolment_id) do update set present=excluded.present`, [session, e.id, present.has(e.id)]);
     }
     await q('update sessions set attendance_confirmed_at=now(), attendance_confirmed_by=$2 where id=$1 and cohort_id=$3', [session, me.id, cohort]);
+    await syncDaySummary(q, cohort, session, me.id);
   });
   const ret = s(f, 'back') === 'attendance' ? '/portal/attendance' : `/portal/cohorts/${cohort}`;
-  revalidatePath(`/portal/cohorts/${cohort}`); revalidatePath('/portal/attendance'); revalidatePath('/portal/needs');
+  revalidatePath(`/portal/cohorts/${cohort}`); revalidatePath('/portal/attendance'); revalidatePath('/portal/needs'); revalidatePath('/portal/partner/timeline');
   back(ret, 'Attendance confirmed');
 }
 
