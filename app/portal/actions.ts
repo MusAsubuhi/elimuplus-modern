@@ -1,4 +1,5 @@
 'use server';
+import { audit } from '@/lib/audit';
 import { syncDaySummary } from '@/lib/sessions';
 import { alertFounders, issueReceipt, nextQuoteNumber, orgCode, quoteLines } from '@/lib/billing';
 import { CONTACT, MIN_SESSIONS } from '@/lib/pricing';
@@ -120,6 +121,22 @@ export async function saveSessionLog(f: FormData) {
   await notify();
   revalidatePath(`/portal/cohorts/${cohort}`);
   back(`/portal/cohorts/${cohort}`, 'Session note saved');
+}
+
+/** A founder sets when a cohort starts and ends. Days that exist are re-dated one after another from the new start. */
+export async function setCohortDates(f: FormData) {
+  const me = await requireMe('founder');
+  const cohort = s(f, 'cohort'), start = s(f, 'start'), end = s(f, 'end');
+  const P = `/portal/cohorts/${cohort}`;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) back(P, 'Enter both dates.', 'err');
+  if (end < start) back(P, 'The end date cannot be before the start date.', 'err');
+  await asUser(me.id, async (q) => {
+    await q('update cohorts set start_date=$2::date, end_date=$3::date where id=$1', [cohort, start, end]);
+    await q('update sessions set session_date=$2::date + (day_number - 1) where cohort_id=$1', [cohort, start]);
+  });
+  await audit(me.id, `set cohort dates ${start} to ${end}`, 'cohorts');
+  revalidatePath(P); revalidatePath('/portal/cohorts'); revalidatePath('/portal/partner'); revalidatePath('/portal/partner/timeline');
+  back(P, 'Dates updated');
 }
 
 /** Saves who was present on a day and records that a trainer has confirmed it. Works for ticks made here and for what the Google Form sent in. */

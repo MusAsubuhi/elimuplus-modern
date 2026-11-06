@@ -88,6 +88,12 @@ const plus = (iso: any, n: number) => { const x = new Date(isoDay(iso) + 'T00:00
 /** When training finishes: the recorded end date, else the start date plus the length of the programme. */
 export const trainingEnds = (c: { start_date?: any; end_date?: any; format?: string }): string | null =>
   c.end_date ? isoDay(c.end_date) : c.start_date ? plus(c.start_date, c.format === '12-day' ? 11 : 4) : null;
+/** "4 Nov 2026 to 8 Nov 2026" for headings; the end is worked out from the programme length when it was never recorded, and "to be set" shows when there is no start. */
+export const dateRange = (c: { start_date?: any; end_date?: any; format?: string }, fmt: (x: any) => string): string => {
+  if (!c.start_date) return 'dates to be set';
+  const e = trainingEnds(c);
+  return `${fmt(c.start_date)} to ${e ? fmt(e) : 'to be set'}`;
+};
 /** The 30, 60 and 90 day visit dates a partner can expect, counted from the end of training. */
 export const visitDates = (c: { start_date?: any; end_date?: any; format?: string }) => {
   const e = trainingEnds(c);

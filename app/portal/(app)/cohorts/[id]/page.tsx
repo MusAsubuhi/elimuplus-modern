@@ -1,3 +1,4 @@
+import { dateRange, trainingEnds } from '@/lib/billing';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { asUser } from '@/lib/db';
@@ -7,7 +8,7 @@ import { BarCard, PieCard } from '@/components/charts';
 import { d, daysFromToday, iso, pct } from '@/lib/format';
 import AttendanceTicks from '@/components/attendance-ticks';
 import { ensureSessions } from '@/lib/sessions';
-import { markAttendance, recordVisit, saveSessionLog, toggleUnlock } from '../../../actions';
+import { markAttendance, recordVisit, saveSessionLog, setCohortDates, toggleUnlock } from '../../../actions';
 import { enrolRoster, publishDaySummary } from '../../../partner-actions';
 import { issueParticipantCertificates } from '../../../cert-actions';
 import SessionPhotoAdder from '@/components/session-photo-adder';
@@ -68,8 +69,19 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const log = logs.find((l) => l.session_id === chosen);
   return (
     <>
-      <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${d(c.start_date)} to ${d(c.end_date)} · ${c.venue ?? ''}`}>
+      <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${dateRange(c, d)} · ${c.venue ?? ''}`}>
         <Link href={`/portal/cohorts/${id}/outcomes`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Outcomes</Link>
+        {me.roles.includes('founder') && (
+          <details className="rounded-lg bg-white/15 px-3 py-1 text-xs font-bold">
+            <summary className="cursor-pointer">Change dates</summary>
+            <form action={setCohortDates} className="mt-2 flex flex-wrap items-end gap-2 text-slate-800">
+              <input type="hidden" name="cohort" value={id} />
+              <label className="block text-white">Starts<input type="date" name="start" required defaultValue={String(c.start_date ?? '').slice(0, 10)} className={inputCls} /></label>
+              <label className="block text-white">Ends<input type="date" name="end" required defaultValue={String(trainingEnds(c) ?? '')} className={inputCls} /></label>
+              <button className={submitCls}>Save dates</button>
+            </form>
+          </details>
+        )}
         {team.map((t) => <span key={t.display_name} className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{t.display_name} · {t.role}</span>)}
       </PageHeader>
 
