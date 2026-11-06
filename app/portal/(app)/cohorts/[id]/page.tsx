@@ -32,7 +32,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       q('select box_number from canvas_unlocks where cohort_id=$1', [id]),
       q(`select a.box_number, count(distinct cv.enrolment_id)::int n from canvas_answers a join canvases cv on cv.id=a.canvas_id
          join enrolments e on e.id=cv.enrolment_id where e.cohort_id=$1 group by a.box_number`, [id]),
-      q(`select s.id session_id, s.day_number, count(*) filter (where a.present)::int present, count(*)::int total
+      q(`select s.id session_id, s.day_number, count(*) filter (where a.present)::int present, count(a.id)::int total
          from sessions s left join attendance a on a.session_id=s.id where s.cohort_id=$1 group by s.id, s.day_number order by s.day_number`, [id]),
       q(`select sc.*, p.display_name, e.id enrolment_id from followup_schedule sc join enrolments e on e.id=sc.enrolment_id
          join people p on p.id=e.person_id where e.cohort_id=$1 order by sc.due_date, p.display_name`, [id]),
@@ -91,7 +91,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat tone="teal" label="Programme progress" value={`${pct(daysDone, totalDays)}%`} sub={`${daysDone} of ${totalDays} training days done`} />
         <Stat label="Enrolled" value={roster.length} sub={`${roster.filter((r) => r.track === 'starter').length} on the Starter Track`} />
-        <Stat tone="green" label="Average attendance" value={`${att.length ? Math.round(att.reduce((s, a) => s + pct(a.present, a.total), 0) / att.length) : 0}%`} />
+        <Stat tone="green" label="Average attendance" value={(() => { const held = att.filter((a) => a.total > 0); return held.length ? `${Math.round(held.reduce((s, a) => s + pct(a.present, a.total), 0) / held.length)}%` : '—'; })()} sub={(() => { const n = att.filter((a) => a.total > 0).length; return n ? `across the ${n} day${n === 1 ? '' : 's'} held so far` : 'no attendance taken yet'; })()} />
         <Stat tone="gold" label="Canvas boxes unlocked" value={`${unlocked.size}/12`} />
         <Stat tone={overdue.length ? 'red' : 'teal'} label="Follow-ups overdue" value={overdue.length} sub={`${open.length} open`} />
       </div>
