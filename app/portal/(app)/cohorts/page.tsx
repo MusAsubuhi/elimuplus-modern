@@ -13,6 +13,7 @@ export default async function Cohorts() {
     rows: await q(`select c.*, o.name org_name,
       (select count(*) from enrolments e where e.cohort_id=c.id)::int n,
       (select count(*) from enrolments e where e.cohort_id=c.id and e.status='completed')::int completed,
+      (select count(*) from sessions s where s.cohort_id=c.id and (s.attendance_confirmed_at is not null or s.session_date < (now() at time zone 'Africa/Nairobi')::date))::int days_done,
       (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id join enrolments e on e.id=cv.enrolment_id where e.cohort_id=c.id)::int boxes_touched,
       (select count(*) from canvas_unlocks u where u.cohort_id=c.id)::int unlocked
       from cohorts c join organisations o on o.id=c.organisation_id order by c.seq`),
@@ -44,7 +45,7 @@ export default async function Cohorts() {
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-3 text-center text-sm">
                   <div><div className="text-2xl font-bold text-ink">{c.n}</div><div className="text-xs text-slate-500">enrolled</div></div>
-                  <div><div className="text-2xl font-bold text-ink">{pct(c.completed, c.n)}%</div><div className="text-xs text-slate-500">completed</div></div>
+                  <div><div className="text-2xl font-bold text-ink">{pct(Math.min(c.days_done, c.format === '12-day' ? 12 : 5), c.format === '12-day' ? 12 : 5)}%</div><div className="text-xs text-slate-500">through the programme ({Math.min(c.days_done, c.format === '12-day' ? 12 : 5)} of {c.format === '12-day' ? 12 : 5} days{c.completed ? `, ${c.completed} finished` : ''})</div></div>
                   <div><div className="text-2xl font-bold text-ink">{c.unlocked}/12</div><div className="text-xs text-slate-500">boxes unlocked</div></div>
                 </div>
               </Card>

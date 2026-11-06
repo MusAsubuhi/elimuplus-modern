@@ -5,7 +5,7 @@ import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, ImgBand, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { BarCard, PieCard } from '@/components/charts';
-import { d, daysFromToday, iso, pct } from '@/lib/format';
+import { dayIsDone, d, daysFromToday, iso, pct } from '@/lib/format';
 import AttendanceTicks from '@/components/attendance-ticks';
 import { ensureSessions } from '@/lib/sessions';
 import { markAttendance, recordVisit, saveSessionLog, setCohortDates, toggleUnlock } from '../../../actions';
@@ -61,6 +61,8 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const overdue = open.filter((s) => new Date(s.due_date) < today);
   const sess = sessions.find((s) => s.id === chosen);
   const finalDay = Math.max(sessions.reduce((m: number, s: any) => Math.max(m, s.day_number), 0), c.format === '12-day' ? 12 : 5);
+  const totalDays = c.format === '12-day' ? 12 : 5;
+  const daysDone = Math.min(totalDays, sessions.filter(dayIsDone).length);
   const isFinalDay = !!sess && sess.day_number === finalDay;
   const nonNegotiables: [string, string][] = [
     ['canvas_order', 'Sections taught in canvas order'],
@@ -85,7 +87,8 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
         {team.map((t) => <span key={t.display_name} className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{t.display_name} · {t.role}</span>)}
       </PageHeader>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Stat tone="teal" label="Programme progress" value={`${pct(daysDone, totalDays)}%`} sub={`${daysDone} of ${totalDays} training days done`} />
         <Stat label="Enrolled" value={roster.length} sub={`${roster.filter((r) => r.track === 'starter').length} on the Starter Track`} />
         <Stat tone="green" label="Average attendance" value={`${att.length ? Math.round(att.reduce((s, a) => s + pct(a.present, a.total), 0) / att.length) : 0}%`} />
         <Stat tone="gold" label="Canvas boxes unlocked" value={`${unlocked.size}/12`} />

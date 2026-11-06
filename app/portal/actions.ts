@@ -1,5 +1,6 @@
 'use server';
 import { audit } from '@/lib/audit';
+import { trainingDates, programmeDays } from '@/lib/billing';
 import { syncDaySummary } from '@/lib/sessions';
 import { alertFounders, issueReceipt, nextQuoteNumber, orgCode, quoteLines } from '@/lib/billing';
 import { CONTACT, MIN_SESSIONS } from '@/lib/pricing';
@@ -123,7 +124,7 @@ export async function saveSessionLog(f: FormData) {
   back(`/portal/cohorts/${cohort}`, 'Session note saved');
 }
 
-/** A founder sets when a cohort starts and ends. Days that exist are re-dated one after another from the new start. */
+/** A founder sets when a cohort starts and ends. Days that exist are re-dated one after another from the new start, skipping Saturdays and Sundays. */
 export async function setCohortDates(f: FormData) {
   const me = await requireMe('founder');
   const cohort = s(f, 'cohort'), start = s(f, 'start'), end = s(f, 'end');
@@ -132,7 +133,9 @@ export async function setCohortDates(f: FormData) {
   if (end < start) back(P, 'The end date cannot be before the start date.', 'err');
   await asUser(me.id, async (q) => {
     await q('update cohorts set start_date=$2::date, end_date=$3::date where id=$1', [cohort, start, end]);
-    await q('update sessions set session_date=$2::date + (day_number - 1) where cohort_id=$1', [cohort, start]);
+    const fmt = (await q('select format from cohorts where id=$1', [cohort]))[0]?.format;
+    const dates = trainingDates(start, programmeDays(fmt)); // weekends skipped
+    for (let i = 0; i < dates.length; i++) await q('update sessions set session_date=$3::date where cohort_id=$1 and day_number=$2', [cohort, i + 1, dates[i]]);
   });
   await audit(me.id, `set cohort dates ${start} to ${end}`, 'cohorts');
   revalidatePath(P); revalidatePath('/portal/cohorts'); revalidatePath('/portal/partner'); revalidatePath('/portal/partner/timeline');

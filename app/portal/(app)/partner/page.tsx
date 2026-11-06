@@ -62,7 +62,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
       )}
 
       <Card title="Cohorts" className="mt-4">
-        <Table head={['Cohort', 'Format', 'Dates', 'Enrolled', 'Completed', 'Status']} rows={cohorts.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', dateRange(c, d), c.n, c.completed, <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>])} />
+        <Table head={['Cohort', 'Format', 'Dates', 'Progress', 'Enrolled', 'Completed', 'Status']} rows={cohorts.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', dateRange(c, d), `${Math.min(c.days_done, c.format === '12-day' ? 12 : 5)} of ${c.format === '12-day' ? 12 : 5} days`, c.n, c.completed, <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>])} />
       </Card>
 
       {photos.length > 0 && (
