@@ -43,6 +43,7 @@ export const FEATURES: Feature[] = [
   { key: 'earnings', label: 'My earnings', section: 'Money', href: '/portal/earnings', icon: '◇', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'What each trainer has earned and been paid.' },
   { key: 'expenses', label: 'Expenses ledger', section: 'Money', href: '/portal/expenses', icon: '≣', delegable: false, roles: ['founder'], note: 'Every cost recorded for Elimu+, where it was paid from, receipts and reconciliation.' },
   { key: 'finance', label: 'Finance', section: 'Money', href: '/portal/finance', icon: '₭', delegable: false, roles: ['founder'], note: 'Money, rates and margins.' },
+  { key: 'books', label: 'Accounts and statements', section: 'Money', href: '/portal/books', icon: '≡', delegable: false, roles: ['founder'], note: 'Profit and loss, balance sheet, working capital and receivables on an accrual basis.' },
   { key: 'team', label: 'Team and people', section: 'People', href: '/portal/team', icon: '☺', delegable: false, roles: ['founder'], note: 'Personal records.' },
   { key: 'suppliers', label: 'Suppliers', section: 'People', href: '/portal/suppliers', icon: '⌂', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Suppliers by category and region, with history and ratings. Trainers can suggest and recommend; only founders approve.' },
   { key: 'people', label: 'Partner organisations and welfare', section: 'Partners', href: '/portal/people', icon: '☰', delegable: false, roles: ['founder'] },
