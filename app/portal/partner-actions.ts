@@ -211,3 +211,66 @@ export async function publishDaySummary(f: FormData) {
   revalidatePath('/portal/partner/timeline');
   go(P, 'Summary published. The partner can now see it under Our deliverables.');
 }
+
+/** The partner records support it gave a participant (stock, tools, cash, fees). It is kept apart from fees and costs, and founders see it on Finance. */
+export async function recordSupport(f: FormData) {
+  const me = await requireMe('org_admin');
+  const cohort = s(f, 'cohort');
+  const P = `/portal/partner/support?cohort=${cohort}`;
+  const amount = Math.round(Number(s(f, 'amount')));
+  const item = s(f, 'item', 200);
+  const date = s(f, 'entry_date') || new Date().toISOString().slice(0, 10);
+  if (!(amount > 0)) go(P, 'Enter how much was given, in shillings.', 'err');
+  if (!item) go(P, 'Say what the support was for, for example stock, tools or school fees.', 'err');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > new Date().toISOString().slice(0, 10)) go(P, 'Choose the date it was given. It cannot be in the future.', 'err');
+  try {
+    await asUser(me.id, async (q) => {
+      const r = (await q(`select r.enrolment_id, r.organisation_id, o.name org_name from cohort_roster r join organisations o on o.id=r.organisation_id where r.id=$1 and r.cohort_id=$2 and r.enrolment_id is not null`, [s(f, 'person'), cohort]))[0];
+      if (!r) throw new Error('participant');
+      await q(`insert into support_ledger(enrolment_id, entry_date, amount_kes, item, funder, note, source, given_by_org, recorded_by) values ($1,$2,$3,$4,$5,$6,'partner',$7,$8)`,
+        [r.enrolment_id, date, amount, item, s(f, 'funder', 120) || r.org_name, s(f, 'note', 300) || null, r.organisation_id, me.id]);
+    });
+    await audit(me.id, `recorded support of KES ${amount}`, 'support_ledger');
+  } catch (e) { console.error('[support]', e); go(P, 'We could not save that. Choose a participant from one of your own cohorts.', 'err'); }
+  revalidatePath('/portal/partner/support');
+  go(P, 'Recorded. Thank you.');
+}
+
+export async function removeSupport(f: FormData) {
+  const me = await requireMe('org_admin');
+  const P = `/portal/partner/support?cohort=${s(f, 'cohort')}`;
+  const n = await asUser(me.id, (q) => q(`delete from support_ledger where id=$1 and source='partner' returning id`, [s(f, 'id')]));
+  if (n.length) await audit(me.id, 'removed a support entry', 'support_ledger');
+  revalidatePath('/portal/partner/support');
+  go(P, n.length ? 'Removed.' : 'That entry could not be removed.', n.length ? 'ok' : 'err');
+}
+
+/** Founders can enter or correct support on any participant, for example what the programme itself gave, or a partner who sends the figures to us instead. */
+export async function recordSupportFounder(f: FormData) {
+  const me = await requireMe('founder');
+  const P = '/portal/finance';
+  const amount = Math.round(Number(s(f, 'amount')));
+  const item = s(f, 'item', 200);
+  const date = s(f, 'entry_date') || new Date().toISOString().slice(0, 10);
+  if (!(amount > 0) || !item) go(P, 'Enter the participant, what the support was and the amount.', 'err');
+  const given = s(f, 'given_by') === 'partner';
+  try {
+    await asUser(me.id, async (q) => {
+      const org = (await q('select c.organisation_id from enrolments e join cohorts c on c.id=e.cohort_id where e.id=$1', [s(f, 'enrolment')]))[0];
+      if (!org) throw new Error('enrolment');
+      await q(`insert into support_ledger(enrolment_id, entry_date, amount_kes, item, funder, note, source, given_by_org, recorded_by) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [s(f, 'enrolment'), date, amount, item, s(f, 'funder', 120) || null, s(f, 'note', 300) || null, given ? 'partner' : 'founders', given ? org.organisation_id : null, me.id]);
+    });
+    await audit(me.id, `recorded support of KES ${amount}`, 'support_ledger');
+  } catch (e) { console.error('[support]', e); go(P, 'We could not save that support entry.', 'err'); }
+  revalidatePath('/portal/finance');
+  go(P, 'Support recorded.');
+}
+
+export async function removeSupportFounder(f: FormData) {
+  const me = await requireMe('founder');
+  await asUser(me.id, (q) => q('delete from support_ledger where id=$1', [s(f, 'id')]));
+  await audit(me.id, 'removed a support entry', 'support_ledger');
+  revalidatePath('/portal/finance');
+  go('/portal/finance', 'Support entry removed.');
+}
