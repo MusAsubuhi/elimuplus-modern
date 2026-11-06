@@ -160,27 +160,34 @@ export async function recordVisit(f: FormData) {
 export async function submitExpense(f: FormData) {
   const me = await requireMe('facilitator', 'founder');
   const amount = Number(s(f, 'amount'));
+  const how = ['ahead', 'own_pocket', 'bank', 'cash', 'mpesa'].includes(s(f, 'how')) ? s(f, 'how') : 'ahead';
+  const after = how !== 'ahead';
+  const paidFrom = after ? how : 'to_be_paid';
   const purpose = ['training', 'followup_30', 'followup_60', 'followup_90', 'other'].includes(s(f, 'purpose')) ? s(f, 'purpose') : 'training';
   const cohort = s(f, 'cohort') || null;
+  const spentOn = s(f, 'spent_on') || null;
   if (!(amount > 0) || !s(f, 'reason')) back('/portal/requests', 'Add an amount and a reason.', 'err');
-  if (purpose !== 'other' && !cohort) back('/portal/requests', 'Choose the cohort this is for. Use "Something else" only for costs that belong to no cohort.', 'err');
+  if (after && (!spentOn || spentOn > new Date().toISOString().slice(0, 10))) back('/portal/requests', 'Add the date the money was spent (not in the future).', 'err');
+  if (purpose !== 'other' && !cohort) back('/portal/requests', 'Choose the cohort this is for. Use "No cohort" with "Something else" for costs that belong to no cohort.', 'err');
+  let late = false;
   try {
     await asUser(me.id, async (q) => {
       if (cohort) {
         const c = (await q("select status from cohorts where id=$1", [cohort]))[0];
         if (!c) throw new Error('cohort not visible');
-        if (c.status === 'closed' || c.status === 'requested' || c.status === 'quoted') throw new Error('cohort not active');
+        if (c.status === 'requested' || c.status === 'quoted') throw new Error('cohort not active');
+        if (c.status === 'closed') { if (!after) throw new Error('cohort not active'); late = true; }
       }
-      await q('insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason,purpose) values($1,$2,$3,$4,$5,$6)',
-        [me.id, cohort, s(f, 'category') || null, amount, s(f, 'reason'), purpose]);
+      await q('insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason,purpose,paid_from,spent_on,reference,late) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+        [me.id, cohort, s(f, 'category') || null, amount, s(f, 'reason'), purpose, paidFrom, after ? spentOn : null, s(f, 'reference') || null, late]);
     });
   } catch (e: any) {
     console.error("[portal action]", e);
-    back('/portal/requests', e?.message === 'cohort not active' ? 'That cohort is not running. Requests attach to a confirmed, running or follow-up cohort.' : 'Could not submit that request.', 'err');
+    back('/portal/requests', e?.message === 'cohort not active' ? 'That cohort is not running. Requests for money attach to a confirmed, running or follow-up cohort. Money already spent can also go on a closed cohort.' : 'Could not save that record.', 'err');
   }
   await notify();
   revalidatePath('/portal/requests');
-  back('/portal/requests', 'Request submitted. A founder will review it.');
+  back('/portal/requests', after ? 'Recorded. Now add the receipt below, then the other founder or a founder will confirm it.' : 'Request submitted. A founder will review it.');
 }
 
 export async function decideExpense(f: FormData) {
@@ -192,13 +199,17 @@ export async function decideExpense(f: FormData) {
     await asUser(me.id, async (q) => {
       await q(`insert into expense_approvals(request_id,approver_id,decision,note) values($1,$2,$3,$4)
                on conflict (request_id,approver_id) do update set decision=excluded.decision, note=excluded.note`, [id, me.id, decision, note]);
-      const req = (await q('select amount_kes from expense_requests where id=$1', [id]))[0];
+      const req = (await q('select amount_kes, paid_from, spent_on from expense_requests where id=$1', [id]))[0];
       const thr = Number((await q("select value from settings where key='expense_threshold_kes'"))[0]?.value ?? 20000);
       const approvals = await q("select count(distinct approver_id)::int n from expense_approvals where request_id=$1 and decision='approve'", [id]);
       const need = req.amount_kes > thr ? 2 : 1;
       if (decision === 'decline') await q("update expense_requests set status='declined', decided_on=current_date where id=$1", [id]);
       else if (decision === 'query') await q("update expense_requests set status='queried' where id=$1", [id]);
-      else if (approvals[0].n >= need) await q("update expense_requests set status='approved', decided_on=current_date where id=$1", [id]);
+      else if (approvals[0].n >= need) {
+        // money already paid from the Elimu+ bank, M-Pesa or cash is settled the moment it is confirmed; only 'needs paying' and 'own money' wait for a payout
+        if (['bank', 'cash', 'mpesa'].includes(req.paid_from)) await q("update expense_requests set status='paid', decided_on=current_date, paid_on=coalesce(spent_on,current_date), paid_amount_kes=amount_kes where id=$1", [id]);
+        else await q("update expense_requests set status='approved', decided_on=current_date where id=$1", [id]);
+      }
     });
   } catch (e) { console.error("[portal action]", e); back('/portal/approvals', 'You cannot decide on your own request.', 'err'); }
   revalidatePath('/portal', 'layout');
@@ -213,6 +224,15 @@ export async function markExpensePaid(f: FormData) {
     [id, Number(s(f, 'paid')) || null, s(f, 'receipt')]));
   revalidatePath('/portal', 'layout');
   back('/portal/approvals', 'Marked as paid');
+}
+
+/** A founder ticks a paid record off once it matches the bank, M-Pesa or cash book and the receipt has been seen. */
+export async function reconcileExpense(f: FormData) {
+  const me = await requireMe('founder');
+  const id = s(f, 'request');
+  await asUser(me.id, (q) => q("update expense_requests set status='reconciled', reconciled_on=current_date, reconciled_by=$2 where id=$1 and status='paid'", [id, me.id]));
+  revalidatePath('/portal', 'layout');
+  back('/portal/expenses', 'Marked as reconciled');
 }
 
 /* ---------- partner ---------- */

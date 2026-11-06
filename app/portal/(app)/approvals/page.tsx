@@ -4,13 +4,16 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls }
 import { d, kes } from '@/lib/format';
 import { audit } from '@/lib/audit';
 import { decideExpense, markExpensePaid } from '../../actions';
+import { PAID_FROM } from '@/lib/expense-labels';
+import { signReceipts } from '@/lib/receipts';
 import SessionPhotoGrid from '@/components/session-photo-grid';
 import { signSessionPhotos } from '@/lib/session-photos';
 
 export default async function Approvals() {
   const me = await requireMe('founder');
   await audit(me.id, 'view approvals', 'expense_requests');
-  const { reqs, thr, waitingPhotos } = await asUser(me.id, async (q) => ({
+  const { reqs, thr, waitingPhotos, receipts } = await asUser(me.id, async (q) => ({
+    receipts: await q('select request_id, storage_path, kind from expense_receipts order by created_at').catch(() => []),
     waitingPhotos: await q("select p.id, p.day_number, p.storage_path, p.caption, p.status, c.name cohort_name from session_photos p join cohorts c on c.id=p.cohort_id where p.status='pending' order by p.created_at").catch(() => []),
     reqs: await q(`select r.*, p.display_name requester, c.name cohort, k.name category,
         (select string_agg(a.approver_id::text || ':' || a.decision, ',') from expense_approvals a where a.request_id=r.id) votes,
@@ -20,6 +23,7 @@ export default async function Approvals() {
     thr: Number((await q("select value from settings where key='expense_threshold_kes'"))[0]?.value ?? 20000),
   }));
   const signed = await signSessionPhotos(waitingPhotos.map((x: any) => x.storage_path));
+  const signedR = await signReceipts(receipts.map((x: any) => x.storage_path));
   const queue = reqs.filter((r) => ['submitted', 'queried'].includes(r.status));
   const toPay = reqs.filter((r) => r.status === 'approved');
   const history = reqs.filter((r) => !['submitted', 'queried', 'approved'].includes(r.status));
@@ -48,7 +52,9 @@ export default async function Approvals() {
                   <p className="text-sm text-slate-600">{r.requester} · {r.category ?? 'Other'} · {r.cohort ?? 'General'} · {d(r.created_at)}</p></div>
                 <div className="text-right"><Badge tone={statusTone(r.status)}>{r.status}</Badge><div className="mt-1 text-xs text-slate-500">{r.approvals}/{need} approval{need > 1 ? 's' : ''}{need > 1 ? ' (above threshold)' : ''}</div></div>
               </div>
-              {own ? <p className="mt-3 text-sm font-semibold text-[#C8553D]">This is your own request. The other founder must decide.</p>
+              <p className="mt-2 text-sm"><Badge tone={r.paid_from === 'to_be_paid' ? 'gold' : 'teal'}>{PAID_FROM[r.paid_from] ?? r.paid_from}</Badge>{r.spent_on ? ` spent ${d(r.spent_on)}` : ''}{r.reference ? ` · ref ${r.reference}` : ''}{r.late ? ' · late (cohort closed)' : ''}</p>
+              <p className="mt-1 text-sm">{(() => { const mine = receipts.filter((x: any) => x.request_id === r.id); return mine.length ? mine.map((m: any, i: number) => <a key={i} href={signedR[m.storage_path]} target="_blank" rel="noreferrer" className="mr-3 font-bold text-teal underline">{m.kind === 'pdf' ? 'PDF receipt' : 'Receipt'} {i + 1}</a>) : <span className={r.paid_from === 'to_be_paid' ? 'text-slate-500' : 'font-semibold text-[#C8553D]'}>{r.paid_from === 'to_be_paid' ? 'No receipt yet (not needed until it is spent)' : 'No receipt attached yet'}</span>; })()}</p>
+              {own ? <p className="mt-3 text-sm font-semibold text-[#C8553D]">This is your own record. The other founder must confirm it.</p>
                 : (
                 <form action={decideExpense} className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
                   <input type="hidden" name="request" value={r.id} />
@@ -63,7 +69,7 @@ export default async function Approvals() {
         {!queue.length && <Card>Nothing waiting. 🎉</Card>}
       </div>
       {toPay.length > 0 && (
-        <Card title="Approved: record the payment" className="mt-4">
+        <Card title="Approved: record the payout" className="mt-4">
           {toPay.map((r) => (
             <form key={r.id} action={markExpensePaid} className="grid items-center gap-2 border-b border-slate-100 py-2 text-sm last:border-0 sm:grid-cols-[2fr_1fr_2fr_auto]">
               <input type="hidden" name="request" value={r.id} />
