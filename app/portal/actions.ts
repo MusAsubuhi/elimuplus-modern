@@ -178,8 +178,8 @@ export async function submitExpense(f: FormData) {
         if (c.status === 'requested' || c.status === 'quoted') throw new Error('cohort not active');
         if (c.status === 'closed') { if (!after) throw new Error('cohort not active'); late = true; }
       }
-      await q('insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason,purpose,paid_from,spent_on,reference,late) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
-        [me.id, cohort, s(f, 'category') || null, amount, s(f, 'reason'), purpose, paidFrom, after ? spentOn : null, s(f, 'reference') || null, late]);
+      await q('insert into expense_requests(requester_id,cohort_id,category_id,amount_kes,reason,purpose,paid_from,spent_on,reference,late,supplier_id) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+        [me.id, cohort, s(f, 'category') || null, amount, s(f, 'reason'), purpose, paidFrom, after ? spentOn : null, s(f, 'reference') || null, late, s(f, 'supplier') || null]);
     });
   } catch (e: any) {
     console.error("[portal action]", e);
