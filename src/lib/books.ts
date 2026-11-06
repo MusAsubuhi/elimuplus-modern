@@ -21,7 +21,7 @@ export type Raw = {
   ledger: { id: string; entry_date: string; kind: string; amount_kes: number; money_account_id: string | null; account_id: string | null; cohort_id: string | null; description: string | null }[];
   opening: { id: string; kind: string; label: string; amount_kes: number }[];
   checks: { money_account_id: string; checked_on: string; actual_kes: number }[];
-  payroll: { period_end: string; gross: number; employer: number; net_paid_on: string | null; net: number; statutory_due: number; statutory_paid_on: string | null }[];
+  payroll: { period_end: string; gross: number; other: number; employer: number; net_paid_on: string | null; net: number; statutory_due: number; statutory_paid_on: string | null }[];
 };
 
 export async function loadRaw(q: Q): Promise<Raw> {
@@ -44,7 +44,7 @@ export async function loadRaw(q: Q): Promise<Raw> {
     q('select distinct on (money_account_id) money_account_id, checked_on, actual_kes::float8 actual_kes from money_checks order by money_account_id, checked_on desc, created_at desc'),
   ]);
   const hasPayroll = (await q("select 1 from information_schema.tables where table_schema='public' and table_name='payroll_runs'")).length > 0;
-  const payroll = !hasPayroll ? [] : await q(`select period_end, gross_kes::float8 gross, employer_kes::float8 employer, net_kes::float8 net, net_paid_on, statutory_kes::float8 statutory_due, statutory_paid_on
+  const payroll = !hasPayroll ? [] : await q(`select period_end, gross_kes::float8 gross, coalesce((select sum(other_deduction) from payslips s where s.run_id=payroll_runs.id),0)::float8 other, employer_kes::float8 employer, net_kes::float8 net, net_paid_on, statutory_kes::float8 statutory_due, statutory_paid_on
                            from payroll_runs where status in ('approved','paid')`);
   const n = <T extends Record<string, any>>(rows: T[], keys: string[]) => rows.map((r) => { const o: any = { ...r }; for (const k of keys) o[k] = o[k] ? iso(o[k]) : o[k] ?? null; return o; });
   return {
@@ -87,7 +87,7 @@ export function profitAndLoss(raw: Raw, from: string, to: string, cohort: string
   for (const c of raw.claims) if (inPeriod(c.accrued_on) && cohortOk(c.cohort_id)) put('5100', c.amt);
   for (const t of raw.trainerPayments) if (inPeriod(t.paid_on) && cohortOk(t.cohort_id)) put('5100', t.amt);
   for (const l of raw.ledger) if (l.kind === 'depreciation' && inPeriod(l.entry_date) && cohortOk(l.cohort_id)) put('6910', l.amount_kes);
-  if (cohort === null || cohort === 'general') for (const p of raw.payroll) if (inPeriod(p.period_end)) { put('6100', p.gross); put('6110', p.employer); }
+  if (cohort === null || cohort === 'general') for (const p of raw.payroll) if (inPeriod(p.period_end)) { put('6100', p.gross - (p.other ?? 0)); put('6110', p.employer); }
 
   const mk = (kind: string): Line[] => [...buckets.entries()]
     .map(([code, amount]) => ({ code, name: byCode.get(code)?.name ?? code, amount, kind: byCode.get(code)?.kind }))
