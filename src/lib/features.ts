@@ -22,6 +22,7 @@ export type Level = 'view' | 'edit';
 export const FEATURES: Feature[] = [
   { key: 'needs', label: 'Needs my decision', section: 'Home', href: '/portal/needs', icon: '✔', delegable: false, roles: ['founder'], note: 'Everything waiting for a founder, from every part of the portal.' },
   { key: 'cohorts', label: 'Cohorts', section: 'Programme', href: '/portal/cohorts', icon: '◧', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Each person sees the cohorts they deliver; founders see all.' },
+  { key: 'attendance', label: 'Daily attendance', section: 'Programme', href: '/portal/attendance', icon: '☑', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Confirm who came each day of a programme.' },
   { key: 'qa', label: 'Quality and reports', section: 'Programme', href: '/portal/qa', icon: '✓', delegable: false, roles: ['founder', 'master'], note: 'QA visits, reports and the supervision register.' },
   { key: 'command', label: 'Command view', section: 'Home', href: '/portal/command', icon: '★', delegable: false, roles: ['founder'], note: 'Whole-programme summary for founders.' },
   { key: 'alerts', label: 'Alerts', section: 'Home', href: '/portal/alerts', icon: '⚑', delegable: false, roles: ['founder'], note: 'Welfare, urgent and system alerts.' },

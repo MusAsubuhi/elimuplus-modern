@@ -59,7 +59,10 @@ export async function sendDeal(f: FormData) {
   back(`Sent to ${to.join(', ')}.`);
 }
 
-/** The partner said yes: confirm the cohort and raise the training invoice. */
+/**
+ * The partner said yes: confirm the cohort. The quotation is dated the day it was placed; the training invoice is raised
+ * automatically on the day after the programme ends (5 or 12 days), by the daily billing job.
+ */
 export async function acceptDeal(f: FormData) {
   const me = await requireMe('founder');
   const id = s(f, 'quote');
@@ -67,13 +70,8 @@ export async function acceptDeal(f: FormData) {
     await asUser(me.id, async (q) => {
       const qt = (await q('select * from quotes where id=$1', [id]))[0];
       if (!qt || qt.accepted_at) throw new Error('already');
-      const lines = await q('select * from quote_lines where quote_id=$1', [id]);
-      const training = lines.filter((l: any) => l.kind === 'training').reduce((a: number, l: any) => a + l.qty * l.unit_kes, 0);
-      const co = qt.cohort_id ? (await q('select start_date, name from cohorts where id=$1', [qt.cohort_id]))[0] : null;
       await q("update quotes set status='signed', accepted_at=now() where id=$1", [id]);
       if (qt.cohort_id) await q("update cohorts set status='confirmed' where id=$1 and status in ('requested','quoted')", [qt.cohort_id]);
-      const due = co?.start_date ? (co.start_date instanceof Date ? co.start_date.toISOString().slice(0, 10) : String(co.start_date).slice(0, 10)) : addDays(14);
-      if (training > 0) await createInvoice(q, { quoteId: id, orgId: qt.organisation_id, cohortId: qt.cohort_id, kind: 'training', amount: training, description: `Training${co ? `: ${co.name}` : ''}, ${qt.participants ?? ''} participants, ${qt.sessions} sessions`, dueOn: due });
     });
   } catch (e: any) {
     console.error('[deal]', e);
@@ -81,9 +79,9 @@ export async function acceptDeal(f: FormData) {
     if (String(e?.message ?? '').startsWith('Not ready')) back('Not confirmed yet: this organisation still has to be called, visited and pass the venue checks. Record those on its CRM page, or a founder can record an override reason there, then mark it accepted again. The quotation is unchanged.', 'err');
     back('Could not mark it accepted. It may already be accepted.', 'err');
   }
-  await audit(me.id, 'quotation accepted, training invoice raised', 'quotes');
+  await audit(me.id, 'quotation accepted', 'quotes');
   revalidatePath(P);
-  back('Accepted. The cohort is confirmed and the training invoice is raised. Send it from the invoices list.');
+  back('Accepted. The cohort is confirmed. The training invoice will be raised the day after the programme ends, and you will be alerted to send it.');
 }
 
 export async function declineDeal(f: FormData) {

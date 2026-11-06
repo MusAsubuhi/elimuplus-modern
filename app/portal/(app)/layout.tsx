@@ -22,6 +22,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/directory', label: 'Biashara za Elimu+', icon: '❖' }] },
   facilitator: { title: 'My work', items: [
     { href: '/portal/cohorts', label: 'My cohorts', icon: '◧' },
+    { href: '/portal/attendance', label: 'Daily attendance', icon: '☑' },
     { href: '/portal/reports', label: 'Day reports', icon: '✎' },
     { href: '/portal/pathway', label: 'My pathway', icon: '△' },
     { href: '/portal/plan', label: 'My improvement plan', icon: '↗' },
@@ -31,6 +32,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/suppliers', label: 'Suppliers', icon: '⌂', tab: 'People' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+', tab: 'People' }] },
   master: { title: 'Programme', items: [
+    { href: '/portal/attendance', label: 'Daily attendance', icon: '☑' },
     { href: '/portal/qa', label: 'Quality and reports', icon: '✓' },
     { href: '/portal/crm', label: 'Partners: call, visit, check', icon: '☎' },
     { href: '/portal/earnings', label: 'My earnings', icon: '◈', tab: 'Money' },

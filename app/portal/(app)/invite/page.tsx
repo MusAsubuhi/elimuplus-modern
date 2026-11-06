@@ -36,7 +36,8 @@ export default async function Suggest() {
             <label className="block font-bold">County<input name="county" defaultValue="Mombasa" className={inputCls} /></label>
             <label className="block font-bold">Ward or area<input name="ward" placeholder="e.g. Likoni" className={inputCls} /></label>
             <label className="block font-bold sm:col-span-2">Why them? (optional)<textarea name="note" rows={2} className={inputCls} /></label>
-            <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="guardian" />Guardian consent obtained (required under 18)</label>
+            <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="guardian" />Under 18: a parent or guardian has agreed</label>
+            <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="own" />Aged 18 or over: this person has agreed to be added (adults agree for themselves)</label>
             <div className="sm:col-span-2"><button className={submitCls}>Send for approval</button></div>
           </form>
         </Card>

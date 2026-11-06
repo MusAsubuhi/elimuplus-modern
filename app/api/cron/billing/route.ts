@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { asAdmin } from '@/lib/db';
-import { addDaysIso, alertFounders, createInvoice, docUrl, mailDoc, orgContacts, releaseDueQuotes, splitFollowup, visitDates } from '@/lib/billing';
+import { addDaysIso, alertFounders, createInvoice, docUrl, mailDoc, orgContacts, releaseDueQuotes, splitFollowup, trainingEnds, visitDates } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +43,30 @@ export async function GET(req: Request) {
         out.push(inv.number);
       } catch (e) { console.error('[billing cron]', c.id, pv.visit, e); }
     }
+  }
+
+  // Training invoices: the quotation is dated the day it was placed; the invoice is dated the day after the programme ends (5 or 12 days).
+  const trainingCands = await asAdmin((q) => q(
+    `select c.id, c.name, c.organisation_id, c.start_date, c.end_date, c.format, qt.id quote_id, qt.participants, qt.sessions,
+        (select coalesce(sum(l.qty*l.unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind='training') fee
+       from cohorts c join quotes qt on qt.cohort_id=c.id and qt.status='signed' and qt.accepted_at is not null
+      where c.status in ('confirmed','delivering','followup','closed')
+        and not exists (select 1 from invoices i where i.cohort_id=c.id and i.kind='training')`));
+  for (const c of trainingCands) {
+    const ends = trainingEnds(c);
+    if (!ends || !(c.fee > 0)) continue;
+    const issueOn = addDaysIso(ends, 1);
+    if (issueOn > today) continue;
+    try {
+      const inv = await asAdmin(async (q) => {
+        if ((await q("select 1 from invoices where cohort_id=$1 and kind='training'", [c.id])).length) return null;
+        return createInvoice(q, { quoteId: c.quote_id, orgId: c.organisation_id, cohortId: c.id, kind: 'training', amount: c.fee, issuedOn: issueOn, dueOn: addDaysIso(issueOn, 14),
+          description: `Training: ${c.name}, ${c.participants ?? ''} participants, ${c.sessions} sessions (${c.format === '12-day' ? '12' : '5'}-day programme)` });
+      });
+      if (!inv) continue;
+      await asAdmin((q) => alertFounders(q, `Training invoice ${inv.number} raised`, `${c.name} finished on ${ends}. The invoice for KES ${c.fee.toLocaleString('en-KE')} is dated ${issueOn}. Open it and send it to the partner.`, '/portal/deals', 'attention'));
+      out.push(inv.number);
+    } catch (e) { console.error('[training invoice]', c.id, e); }
   }
 
   // Certificates are the thing we always forget: remind the founders until they are issued.

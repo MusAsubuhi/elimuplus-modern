@@ -3,6 +3,7 @@ import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, inputCls, submitCls } from '@/components/ui';
 import { d, kes } from '@/lib/format';
+import { ensureSessions } from '@/lib/sessions';
 import { audit } from '@/lib/audit';
 import { addTodo, doneTodo } from '../../supplier-actions';
 
@@ -23,6 +24,7 @@ export default async function Needs() {
     picks: await one(q, "select n.title, p.display_name who from sourcing_needs n join people p on p.id=n.raised_by where n.status='recommended'"),
     quotes: await one(q, "select qt.number, o.name org_name from quotes qt join organisations o on o.id=qt.organisation_id where qt.status='draft' order by qt.issued_on"),
     notices: await one(q, "select i.number inv, o.name org_name from payment_notices n join invoices i on i.id=n.invoice_id join organisations o on o.id=n.organisation_id where n.status='pending'"),
+    unconf: await (async () => { for (const c of await one(q, "select id from cohorts where status in ('confirmed','delivering') and start_date <= current_date")) await ensureSessions(q, c.id).catch(() => {}); return one(q, "select c.name, s.day_number, s.session_date from sessions s join cohorts c on c.id=s.cohort_id where c.status in ('confirmed','delivering') and s.session_date <= current_date and s.attendance_confirmed_at is null order by s.session_date"); })(),
     welfare: await one(q, "select count(*)::int n from welfare_flags where status='open'"),
     alerts: await one(q, "select a.id, a.kind, a.severity, a.title, a.link from founder_alerts a where a.severity in ('attention','urgent') and not exists (select 1 from alert_reads r where r.alert_id=a.id and r.person_id=$1) order by a.created_at desc limit 12", [me.id]),
     todos: await one(q, 'select * from founder_todos where done_at is null order by due_on nulls last, created_at'),
@@ -36,6 +38,7 @@ export default async function Needs() {
       ...(D.quotes.length ? D.quotes.map((n: any) => ({ title: `Quotation ${n.number} for ${n.org_name} is a draft`, detail: 'Review and release it.', href: '/portal/deals', tone: 'gold' })) : []),
     ] },
     { name: 'Programme', blurb: 'Quality and safeguarding.', items: [
+      ...D.unconf.map((u: any) => ({ title: `Attendance not confirmed: ${u.name}, day ${u.day_number}`, detail: d(u.session_date), href: '/portal/attendance', tone: 'gold' })),
       ...D.photos.map((p: any) => ({ title: `${p.n} session photo${p.n === 1 ? '' : 's'} to check`, detail: p.cohort_name, href: '/portal/approvals', tone: 'gold' })),
       ...(D.welfare[0]?.n ? [{ title: `${D.welfare[0].n} open welfare flag${D.welfare[0].n === 1 ? '' : 's'}`, detail: 'Follow up with the trainer who raised it.', href: '/portal/people', tone: 'red' }] : []),
     ] },

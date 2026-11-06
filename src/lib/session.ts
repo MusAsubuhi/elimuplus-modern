@@ -93,9 +93,9 @@ async function previewPerson(orgId: string): Promise<{ id: string; orgName: stri
     const o = (await q('select id, name from organisations where id=$1', [orgId]))[0];
     if (!o) return null;
     const email = `preview-${o.id}@preview.elimuplus.invalid`;
-    // insert only when no one has this email yet, so two page loads at once cannot create the stand-in twice
+    // on conflict, so two page loads at once (the layout and the page both ask) cannot both create the stand-in
     const made = (await q(`insert into people(full_name, display_name, email, preferred_language)
-      select $1,$1,$2,'en' where not exists (select 1 from people where lower(email)=lower($2)) returning id`, [`Partner preview: ${o.name}`, email]))[0];
+      values ($1,$1,$2,'en') on conflict (lower(email)) where email is not null and email <> '' do nothing returning id`, [`Partner preview: ${o.name}`, email]))[0];
     const p = made ?? (await q('select id from people where lower(email)=lower($1) limit 1', [email]))[0];
     if (made) await q(`insert into role_assignments(person_id, role, organisation_id) values ($1,'org_admin',$2)`, [p.id, o.id]);
     return { id: p.id as string, orgName: o.name as string };

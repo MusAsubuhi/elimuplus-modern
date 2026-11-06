@@ -70,7 +70,8 @@ export function AddPersonForm({ orgs, cohorts }: { orgs: { id: string; name: str
       <label className="flex items-start gap-2 text-sm"><input name="newsletter" type="checkbox" className="mt-1" /><span>They agreed to receive the Elimu+ newsletter by email (needs an email address)</span></label>
       <label className="block font-bold">County<input name="county" defaultValue="Mombasa" className={inputCls} /></label>
       <label className="block font-bold">Ward or area<input name="ward" placeholder="e.g. Likoni" className={inputCls} /></label>
-      <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="guardian" />Guardian consent obtained (required under 18)</label>
+      <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="guardian" />Under 18: a parent or guardian has agreed</label>
+            <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="own" />Aged 18 or over: this person has agreed to be added (adults agree for themselves)</label>
       <div className="sm:col-span-2"><button disabled={pending} className={submitCls}>{pending ? 'Adding…' : 'Add person and create sign-in'}</button></div>
       {state && <div className="sm:col-span-2"><PinResult state={state} /></div>}
     </form>

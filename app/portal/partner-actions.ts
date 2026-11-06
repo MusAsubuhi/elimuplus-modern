@@ -36,10 +36,10 @@ export async function notifyPayment(f: FormData) {
   go(P, 'Thank you. We will match it against our statement and send your receipt.');
 }
 
-type RosterRow = { name: string; phone: string; gender: 'F' | 'M'; year: number; consent: boolean };
+type RosterRow = { name: string; phone: string; gender: 'F' | 'M'; year: number; guardian: boolean; own: boolean };
 const THIS_YEAR = () => new Date().getFullYear();
 
-/** One person, checked. Name, phone, age and gender are all required; anyone under 18 also needs a parent or guardian's agreement. */
+/** One person, checked. Name, phone, age and gender are all required. Under 18 needs a parent or guardian's agreement; an adult agrees for themselves, and no guardian is involved. */
 function checkPerson(nameRaw: string, phoneRaw: string, genderRaw: string, ageRaw: string, consentRaw: boolean): { row?: RosterRow; error?: string } {
   const name = nameRaw.replace(/\s+/g, ' ').trim();
   if (name.length < 2) return { error: `${name || 'A line'}: name is missing` };
@@ -53,11 +53,12 @@ function checkPerson(nameRaw: string, phoneRaw: string, genderRaw: string, ageRa
   const age = THIS_YEAR() - year;
   if (!year || age < 5 || age > 100) return { error: `${name}: age is needed (a number such as 19)` };
   if (age < 18 && !consentRaw) return { error: `${name}: under 18, so a parent or guardian must have agreed` };
-  return { row: { name, phone, gender: g, year, consent: consentRaw } };
+  if (age >= 18 && !consentRaw) return { error: `${name}: an adult must agree to take part for themselves (tick the agreement)` };
+  return { row: { name, phone, gender: g, year, guardian: age < 18, own: age >= 18 } };
 }
 
-/** Lines of "Name, phone, F/M, age, guardian agreed (yes, only for under 18)" pasted from a spreadsheet or typed. */
-function parseRoster(text: string) {
+/** Lines of "Name, phone, F/M, age, agreed (yes)" pasted from a spreadsheet or typed. Under 18: a guardian agreed. Adults agree for themselves: either "yes" on the line or the box above the list. */
+function parseRoster(text: string, adultsAgreed = false) {
   const rows: RosterRow[] = [];
   const bad: string[] = [];
   for (const line of text.split(/\r?\n/)) {
@@ -65,7 +66,7 @@ function parseRoster(text: string) {
     if (!t) continue;
     const c = t.split(/[,\t;]/).map((x) => x.trim());
     if (/^(name|full name|jina)\b/i.test(c[0])) continue;
-    const r = checkPerson(c[0] ?? '', c[1] ?? '', c[2] ?? '', c[3] ?? '', /^(y|yes|true|1)/i.test(c[4] ?? ''));
+    const r = checkPerson(c[0] ?? '', c[1] ?? '', c[2] ?? '', c[3] ?? '', /^(y|yes|true|1)/i.test(c[4] ?? '') || adultsAgreed);
     if (r.row) rows.push(r.row); else bad.push(r.error!);
   }
   return { rows, bad };
@@ -91,7 +92,7 @@ export async function addRoster(f: FormData) {
   const cohort = s(f, 'cohort');
   if (!cohort) go(P, 'Choose the cohort first.', 'err');
   const fromForm = parseRosterFields(f);
-  const fromPaste = parseRoster(String(f.get('list') ?? '').slice(0, 60000));
+  const fromPaste = parseRoster(String(f.get('list') ?? '').slice(0, 60000), f.get('adults_agreed') === 'on');
   const rows = [...fromForm.rows, ...fromPaste.rows];
   const bad = [...fromForm.bad, ...fromPaste.bad];
   if (!rows.length) go(P, bad.length ? `Nothing could be added. ${bad.slice(0, 3).join('; ')}` : 'Enter at least one person.', 'err');
@@ -105,13 +106,13 @@ export async function addRoster(f: FormData) {
     let left = room.room;
     for (const r of rows) {
       const within = left > 0;
-      const args = [cohort, co.organisation_id, r.name, r.phone, r.gender, r.year, r.consent, me.id];
+      const args = [cohort, co.organisation_id, r.name, r.phone, r.gender, r.year, r.guardian, me.id, r.own];
       // People beyond the quoted number are kept apart as extras; only the server may create those, so a partner cannot get round the limit.
       const x = within
-        ? await asUser(me.id, (q) => q(`insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by)
-             values ($1,$2,$3,$4,$5,$6,$7,$8) on conflict do nothing returning id`, args))
-        : await asAdmin((q) => q(`insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by, status)
-             values ($1,$2,$3,$4,$5,$6,$7,$8,'pending_extra') on conflict do nothing returning id`, args));
+        ? await asUser(me.id, (q) => q(`insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by, own_consent)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,$9) on conflict do nothing returning id`, args))
+        : await asAdmin((q) => q(`insert into cohort_roster(cohort_id, organisation_id, full_name, phone, gender, birth_year, guardian_consent, added_by, status, own_consent)
+             values ($1,$2,$3,$4,$5,$6,$7,$8,'pending_extra',$9) on conflict do nothing returning id`, args));
       if (!x.length) dup++; else if (within) { added++; left--; } else held++;
     }
   } catch (e) { console.error('[roster]', e); go(P, 'We could not add those. Make sure the cohort is one of yours.', 'err'); }
