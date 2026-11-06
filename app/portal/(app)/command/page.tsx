@@ -1,3 +1,4 @@
+import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
@@ -38,7 +39,7 @@ export default async function Command() {
   const pipeline = ['requested', 'quoted', 'confirmed', 'delivering', 'followup', 'closed'].map((s) => ({ stage: s, cohorts: D.cohorts.filter((c) => c.status === s).length }));
   return (
     <>
-      <PageHeader image="/images/hero-bg.jpg" title={`Good day, ${me.displayName}`} subtitle="The whole of Elimu+ in one view: money in and out, how participants are doing, and what needs you today." />
+      <PageHeader image="/images/hero-bg.jpg" title={greeting('en', me.displayName)} subtitle="The whole of Elimu+ in one view: money in and out, how participants are doing, and what needs you today." />
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat tone="green" label="Received" value={kes(paid)} sub={`${kes(billed - paid)} still outstanding`} />

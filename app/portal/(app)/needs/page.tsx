@@ -1,3 +1,4 @@
+import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
@@ -52,7 +53,7 @@ export default async function Needs() {
   const total = groups.reduce((t, g) => t + g.items.length, 0) + D.todos.length;
   return (
     <>
-      <PageHeader image="/images/home-community.jpg" title="Needs my decision" subtitle="Everything waiting for a founder, gathered from across the portal. Open an item to act on it; it leaves this list once it is dealt with." />
+      <PageHeader image="/images/home-community.jpg" title="Needs my decision" subtitle={`${greeting('en', me.displayName)}. Everything waiting for a founder, gathered from across the portal. Open an item to act on it; it leaves this list once it is dealt with.`} />
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <Stat tone={total ? 'gold' : 'green'} label="Waiting for you" value={total} />
         <Stat label="Money" value={groups[0].items.length} />

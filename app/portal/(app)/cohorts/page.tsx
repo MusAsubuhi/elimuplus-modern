@@ -1,3 +1,4 @@
+import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
@@ -22,7 +23,7 @@ export default async function Cohorts() {
   const chart = rows.map((r) => ({ cohort: r.name.replace(' (demo figures)', '').replace(' (demo)', ''), enrolled: r.n, completed: r.completed }));
   return (
     <>
-      <PageHeader image="/images/home-facilitator.jpg" title="My cohorts" subtitle="Every cohort you are assigned to, with attendance, canvas progress and follow-up tasks." />
+      <PageHeader image="/images/home-facilitator.jpg" title="My cohorts" subtitle={`${greeting('en', me.displayName)}. Every cohort you are assigned to, with attendance, canvas progress and follow-up tasks.`} />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Cohorts" value={rows.length} />
         <Stat tone="green" label="Participants" value={rows.reduce((s, r) => s + r.n, 0)} />
