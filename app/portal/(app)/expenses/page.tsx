@@ -9,13 +9,13 @@ import { PAID_FROM } from '@/lib/expense-labels';
 import { signReceipts } from '@/lib/receipts';
 import { reconcileExpense } from '../../actions';
 
-export default async function Expenses({ searchParams }: { searchParams: Promise<{ from?: string; status?: string }> }) {
+export default async function Expenses({ searchParams }: { searchParams: Promise<{ from?: string; status?: string; po?: string }> }) {
   const me = await requireMe('founder');
   await audit(me.id, 'view expenses ledger', 'expense_requests');
-  const { from = '', status = '' } = await searchParams;
+  const { from = '', status = '', po = '' } = await searchParams;
   const { rows, receipts } = await asUser(me.id, async (q) => ({
-    rows: await q(`select r.*, p.display_name who, c.name cohort, k.name category from expense_requests r join people p on p.id=r.requester_id
-      left join cohorts c on c.id=r.cohort_id left join expense_categories k on k.id=r.category_id order by coalesce(r.spent_on, r.created_at::date) desc, r.created_at desc`),
+    rows: await q(`select r.*, p.display_name who, c.name cohort, k.name category, po.po_no from expense_requests r join people p on p.id=r.requester_id
+      left join purchase_orders po on po.id=r.po_id left join cohorts c on c.id=r.cohort_id left join expense_categories k on k.id=r.category_id order by coalesce(r.spent_on, r.created_at::date) desc, r.created_at desc`),
     receipts: await q('select request_id, storage_path, kind from expense_receipts order by created_at').catch(() => []),
   }));
   const signed = await signReceipts(receipts.map((x: any) => x.storage_path));
@@ -26,7 +26,7 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
   const waiting = rows.filter((r) => ['submitted', 'queried'].includes(r.status));
   const noReceipt = spent.filter((r) => r.status !== 'reconciled' && !receipts.some((x: any) => x.request_id === r.id));
   const sum = (key: (r: any) => string) => Object.entries(spent.reduce((m: Record<string, number>, r) => ({ ...m, [key(r)]: (m[key(r)] ?? 0) + amt(r) }), {})).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value);
-  const shown = rows.filter((r) => (!from || r.paid_from === from) && (!status || r.status === status));
+  const shown = rows.filter((r) => (!from || r.paid_from === from) && (!status || r.status === status) && (!po || (po === 'any' ? !!r.po_id : r.po_id === po)));
   const chip = (label: string, qs: string, on: boolean) => <Link key={label} href={`/portal/expenses${qs}`} className={`rounded-full border px-3 py-1 text-xs font-bold ${on ? 'border-teal bg-teal text-white' : 'border-teal-100 text-teal'}`}>{label}</Link>;
   return (
     <>
@@ -48,14 +48,15 @@ export default async function Expenses({ searchParams }: { searchParams: Promise
       </Card>
       <Card title="All records" subtitle="Reconcile a record once you have matched it to the bank, M-Pesa or cash book and seen the receipt.">
         <div className="mb-3 flex flex-wrap gap-2">
-          {chip('All', '', !from && !status)}
+          {chip('All', '', !from && !status && !po)}
           {Object.entries(PAID_FROM).map(([k, v]) => chip(v, `?from=${k}`, from === k))}
           {chip('Needs reconciling', '?status=paid', status === 'paid')}
+          {chip('Linked to a purchase order', '?po=any', po === 'any')}
         </div>
         <Table head={['Date', 'Who', 'For', 'Paid from', 'Amount', 'Receipt', 'Status', '']} rows={shown.map((r) => {
           const mine = receipts.filter((x: any) => x.request_id === r.id);
           return [d(r.spent_on ?? r.created_at), r.who,
-            <div key="f"><b>{r.reason}</b><div className="text-xs text-slate-500">{r.category ?? 'Other'} · {r.cohort ?? 'Running costs'}{r.late ? ' · late' : ''}{r.reference ? ` · ${r.reference}` : ''}</div></div>,
+            <div key="f"><b>{r.reason}</b><div className="text-xs text-slate-500">{r.category ?? 'Other'} · {r.cohort ?? 'Running costs'}{r.late ? ' · late' : ''}{r.reference ? ` · ${r.reference}` : ''}{r.po_no ? <> · <Link href={`/portal/procurement/${r.po_id}`} className="font-bold text-teal underline">{r.po_no}</Link></> : ''}</div></div>,
             PAID_FROM[r.paid_from] ?? r.paid_from, kes(amt(r)),
             mine.length ? <div key="rc">{mine.map((m: any, i: number) => <a key={i} href={signed[m.storage_path]} target="_blank" rel="noreferrer" className="block text-xs font-bold text-teal underline">{m.kind === 'pdf' ? 'PDF' : 'Photo'} {i + 1}</a>)}</div> : <span key="rc" className="text-xs text-slate-400">none</span>,
             <Badge key="s" tone={statusTone(r.status)}>{r.status}</Badge>,
