@@ -20,7 +20,7 @@ export default async function Command() {
     paid: await q(`select coalesce(sum(amount_kes),0)::int paid from payments`),
     exp: await q(`select coalesce(sum(coalesce(paid_amount_kes,amount_kes)),0)::int spent from expense_requests where status in ('paid','reconciled')`),
     fees: await q(`select coalesce(sum(amount_kes),0)::int fees from trainer_payments`),
-    support: await q(`select coalesce(sum(amount_kes),0)::int s from support_ledger`),
+    support: await q(`select coalesce(sum(amount_kes),0)::int s, coalesce(sum(amount_kes) filter (where source='partner'),0)::int p from support_ledger`),
     monthly: await q(`select to_char(m,'Mon') mon, m,
         coalesce((select sum(amount_kes) from payments where date_trunc('month',received_on)=m),0)::int income,
         (coalesce((select sum(coalesce(paid_amount_kes,amount_kes)) from expense_requests where status in ('paid','reconciled') and date_trunc('month',paid_on)=m),0)
@@ -51,7 +51,7 @@ export default async function Command() {
         <Stat tone="green" label="Received" value={kes(paid)} sub={`${kes(billed - paid)} still outstanding`} />
         <Stat tone="red" label="Spent" value={kes(spent)} sub="requests paid + trainer fees" />
         <Stat tone="gold" label="Net" value={kes(paid - spent)} sub={`${pct(paid - spent, paid)}% margin on cash received`} />
-        <Stat label="Support given to participants" value={kes(D.support[0].s)} sub="kept separate from fees and costs" />
+        <Stat label="Support given to participants" value={kes(D.support[0].s)} sub={D.support[0].p > 0 ? `${kes(D.support[0].p)} recorded by partners · apart from fees and costs` : 'recorded by the partner who gave it · apart from fees and costs'} />
       </div>
 
       {(() => {

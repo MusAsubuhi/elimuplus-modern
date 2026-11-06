@@ -5,6 +5,7 @@ import { BarCard, PieCard } from '@/components/charts';
 import { d, kes, pct } from '@/lib/format';
 import { audit } from '@/lib/audit';
 import { recordPayment } from '../../actions';
+import { recordSupportFounder, removeSupportFounder } from '../../partner-actions';
 
 export default async function Finance() {
   const me = await requireMe('founder');
@@ -20,7 +21,8 @@ export default async function Finance() {
         from cohorts c order by c.seq`),
     lines: await q(`select l.kind, sum(l.qty*l.unit_kes)::int total from quote_lines l join quotes qt on qt.id=l.quote_id group by l.kind order by 2 desc`),
     trainerPay: await q(`select t.*, p.display_name, c.name cohort from trainer_payments t join people p on p.id=t.person_id left join cohorts c on c.id=t.cohort_id order by t.paid_on desc`),
-    support: await q(`select s.*, p.display_name from support_ledger s join enrolments e on e.id=s.enrolment_id join people p on p.id=e.person_id order by s.entry_date desc`),
+    support: await q(`select s.*, p.display_name, o.name given_org, c.name cohort_name from support_ledger s join enrolments e on e.id=s.enrolment_id join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id left join organisations o on o.id=s.given_by_org order by s.entry_date desc, s.created_at desc`),
+    enrolled: await q(`select e.id, p.display_name, c.name cohort_name from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.seq desc, p.display_name`),
     settings: await q(`select key, value from settings where key in ('cohort1_support_total_kes','expense_threshold_kes')`),
   }));
   const billed = F.invoices.reduce((s, i) => s + i.amount_kes, 0), paid = F.invoices.reduce((s, i) => s + i.paid, 0);
@@ -54,9 +56,21 @@ export default async function Finance() {
         <Card title="Payments received"><Table head={['Date', 'Partner', 'Invoice', 'Amount', 'Reference']} rows={F.payments.map((p) => [d(p.received_on), p.org_name, p.number, kes(p.amount_kes), p.reference ?? ''])} /></Card>
         <Card title="Trainer fees and stipends"><Table head={['Date', 'Who', 'Kind', 'Cohort', 'Amount']} rows={F.trainerPay.map((t) => [d(t.paid_on), t.display_name, t.kind, t.cohort ?? '', kes(t.amount_kes)])} /></Card>
       </div>
-      <Card title="Support given to participants" subtitle="Kept apart from fees and costs. Visible to founders only." className="mt-4">
-        <div className="mb-3 grid gap-3 sm:grid-cols-2"><Stat label="Cohort 1 support total (confirmed)" value={kes(cohort1)} tone="gold" /><Stat label="Entries in this demo ledger" value={kes(F.support.reduce((s, x) => s + x.amount_kes, 0))} sub="demo entries only" /></div>
-        <Table head={['Date', 'Participant', 'Item', 'Amount', 'Funder']} rows={F.support.map((s) => [d(s.entry_date), s.display_name, s.item, kes(s.amount_kes), s.funder ?? ''])} />
+      <Card title="Support given to participants" subtitle="Kept apart from fees and costs. Most of it is recorded by the partner organisation that gave it; you can add or correct any entry." className="mt-4">
+        <div className="mb-3 grid gap-3 sm:grid-cols-3"><Stat label="Cohort 1 support total (confirmed)" value={kes(cohort1)} tone="gold" /><Stat label="Entered in the portal" value={kes(F.support.reduce((s, x) => s + x.amount_kes, 0))} sub={`${kes(F.support.filter((x) => x.source === 'partner').reduce((s, x) => s + x.amount_kes, 0))} recorded by partners`} /><Stat label="Entries" value={F.support.length} /></div>
+        <Table head={['Date', 'Participant', 'Item', 'Amount', 'Given by', 'Recorded by', '']} empty="Nothing recorded yet."
+          rows={F.support.map((s) => [d(s.entry_date), <span key="p"><b>{s.display_name}</b><span className="block text-xs text-slate-500">{s.cohort_name}</span></span>, s.item, kes(s.amount_kes), s.funder ?? s.given_org ?? '', s.source === 'partner' ? <Badge key="b" tone="gold">{s.given_org ?? 'partner'}</Badge> : 'Elimu+',
+            <form key="x" action={removeSupportFounder}><input type="hidden" name="id" value={s.id} /><button className="text-xs font-bold text-red-700 underline">Remove</button></form>])} />
+        <form action={recordSupportFounder} className="mt-4 grid gap-2 rounded-lg bg-mist p-3 text-sm sm:grid-cols-6">
+          <select name="enrolment" required className={`${inputCls} sm:col-span-2`}><option value="">Participant</option>{F.enrolled.map((e) => <option key={e.id} value={e.id}>{e.display_name} · {e.cohort_name}</option>)}</select>
+          <input name="item" required placeholder="What it was for" className={inputCls} />
+          <input name="amount" type="number" min="1" required placeholder="Amount (KES)" className={inputCls} />
+          <input name="entry_date" type="date" className={inputCls} />
+          <select name="given_by" className={inputCls}><option value="founders">Given by Elimu+</option><option value="partner">Given by the partner</option></select>
+          <input name="funder" placeholder="Funder (optional)" className={`${inputCls} sm:col-span-2`} />
+          <input name="note" placeholder="Note (optional)" className={`${inputCls} sm:col-span-3`} />
+          <button className={submitCls}>Add entry</button>
+        </form>
       </Card>
     </>
   );
