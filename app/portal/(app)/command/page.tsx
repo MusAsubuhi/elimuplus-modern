@@ -7,6 +7,8 @@ import { BarCard, Gauge, LineCard, PieCard } from '@/components/charts';
 import { followupStats } from '@/lib/data';
 import { kes, pct } from '@/lib/format';
 import { audit } from '@/lib/audit';
+import { loadRaw, receivablesSummary, contractedNotInvoiced, todayIso } from '@/lib/books';
+import { d } from '@/lib/format';
 
 export default async function Command() {
   const me = await requireMe('founder');
@@ -31,6 +33,8 @@ export default async function Command() {
     noms: await q(`select count(*)::int n from invitations where status='nominated'`),
     welfare: await q(`select count(*)::int n from welfare_flags where status='open'`),
     people: await q(`select count(*)::int n from people`),
+    recv: receivablesSummary(await loadRaw(q), todayIso()),
+    pending: await contractedNotInvoiced(q),
   }));
   const billed = D.inv[0].billed, paid = D.paid[0].paid, spent = D.exp[0].spent + D.fees[0].fees;
   const fs = followupStats(D.follow.map((f) => ({ ...f, sold_within_14_days: f.sold })));
@@ -47,6 +51,26 @@ export default async function Command() {
         <Stat tone="gold" label="Net" value={kes(paid - spent)} sub={`${pct(paid - spent, paid)}% margin on cash received`} />
         <Stat label="Support given to participants" value={kes(D.support[0].s)} sub="kept separate from fees and costs" />
       </div>
+
+      <Card title="Receivables: money owed to Elimu+" subtitle="Invoices raised and not yet paid, and what is contracted but not yet invoiced" className="mb-6"
+        action={<Link href="/portal/books?view=wc" className="text-sm font-bold text-teal underline">Working capital</Link>}>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-xl border border-gold bg-gold-100 p-4"><div className="text-xs font-bold uppercase text-slate-500">Owed to us now</div><div className="text-3xl font-black text-teal">{kes(D.recv.total)}</div><div className="text-xs text-slate-600">{D.recv.rows.length} unpaid invoice{D.recv.rows.length === 1 ? '' : 's'}</div></div>
+          <div className={`rounded-xl border p-4 ${D.recv.overdue ? 'border-red-300 bg-red-50' : 'border-teal-100 bg-white'}`}><div className="text-xs font-bold uppercase text-slate-500">Past its due date</div><div className="text-3xl font-black text-ink">{kes(D.recv.overdue)}</div><div className="text-xs text-slate-600">{D.recv.rows.filter((r) => r.overdueDays > 0).length} overdue</div></div>
+          <div className="rounded-xl border border-teal-100 bg-white p-4"><div className="text-xs font-bold uppercase text-slate-500">Contracted, not yet invoiced</div><div className="text-3xl font-black text-ink">{kes(D.pending.total)}</div><div className="text-xs text-slate-600">follow-up fees still to be raised</div></div>
+        </div>
+        {D.recv.rows.length > 0 ? (
+          <div className="mt-4 divide-y divide-teal-50 text-sm">
+            {D.recv.rows.slice(0, 6).map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div><b>{r.org}</b> <span className="text-slate-500">· {r.number} · due {d(r.due_on)}</span></div>
+                <div className="flex items-center gap-3"><b>{kes(r.balance)}</b>{r.overdueDays > 0 ? <Badge tone="red">{r.overdueDays} day{r.overdueDays === 1 ? '' : 's'} late</Badge> : <Badge tone="grey">not yet due</Badge>}</div>
+              </div>
+            ))}
+            {D.recv.rows.length > 6 && <p className="pt-2 text-xs text-slate-500">and {D.recv.rows.length - 6} more on the <Link href="/portal/books?view=wc" className="font-bold text-teal underline">working capital page</Link>.</p>}
+          </div>
+        ) : <p className="mt-4 text-sm text-slate-600">Nothing is owed to us right now.</p>}
+      </Card>
 
       <div className="mb-6 grid gap-3 md:grid-cols-4">
         {[
