@@ -103,7 +103,11 @@ export async function saveSessionLog(f: FormData) {
   const me = await requireMe('facilitator', 'founder');
   const cohort = s(f, 'cohort');
   const session = s(f, 'session');
-  const checks = Object.fromEntries(['canvas_order', 'cost_types_order', 'canvas_completion_checked', 'followup_dates_confirmed', 'certificates_ready'].map((k) => [k, f.get(k) === 'on']));
+  // Only the checks shown for this day are overwritten; anything saved earlier for other keys is kept.
+  const known = ['canvas_order', 'cost_types_order', 'followup_dates_confirmed', 'certificates_ready'];
+  const shown = new Set(f.getAll('shown').map(String).filter((k) => known.includes(k)));
+  const [prev] = await asUser(me.id, (q) => q('select checks from session_logs where session_id=$1', [session])).catch(() => []);
+  const checks = { ...((prev?.checks as Record<string, boolean>) ?? {}), ...Object.fromEntries([...shown].map((k) => [k, f.get(k) === 'on'])) };
   try {
     await asUser(me.id, (q) => q(
       `insert into session_logs(session_id,author_id,flow_rating,checks,hardest_concepts,went_well,to_improve,notable_quotes)

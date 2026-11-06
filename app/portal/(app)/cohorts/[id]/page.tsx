@@ -59,6 +59,12 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const open = sched.filter((s) => s.status === 'scheduled');
   const overdue = open.filter((s) => new Date(s.due_date) < today);
   const sess = sessions.find((s) => s.id === chosen);
+  const finalDay = Math.max(sessions.reduce((m: number, s: any) => Math.max(m, s.day_number), 0), c.format === '12-day' ? 12 : 5);
+  const isFinalDay = !!sess && sess.day_number === finalDay;
+  const nonNegotiables: [string, string][] = [
+    ['canvas_order', 'Sections taught in canvas order'],
+    ...(isFinalDay ? [['cost_types_order', 'Cost types taught in order: sunk, fixed, variable'], ['followup_dates_confirmed', 'Follow-up dates confirmed'], ['certificates_ready', 'Certificates flagged for founders to issue']] as [string, string][] : []),
+  ];
   const log = logs.find((l) => l.session_id === chosen);
   return (
     <>
@@ -185,9 +191,10 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
                 <input type="hidden" name="cohort" value={id} /><input type="hidden" name="session" value={sess.id} />
                 <fieldset className="rounded-lg border border-teal-100 p-3 text-sm">
                   <legend className="px-1 text-xs font-bold uppercase text-slate-500">Non-negotiables</legend>
-                  {[['canvas_order', 'Sections taught in canvas order'], ['cost_types_order', 'Cost types in order: sunk, fixed, variable'], ['canvas_completion_checked', 'Canvas completion checked before release'], ['followup_dates_confirmed', 'Follow-up dates confirmed (final day)'], ['certificates_ready', 'Certificates flagged for founders to issue (final day)']].map(([k, label]) => (
-                    <label key={k} className="flex items-center gap-2"><input type="checkbox" name={k} defaultChecked={!!log?.checks?.[k]} />{label}</label>
+                  {nonNegotiables.map(([k, label]) => (
+                    <label key={k} className="flex items-center gap-2"><input type="hidden" name="shown" value={k} /><input type="checkbox" name={k} defaultChecked={!!log?.checks?.[k]} />{label}</label>
                   ))}
+                  {!isFinalDay && <p className="mt-2 text-xs text-slate-500">The cost types, follow-up dates and certificates checks appear on the final day (Day {finalDay}).</p>}
                 </fieldset>
                 <label className="block text-sm font-bold">Session flow (1 to 5)
                   <select name="flow" defaultValue={log?.flow_rating ?? ''} className={inputCls}><option value="">—</option>{[1, 2, 3, 4, 5].map((n) => <option key={n}>{n}</option>)}</select></label>
