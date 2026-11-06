@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { d, kes } from '@/lib/format';
 import { STAGE_PROB, todayEAT } from '@/lib/ops';
@@ -9,9 +9,10 @@ import { addLead, addLeadActivity, moveLead, saveLeadNext } from '../../biz-acti
 const STAGES = ['new', 'contacted', 'meeting', 'proposal', 'negotiation', 'won', 'lost'];
 const lbl = 'block text-xs font-bold text-slate-600';
 export default async function Sales() {
-  const me = await requireMe('founder');
+  const me = await requireFeature('sales');
+  const canEdit = (await featureLevel(me, 'sales')) === 'edit';
   const today = todayEAT();
-  const X = await asUser(me.id, async (q) => ({
+  const X = await asAdmin(async (q) => ({
     leads: await q(`select l.*, l.next_on::text nx, expected_kes::float8 exp, (select max(happened_on)::text from lead_activities a where a.lead_id=l.id) last_touch from leads l order by (l.stage in ('won','lost')), l.next_on nulls last, l.created_at desc`),
     acts: await q(`select a.*, l.name from lead_activities a join leads l on l.id=a.lead_id order by a.happened_on desc, a.created_at desc limit 12`),
   }));
@@ -20,6 +21,8 @@ export default async function Sales() {
   const due = open.filter((l: any) => l.nx && l.nx <= today);
   return (
     <>
+      {!canEdit && <div className="mb-4 rounded-xl border border-gold bg-gold-100 p-3 text-sm font-bold text-teal">You can look at this page but not change it. Ask a founder if you need to edit.</div>}
+      <fieldset disabled={!canEdit} className="contents">
       <PageHeader image="/images/hero-bg.jpg" title="Sales pipeline" subtitle="Organisations and groups you are talking to before they sign. Once a lead is won, create the organisation and the quote under Partners and Proposals.">
         <Link href="/portal/crm" className="rounded-lg bg-gold px-4 py-2 text-sm font-bold text-teal">Partner calls and visits</Link>
       </PageHeader>
@@ -61,6 +64,7 @@ export default async function Sales() {
           </Card>
         </div>
       </div>
+      </fieldset>
     </>
   );
 }

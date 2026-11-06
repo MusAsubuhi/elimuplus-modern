@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { d } from '@/lib/format';
 import { addDays, todayEAT } from '@/lib/ops';
@@ -9,9 +9,10 @@ import { addCompliance, addDataRequest, closeDataRequest, completeCompliance, se
 const lbl = 'block text-xs font-bold text-slate-600';
 const CAT: Record<string, string> = { tax: 'Tax', statutory: 'Statutory', licence: 'Licence', insurance: 'Insurance', data_protection: 'Data protection', safeguarding: 'Safeguarding', contract: 'Contract', other: 'Other' };
 export default async function Compliance({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const sp = await searchParams; const me = await requireMe('founder'); const today = todayEAT(); const soon = addDays(today, 14);
+  const sp = await searchParams; const me = await requireFeature('compliance');
+  const canEdit = (await featureLevel(me, 'compliance')) === 'edit'; const today = todayEAT(); const soon = addDays(today, 14);
   const view = sp.view === 'requests' ? 'requests' : 'calendar';
-  const X = await asUser(me.id, async (q) => ({
+  const X = await asAdmin(async (q) => ({
     items: await q(`select *, due_on::text due, last_done_on::text ld from compliance_items order by status='done', due_on nulls first, title`),
     reqs: await q(`select *, received_on::text ro, due_on::text due from data_requests order by status='open' desc, due_on`),
     cohorts: await q(`select count(*)::int n from cohorts`),
@@ -21,6 +22,8 @@ export default async function Compliance({ searchParams }: { searchParams: Promi
   const KIND: Record<string, string> = { access: 'See their data', correction: 'Correct their data', deletion: 'Delete their data', withdraw_consent: 'Withdraw consent', complaint: 'Complaint' };
   return (
     <>
+      {!canEdit && <div className="mb-4 rounded-xl border border-gold bg-gold-100 p-3 text-sm font-bold text-teal">You can look at this page but not change it. Ask a founder if you need to edit.</div>}
+      <fieldset disabled={!canEdit} className="contents">
       <PageHeader image="/images/hero-bg.jpg" title="Compliance" subtitle="Filings, licences, insurance and policies with their due dates, and the requests people make about their own data. Starter items are suggestions: set the real dates and confirm the obligations with your accountant or lawyer." />
       <div className="mb-4 grid gap-4 sm:grid-cols-4">
         <Stat tone="red" label="Overdue" value={open.filter((i: any) => i.due && i.due < today).length} /><Stat tone="gold" label="Due in 14 days" value={open.filter((i: any) => i.due && i.due >= today && i.due <= soon).length} />
@@ -65,6 +68,7 @@ export default async function Compliance({ searchParams }: { searchParams: Promi
           </Card>
         </div>
       )}
+      </fieldset>
     </>
   );
 }

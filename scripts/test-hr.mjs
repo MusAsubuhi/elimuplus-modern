@@ -65,6 +65,16 @@ ok('after paying staff, only the statutory part is still owed at 30 Nov', close(
 bs = balanceSheet(raw, '2026-12-31');
 ok('after both are paid nothing is owed and it balances', close(bs.payrollOwed, 0) && bs.difference === 0, `${bs.payrollOwed} ${bs.difference}`);
 
+// An employee tied to a login sees only their own approved payslips.
+const pa = (await q('select id from people order by id limit 2')).map((r) => r.id);
+await q(`update employees set person_id=$1 where full_name='Full Month'`, [pa[0]]);
+let dup = false; try { await q(`update employees set person_id=$1 where full_name='Joined Mid'`, [pa[0]]); } catch { dup = true; }
+ok('one login can belong to only one employee', dup);
+await q(`update payroll_runs set status='draft' where id=$1`, [run]);
+const mine = (st) => q(`select s.id from payslips s join payroll_runs r on r.id=s.run_id join employees e on e.id=s.employee_id where e.person_id=$1 and r.status in ('approved','paid')`, [st]);
+ok('a draft payroll is hidden from the employee', (await mine(pa[0])).length === 0);
+await q(`update payroll_runs set status='approved' where id=$1`, [run]);
+ok('an approved payroll shows only their own payslip', (await mine(pa[0])).length === 1 && (await mine(pa[1])).length === 0);
 await q(`update payroll_runs set status='void' where id=$1`, [run]);
 raw = await loadRaw(q);
 ok('a voided run leaves the books', raw.payroll.length === 0);

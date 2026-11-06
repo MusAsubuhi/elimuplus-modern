@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { d, kes } from '@/lib/format';
 import { bookValue, todayEAT } from '@/lib/ops';
@@ -10,9 +10,10 @@ const lbl = 'block text-xs font-bold text-slate-600';
 const CATS = ['materials', 'certificates', 'refreshments', 'equipment', 'other'];
 const REASON: [string, string][] = [['received', 'Received (in)'], ['returned', 'Returned (in)'], ['issued_to_cohort', 'Issued to a cohort (out)'], ['used', 'Used (out)'], ['lost_damaged', 'Lost or damaged (out)'], ['count_correction', 'Stock count correction']];
 export default async function Inventory({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const sp = await searchParams; const me = await requireMe('founder');
+  const sp = await searchParams; const me = await requireFeature('inventory');
+  const canEdit = (await featureLevel(me, 'inventory')) === 'edit';
   const view = sp.view === 'assets' ? 'assets' : sp.view === 'log' ? 'log' : 'stock'; const today = todayEAT();
-  const X = await asUser(me.id, async (q) => ({
+  const X = await asAdmin(async (q) => ({
     items: await q(`select i.*, i.purchase_date::text pd, i.cost_kes::float8 cost, i.reorder_level::float8 rl, coalesce((select sum(delta) from stock_movements m where m.item_id=i.id),0)::float8 on_hand from inventory_items i order by i.active desc, i.name`),
     log: await q(`select m.*, m.moved_on::text mo, m.delta::float8 dl, i.name, i.unit, c.name cohort from stock_movements m join inventory_items i on i.id=m.item_id left join cohorts c on c.id=m.cohort_id order by m.moved_on desc, m.created_at desc limit 80`),
     cohorts: await q(`select c.id, c.name from cohorts c join organisations o on o.id=c.organisation_id where not o.is_internal order by c.seq desc limit 30`),
@@ -23,6 +24,8 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
   const tab = (k: string, t: string) => <Link key={k} href={`/portal/inventory?view=${k}`} className={`rounded-full px-4 py-1.5 text-sm font-bold ${view === k ? 'bg-teal text-white' : 'border border-teal-100 bg-white text-teal'}`}>{t}</Link>;
   return (
     <>
+      {!canEdit && <div className="mb-4 rounded-xl border border-gold bg-gold-100 p-3 text-sm font-bold text-teal">You can look at this page but not change it. Ask a founder if you need to edit.</div>}
+      <fieldset disabled={!canEdit} className="contents">
       <PageHeader image="/images/hero-bg.jpg" title="Inventory and assets" subtitle="Workbooks, certificates, refreshments and other stock with a reorder level; plus equipment with who holds it and what it is worth today." />
       <div className="mb-4 grid gap-4 sm:grid-cols-3"><Stat label="Stock items" value={stock.filter((i: any) => i.active).length} /><Stat tone="red" label="At or below reorder level" value={low.length} /><Stat tone="gold" label="Equipment book value" value={kes(assets.filter((a: any) => a.active).reduce((s: number, a: any) => s + bv(a), 0))} sub={`${assets.filter((a: any) => a.active).length} items`} /></div>
       <div className="mb-5 flex gap-2">{tab('stock', 'Stock')}{tab('assets', 'Equipment')}{tab('log', 'Movements')}</div>
@@ -76,6 +79,7 @@ export default async function Inventory({ searchParams }: { searchParams: Promis
           <Card title="Recent movements"><Table head={['Date', 'Item', 'Change', 'Why', 'Cohort', 'Note']} rows={X.log.map((m: any) => [d(m.mo), m.name, `${m.dl > 0 ? '+' : ''}${m.dl} ${m.unit}`, m.reason.replace(/_/g, ' '), m.cohort ?? '', m.note ?? ''])} empty="Nothing yet." /></Card>
         )}
       </div>
+      </fieldset>
     </>
   );
 }

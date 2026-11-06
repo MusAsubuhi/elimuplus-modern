@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { d, kes } from '@/lib/format';
 import { todayEAT } from '@/lib/ops';
@@ -8,9 +8,10 @@ import { createPO } from '../../biz-actions';
 
 const lbl = 'block text-xs font-bold text-slate-600';
 export default async function Procurement() {
-  const me = await requireMe('founder');
+  const me = await requireFeature('procurement');
+  const canEdit = (await featureLevel(me, 'procurement')) === 'edit';
   const today = todayEAT();
-  const X = await asUser(me.id, async (q) => ({
+  const X = await asAdmin(async (q) => ({
     pos: await q(`select p.id, p.po_no, p.status, p.purpose, p.ordered_on::text oo, p.expected_on::text eo, s.name supplier, c.name cohort,
         coalesce((select sum(qty*unit_price) from po_lines l where l.po_id=p.id),0)::float8 total,
         coalesce((select sum(received_qty*unit_price) from po_lines l where l.po_id=p.id),0)::float8 received
@@ -22,6 +23,8 @@ export default async function Procurement() {
   const live = X.pos.filter((p: any) => ['approved', 'sent', 'partly_received'].includes(p.status));
   return (
     <>
+      {!canEdit && <div className="mb-4 rounded-xl border border-gold bg-gold-100 p-3 text-sm font-bold text-teal">You can look at this page but not change it. Ask a founder if you need to edit.</div>}
+      <fieldset disabled={!canEdit} className="contents">
       <PageHeader image="/images/hero-bg.jpg" title="Procurement" subtitle="Purchase orders to suppliers: draft, approve, send, receive. Received stock goes straight into the inventory. Payment is still recorded in the Expenses ledger.">
         <Link href="/portal/suppliers" className="rounded-lg bg-gold px-4 py-2 text-sm font-bold text-teal">Suppliers and needs</Link>
       </PageHeader>
@@ -54,6 +57,7 @@ export default async function Procurement() {
           </form>
         </Card>
       </div>
+      </fieldset>
     </>
   );
 }

@@ -27,6 +27,7 @@ export default async function Employee({ params }: { params: Promise<{ id: strin
     if (!e) return null;
     return {
       e,
+      login: (await q('select email from people where id=$1', [(await q('select person_id from employees where id=$1', [id]))[0]?.person_id ?? '00000000-0000-0000-0000-000000000000']))[0]?.email ?? '',
       people: await q(`select id, full_name from employees where id <> $1 and status <> 'exited' order by full_name`, [id]),
       kpis: await q('select *, target::float8 t, actual::float8 a from kpis where employee_id=$1 order by period desc, created_at', [id]),
       reviews: await q('select * from reviews where employee_id=$1 order by reviewed_on desc', [id]),
@@ -72,7 +73,8 @@ export default async function Employee({ params }: { params: Promise<{ id: strin
             <label className={lbl}>Pay to (M-Pesa number or bank)<input name="pay_to" defaultValue={e.pay_to ?? ''} className={inputCls} /></label>
             <label className={lbl}>Emergency contact<input name="emergency_name" defaultValue={e.emergency_name ?? ''} className={inputCls} /></label>
             <label className={lbl}>Emergency phone<input name="emergency_phone" defaultValue={e.emergency_phone ?? ''} className={inputCls} /></label>
-            <label className={`${lbl} sm:col-span-3`}>Notes<input name="note" defaultValue={e.note ?? ''} className={inputCls} /></label>
+            <label className={`${lbl} sm:col-span-2`}>Portal login email (lets them see their own payslips)<input name="login_email" defaultValue={X.login} placeholder="Leave empty for no access" className={inputCls} /></label>
+            <label className={lbl}>Notes<input name="note" defaultValue={e.note ?? ''} className={inputCls} /></label>
             <div className="sm:col-span-3"><button className={submitCls}>Save</button></div>
           </form>
         </Card>

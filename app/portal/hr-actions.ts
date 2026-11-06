@@ -25,12 +25,20 @@ export async function saveEmployee(f: FormData) {
   if (!(basic >= 0) || !(allow >= 0)) go(back, 'Pay must be a number, zero or more.', 'err');
   const dept = DEPTS.includes(s(f, 'department')) ? s(f, 'department') : 'Programme';
   const type = TYPES.includes(s(f, 'employment_type')) ? s(f, 'employment_type') : 'contract';
+  const loginEmail = s(f, 'login_email').toLowerCase();
+  let personId: string | null = null;
+  if (f.has('login_email') && loginEmail) {
+    personId = await asUser(me.id, async (q) => (await q('select id from people where lower(email)=$1 limit 1', [loginEmail]))[0]?.id ?? null);
+    if (!personId) go(back, `No portal login uses ${loginEmail}. They need an account first (Team and people).`, 'err');
+  }
   const vals = [name, title, dept, type, start, orNull(s(f, 'probation_end')), orNull(s(f, 'contract_end')), orNull(s(f, 'manager_id')), basic, allow,
     orNull(s(f, 'phone')), orNull(s(f, 'email')), orNull(s(f, 'kra_pin')), orNull(s(f, 'nssf_no')), orNull(s(f, 'sha_no')), orNull(s(f, 'pay_to')), orNull(s(f, 'emergency_name')), orNull(s(f, 'emergency_phone')), orNull(s(f, 'note'))];
+  const clearLogin = !!id && f.has('login_email') && !loginEmail;
   const newId = await asUser(me.id, async (q) => {
     if (id) {
       await q(`update employees set full_name=$1, job_title=$2, department=$3, employment_type=$4, start_date=$5, probation_end=$6, contract_end=$7, manager_id=$8, basic_kes=$9, allowances_kes=$10,
-               phone=$11, email=$12, kra_pin=$13, nssf_no=$14, sha_no=$15, pay_to=$16, emergency_name=$17, emergency_phone=$18, note=$19 where id=$20`, [...vals, id]);
+               phone=$11, email=$12, kra_pin=$13, nssf_no=$14, sha_no=$15, pay_to=$16, emergency_name=$17, emergency_phone=$18, note=$19,
+               person_id = case when $21::boolean then null else coalesce($22::uuid, person_id) end where id=$20`, [...vals, id, clearLogin, personId]);
       return id;
     }
     return (await q(`insert into employees(full_name, job_title, department, employment_type, start_date, probation_end, contract_end, manager_id, basic_kes, allowances_kes, phone, email, kra_pin, nssf_no, sha_no, pay_to, emergency_name, emergency_phone, note, created_by)

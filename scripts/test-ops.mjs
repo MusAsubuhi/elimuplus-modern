@@ -49,4 +49,11 @@ await q(`insert into data_requests(from_name, kind, due_on) values ('Someone','a
 w = await watch(q);
 ok('overdue compliance, follow-up, incident and data request are counted', w.complianceOverdue === 1 && w.followUps === 1 && w.incidents === 1 && w.dataDue === 1, JSON.stringify(w));
 ok('starter compliance items without dates are flagged', w.complianceNoDate >= 5);
+// purchase order <-> expense
+const person = (await q('select id from people limit 1'))[0].id;
+await q(`insert into expense_requests(requester_id, amount_kes, reason, po_id) values ($1, 6000, 'PO-2026-001 part payment', $2), ($1, 6000, 'PO-2026-001 balance', $2), ($1, 900, 'unrelated', null)`, [person, po]);
+const linked = (await q('select count(*)::int n, sum(amount_kes)::int s from expense_requests where po_id=$1', [po]))[0];
+ok('two expenses are linked to the purchase order', linked.n === 2 && linked.s === 12000, JSON.stringify(linked));
+await q(`delete from purchase_orders where id=$1`, [po]).catch(() => {});
+ok('deleting a purchase order never deletes its expenses', (await q(`select count(*)::int n from expense_requests where reason like 'PO-2026-001%'`))[0].n === 2);
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
