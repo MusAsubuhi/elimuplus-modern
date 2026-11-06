@@ -1,3 +1,4 @@
+import { dateRange } from '@/lib/billing';
 import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
 import { asUser } from '@/lib/db';
@@ -37,7 +38,7 @@ export default async function Cohorts() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <h3 className="text-lg font-bold text-teal">{c.name}</h3>
-                    <p className="text-sm text-slate-600">{c.org_name} · {c.format === '12-day' ? '12-Day' : '5-Day'} · {c.language === 'sw' ? 'Kiswahili' : 'English'} · {d(c.start_date)} to {d(c.end_date)}</p>
+                    <p className="text-sm text-slate-600">{c.org_name} · {c.format === '12-day' ? '12-Day' : '5-Day'} · {c.language === 'sw' ? 'Kiswahili' : 'English'} · {dateRange(c, d)}</p>
                   </div>
                   <Badge tone={statusTone(c.status)}>{c.status}</Badge>
                 </div>
