@@ -85,9 +85,19 @@ export async function alertFounders(q: Q, title: string, body: string, link: str
 
 const isoDay = (x: any) => (x instanceof Date ? x.toISOString().slice(0, 10) : String(x ?? '').slice(0, 10)); // pg returns date columns as Date objects; String(Date) is not an ISO date
 const plus = (iso: any, n: number) => { const x = new Date(isoDay(iso) + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
-/** When training finishes: the recorded end date, else the start date plus the length of the programme. */
+const isWeekend = (iso: string) => { const w = new Date(iso + 'T00:00:00Z').getUTCDay(); return w === 0 || w === 6; };
+/** Training is never held on a Saturday or Sunday. These are the dates of the first n training days, counting from the start (a weekend start rolls to Monday). */
+export const trainingDates = (start: any, n: number): string[] => {
+  let day = isoDay(start);
+  while (isWeekend(day)) day = plus(day, 1);
+  const out = [day];
+  while (out.length < n) { day = plus(day, 1); if (!isWeekend(day)) out.push(day); }
+  return out;
+};
+export const programmeDays = (format?: string) => (format === '12-day' ? 12 : 5);
+/** When training finishes: the recorded end date, else the last training day, skipping weekends. */
 export const trainingEnds = (c: { start_date?: any; end_date?: any; format?: string }): string | null =>
-  c.end_date ? isoDay(c.end_date) : c.start_date ? plus(c.start_date, c.format === '12-day' ? 11 : 4) : null;
+  c.end_date ? isoDay(c.end_date) : c.start_date ? trainingDates(c.start_date, programmeDays(c.format)).pop()! : null;
 /** "4 Nov 2026 to 8 Nov 2026" for headings; the end is worked out from the programme length when it was never recorded, and "to be set" shows when there is no start. */
 export const dateRange = (c: { start_date?: any; end_date?: any; format?: string }, fmt: (x: any) => string): string => {
   if (!c.start_date) return 'dates to be set';
