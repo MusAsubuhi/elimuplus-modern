@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
-import { requireMe } from '@/lib/session';
+import { asAdmin } from '@/lib/db';
+import { requireFeature, featureLevel } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/components/ui';
 import { d } from '@/lib/format';
 import { todayEAT } from '@/lib/ops';
@@ -8,9 +8,10 @@ import { addIncident, addTask, closeIncident, completeTask } from '../../biz-act
 
 const lbl = 'block text-xs font-bold text-slate-600';
 export default async function Operations({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const sp = await searchParams; const me = await requireMe('founder'); const today = todayEAT();
+  const sp = await searchParams; const me = await requireFeature('operations');
+  const canEdit = (await featureLevel(me, 'operations')) === 'edit'; const today = todayEAT();
   const view = sp.view === 'incidents' ? 'incidents' : 'tasks';
-  const X = await asUser(me.id, async (q) => ({
+  const X = await asAdmin(async (q) => ({
     tasks: await q(`select *, due_on::text due from ops_tasks where status='open' order by due_on nulls last, created_at`),
     done: await q(`select title, done_on::text dn from ops_tasks where status='done' order by done_on desc, created_at desc limit 8`),
     inc: await q(`select i.*, i.occurred_on::text oc, c.name cohort from incidents i left join cohorts c on c.id=i.cohort_id order by (i.status='open') desc, i.occurred_on desc limit 60`),
@@ -19,6 +20,8 @@ export default async function Operations({ searchParams }: { searchParams: Promi
   const tab = (k: string, t: string) => <Link key={k} href={`/portal/operations?view=${k}`} className={`rounded-full px-4 py-1.5 text-sm font-bold ${view === k ? 'bg-teal text-white' : 'border border-teal-100 bg-white text-teal'}`}>{t}</Link>;
   return (
     <>
+      {!canEdit && <div className="mb-4 rounded-xl border border-gold bg-gold-100 p-3 text-sm font-bold text-teal">You can look at this page but not change it. Ask a founder if you need to edit.</div>}
+      <fieldset disabled={!canEdit} className="contents">
       <PageHeader image="/images/hero-bg.jpg" title="Operations and admin" subtitle="The routine jobs that keep Elimu+ running, with repeats, and a register of anything that went wrong." />
       <div className="mb-4 grid gap-4 sm:grid-cols-3"><Stat label="Open tasks" value={X.tasks.length} /><Stat tone="red" label="Due or overdue" value={X.tasks.filter((t: any) => t.due && t.due <= today).length} /><Stat tone="gold" label="Open incidents" value={X.inc.filter((i: any) => i.status === 'open').length} /></div>
       <div className="mb-5 flex gap-2">{tab('tasks', 'Tasks and routines')}{tab('incidents', 'Incidents')}</div>
@@ -59,6 +62,7 @@ export default async function Operations({ searchParams }: { searchParams: Promi
           </Card>
         </div>
       )}
+      </fieldset>
     </>
   );
 }
