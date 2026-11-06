@@ -5,6 +5,7 @@ import { requireMe } from '@/lib/session';
 import { Badge, Card, ImgBand, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { BarCard, PieCard } from '@/components/charts';
 import { d, daysFromToday, iso, pct } from '@/lib/format';
+import AttendanceTicks from '@/components/attendance-ticks';
 import { ensureSessions } from '@/lib/sessions';
 import { markAttendance, recordVisit, saveSessionLog, toggleUnlock } from '../../../actions';
 import { enrolRoster, publishDaySummary } from '../../../partner-actions';
@@ -164,12 +165,8 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
               <p className="mb-2 text-sm text-slate-600">{sess.topic} · {d(sess.session_date)}</p>
               <form action={markAttendance} className="mb-5 rounded-lg bg-mist p-3">
                 <input type="hidden" name="cohort" value={id} /><input type="hidden" name="session" value={sess.id} />
-                <div className="grid grid-cols-2 gap-1 text-sm">
-                  {roster.map((r) => (
-                    <label key={r.id} className="flex items-center gap-2"><input type="checkbox" name="present" value={r.id} defaultChecked={present.has(r.id)} />{r.display_name}</label>
-                  ))}
-                </div>
-                <button className={`${submitCls} mt-3`}>Save attendance</button>
+                <AttendanceTicks key={sess.id} people={roster.map((r) => ({ id: r.id, name: r.display_name }))} present={roster.filter((r) => present.has(r.id)).map((r) => r.id)} />
+                <button className={`${submitCls} mt-3`}>Confirm attendance</button>
               </form>
               {(() => {
                 const sm = summaries.find((x) => x.session_id === sess.id);
@@ -180,7 +177,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
                     <textarea name="covered" rows={2} defaultValue={sm?.covered ?? ''} placeholder="What we covered today, in plain words" className={inputCls} />
                     <textarea name="note" rows={2} defaultValue={sm?.note_for_partner ?? ''} placeholder="Anything the partner should know or do (optional)" className={inputCls} />
                     <button className={submitCls}>{sm ? 'Update summary' : 'Publish summary'}</button>
-                    <p className="text-xs text-slate-500">Counts and the names of who came and who did not are taken from the attendance above. Save attendance first.</p>
+                    <p className="text-xs text-slate-500">Counts and the names of who came and who did not are taken from the attendance above. Confirm attendance first.</p>
                   </form>
                 );
               })()}

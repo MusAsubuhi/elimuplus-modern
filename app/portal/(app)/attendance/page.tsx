@@ -3,6 +3,7 @@ import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, submitCls } from '@/components/ui';
 import { d } from '@/lib/format';
+import AttendanceTicks from '@/components/attendance-ticks';
 import { ensureSessions } from '@/lib/sessions';
 import { markAttendance } from '../../actions';
 
@@ -54,9 +55,7 @@ export default async function Attendance({ searchParams }: { searchParams: Promi
             <p className="mb-2 text-sm text-slate-600">Day {chosen.day_number} · {d(chosen.session_date)}{iso(chosen.session_date) === today ? ' (today)' : ''} {chosen.attendance_confirmed_at ? <Badge tone="green">confirmed</Badge> : recorded ? <Badge tone="gold">from the form, not yet confirmed</Badge> : <Badge tone="grey">not recorded</Badge>}</p>
             <form action={markAttendance} className="rounded-lg bg-mist p-3">
               <input type="hidden" name="cohort" value={c.id} /><input type="hidden" name="session" value={chosen.id} /><input type="hidden" name="back" value="attendance" />
-              <div className="grid gap-1 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                {roster.map((r: any) => <label key={r.id} className="flex items-center gap-2"><input type="checkbox" name="present" value={r.id} defaultChecked={present.has(r.id)} />{r.display_name}</label>)}
-              </div>
+              <AttendanceTicks key={chosen.id} people={roster.map((r: any) => ({ id: r.id, name: r.display_name }))} present={roster.filter((r: any) => present.has(r.id)).map((r: any) => r.id)} />
               <button className={`${submitCls} mt-3`}>Confirm attendance for Day {chosen.day_number}</button>
             </form>
             <p className="mt-2 text-xs text-slate-500">Someone who came but is not listed? Add them on the <Link href={`/portal/cohorts/${c.id}`} className="font-bold text-teal underline">cohort page</Link>, or through the attendance form. The day summary for the partner is also written there.</p>
