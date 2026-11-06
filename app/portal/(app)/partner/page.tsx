@@ -81,7 +81,8 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
             <input name="name" placeholder="Full name" required className={inputCls} />
             <input name="contact" placeholder="Phone or email" required className={inputCls} />
             <input name="birth" type="number" placeholder="Year of birth" className={inputCls} />
-            <label className="flex gap-2 text-xs"><input type="checkbox" name="guardian" />Guardian consent obtained (needed under 18)</label>
+            <label className="flex gap-2 text-xs"><input type="checkbox" name="guardian" />Under 18: a parent or guardian has agreed</label>
+            <label className="flex gap-2 text-xs"><input type="checkbox" name="own" />Aged 18 or over: this person has agreed to be added (adults agree for themselves)</label>
             <button className={submitCls}>Send nomination</button>
           </form>
         </Card>

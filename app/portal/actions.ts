@@ -117,19 +117,22 @@ export async function saveSessionLog(f: FormData) {
   back(`/portal/cohorts/${cohort}`, 'Session note saved');
 }
 
+/** Saves who was present on a day and records that a trainer has confirmed it. Works for ticks made here and for what the Google Form sent in. */
 export async function markAttendance(f: FormData) {
   const me = await requireMe('facilitator', 'founder');
   const cohort = s(f, 'cohort'), session = s(f, 'session');
   const present = new Set(f.getAll('present').map(String));
   await asUser(me.id, async (q) => {
-    const en = await q('select id from enrolments where cohort_id=$1', [cohort]);
+    const en = await q("select id from enrolments where cohort_id=$1 and status <> 'dropped'", [cohort]);
     for (const e of en) {
       await q(`insert into attendance(session_id,enrolment_id,present) values($1,$2,$3)
                on conflict (session_id,enrolment_id) do update set present=excluded.present`, [session, e.id, present.has(e.id)]);
     }
+    await q('update sessions set attendance_confirmed_at=now(), attendance_confirmed_by=$2 where id=$1 and cohort_id=$3', [session, me.id, cohort]);
   });
-  revalidatePath(`/portal/cohorts/${cohort}`);
-  back(`/portal/cohorts/${cohort}`, 'Attendance saved');
+  const ret = s(f, 'back') === 'attendance' ? '/portal/attendance' : `/portal/cohorts/${cohort}`;
+  revalidatePath(`/portal/cohorts/${cohort}`); revalidatePath('/portal/attendance'); revalidatePath('/portal/needs');
+  back(ret, 'Attendance confirmed');
 }
 
 export async function recordVisit(f: FormData) {
@@ -279,11 +282,12 @@ export async function nominate(f: FormData) {
   const role = s(f, 'role') || 'participant';
   const ret = s(f, 'back') || '/portal/partner';
   if (!s(f, 'name') || !s(f, 'contact')) back(ret, 'Name and phone or email are required.', 'err');
+  if (birth && !minor && f.get('own') !== 'on') back(ret, 'An adult must agree to be added. Tick that they have agreed for themselves.', 'err');
   try {
     await asUser(me.id, (q) => q(
-      `insert into invitations(full_name,contact,role,organisation_id,cohort_id,birth_year,guardian_consent,nominated_by,note)
-       values($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [s(f, 'name'), s(f, 'contact'), role, s(f, 'org') || null, s(f, 'cohort') || null, birth, f.get('guardian') === 'on', me.id,
+      `insert into invitations(full_name,contact,role,organisation_id,cohort_id,birth_year,guardian_consent,own_consent,nominated_by,note)
+       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [s(f, 'name'), s(f, 'contact'), role, s(f, 'org') || null, s(f, 'cohort') || null, birth, minor && f.get('guardian') === 'on', !minor && f.get('own') === 'on', me.id,
        minor ? 'Under 18: guardian consent needed before approval' : s(f, 'note')]));
   } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to nominate that role.', 'err'); }
   await notify();
@@ -298,6 +302,8 @@ export async function decideInvitation(f: FormData) {
   const inv = (await asUser(me.id, (q) => q('select * from invitations where id=$1', [id])))[0];
   if (ok && inv?.birth_year && new Date().getFullYear() - inv.birth_year < 18 && !inv.guardian_consent)
     back('/portal/people', 'Guardian consent is required before approving someone under 18.', 'err');
+  if (ok && inv?.birth_year && new Date().getFullYear() - inv.birth_year >= 18 && inv.own_consent === false)
+    back('/portal/people', 'This adult has not agreed to be added. Adults agree for themselves; ask them first.', 'err');
   await asUser(me.id, (q) => q('update invitations set status=$2, approved_by=$3 where id=$1', [id, ok ? 'approved' : 'declined', me.id]));
   revalidatePath('/portal/people');
   back('/portal/people', ok ? 'Approved. An invitation can now be sent.' : 'Declined');

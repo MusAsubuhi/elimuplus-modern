@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 const box = 'w-full rounded-lg border border-teal-100 bg-white px-3 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal';
 
-/** Rows of name, phone, age and gender, all required; "Add another person" adds a row. Anyone under 18 shows a guardian tick box. */
+/** Rows of name, phone, age and gender, all required; "Add another person" adds a row. Under 18 shows a guardian tick box; an adult ticks their own agreement. */
 export function RosterForm({ cohort, action }: { cohort: string; action: (f: FormData) => void | Promise<void> }) {
   const [n, setN] = useState(1);
   const [ages, setAges] = useState<Record<number, string>>({});
@@ -14,6 +14,7 @@ export function RosterForm({ cohort, action }: { cohort: string; action: (f: For
       {Array.from({ length: n }, (_, i) => {
         const age = Number(ages[i]);
         const minor = age > 0 && age < 18;
+        const adult = age >= 18;
         return (
           <div key={i} className="rounded-xl border border-teal-100 bg-mist p-3">
             <div className="grid gap-2 sm:grid-cols-2">
@@ -36,6 +37,12 @@ export function RosterForm({ cohort, action }: { cohort: string; action: (f: For
               <label className="mt-2 flex items-start gap-2 text-xs text-slate-700">
                 <input type="checkbox" name={`consent_${i}`} required className="mt-0.5" />
                 <span>This person is under 18. A parent or guardian has agreed to them joining.</span>
+              </label>
+            )}
+            {adult && (
+              <label className="mt-2 flex items-start gap-2 text-xs text-slate-700">
+                <input type="checkbox" name={`consent_${i}`} required className="mt-0.5" />
+                <span>This person has agreed to take part and to be contacted for follow-up visits. Adults agree for themselves; no guardian is needed.</span>
               </label>
             )}
           </div>

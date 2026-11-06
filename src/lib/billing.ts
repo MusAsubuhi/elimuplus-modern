@@ -69,13 +69,13 @@ export async function orgContacts(orgId: string): Promise<string[]> {
 }
 
 /** Create an invoice from a quote. Used by the founders' Deals page and by the daily job that bills follow-ups. */
-export async function createInvoice(q: Q, o: { quoteId: string | null; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string }) {
+export async function createInvoice(q: Q, o: { quoteId: string | null; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string; issuedOn?: string }) {
   const org = (await q('select name, code from organisations where id=$1', [o.orgId]))[0];
   const num = await nextInvoiceNumber(q, orgCode(org.name, org.code));
   const r = (await q(
     `insert into invoices(quote_id, organisation_id, cohort_id, number, issued_on, due_on, amount_kes, status, kind, description, visit)
-     values ($1,$2,$3,$4,current_date,$5,$6,'issued',$7,$8,$9) returning id, number, share_token`,
-    [o.quoteId, o.orgId, o.cohortId, num, o.dueOn, o.amount, o.kind, o.description, o.visit ?? null]))[0];
+     values ($1,$2,$3,$4,coalesce($10::date, current_date),$5,$6,'issued',$7,$8,$9) returning id, number, share_token`,
+    [o.quoteId, o.orgId, o.cohortId, num, o.dueOn, o.amount, o.kind, o.description, o.visit ?? null, o.issuedOn ?? null]))[0];
   return { id: r.id as string, number: r.number as string, token: r.share_token as string };
 }
 

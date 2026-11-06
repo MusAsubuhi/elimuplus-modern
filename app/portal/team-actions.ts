@@ -55,6 +55,7 @@ export async function addPerson(_prev: PinState, f: FormData): Promise<PinState>
   if (needsOrg(role) && !orgId) return { error: 'Choose the partner organisation for this role.' };
   if (role.role === 'facilitator' && age && age < 15) return { error: 'Facilitators must be at least 15.' };
   if (age && age < 18 && f.get('guardian') !== 'on') return { error: 'Under 18: tick that guardian consent has been obtained.' };
+  if (age >= 18 && f.get('own') !== 'on') return { error: 'Tick that this adult has agreed to be added. Adults agree for themselves.' };
   if (await phoneTaken(phone)) return { error: 'Someone with that phone number is already on the platform.' };
 
   let personId = '';
@@ -246,12 +247,13 @@ export async function suggestIndividual(f: FormData) {
   if (!age) back(ret, 'Add their age. An approximate age is fine.', 'err');
   if (!s(f, 'education')) back(ret, 'Choose their education level.', 'err');
   const minor = age < 18;
+  if (!minor && f.get('own') !== 'on') back(ret, 'Tick that this adult has agreed to be added. Adults agree for themselves.', 'err');
   const role = s(f, 'role') || 'participant';
   try {
     await asUser(me.id, (q) => q(
-      `insert into invitations(full_name,contact,role,organisation_id,cohort_id,birth_year,guardian_consent,nominated_by,note,education_level,occupation,county,ward)
-       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-      [s(f, 'name'), contact, role, s(f, 'org') || null, s(f, 'cohort') || null, birthFromAge(age), f.get('guardian') === 'on', me.id,
+      `insert into invitations(full_name,contact,role,organisation_id,cohort_id,birth_year,guardian_consent,own_consent,nominated_by,note,education_level,occupation,county,ward)
+       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+      [s(f, 'name'), contact, role, s(f, 'org') || null, s(f, 'cohort') || null, birthFromAge(age), minor && f.get('guardian') === 'on', !minor, me.id,
        [s(f, 'note'), minor ? 'Under 18: guardian consent needed before approval' : ''].filter(Boolean).join(' | ') || null,
        s(f, 'education'), s(f, 'occupation') || null, s(f, 'county') || null, s(f, 'ward') || null]));
   } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to suggest that role.', 'err'); }
@@ -310,6 +312,7 @@ export async function approveInvitation(_prev: PinState, f: FormData): Promise<P
   if (!inv) return { error: 'Suggestion not found.' };
   if (inv.status === 'activated') return { error: 'This person already has an account.' };
   if (inv.birth_year && year() - inv.birth_year < 18 && !inv.guardian_consent) return { error: 'Guardian consent is required before approving someone under 18.' };
+  if (inv.birth_year && year() - inv.birth_year >= 18 && inv.own_consent === false) return { error: 'This adult has not agreed to be added. Adults agree for themselves; ask them first.' };
   const called = (await asUser(me.id, (q) => q('select called from crm_person_status where invitation_id=$1', [id])))[0]?.called === true;
   const override = s(f, 'override');
   if (!called && !override) return { error: 'Call this person first and log the call in CRM (they must be reached). If a call is not possible, type the reason in the box and approve again.' };

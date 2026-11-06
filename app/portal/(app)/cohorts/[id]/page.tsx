@@ -5,6 +5,7 @@ import { requireMe } from '@/lib/session';
 import { Badge, Card, ImgBand, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { BarCard, PieCard } from '@/components/charts';
 import { d, daysFromToday, iso, pct } from '@/lib/format';
+import { ensureSessions } from '@/lib/sessions';
 import { markAttendance, recordVisit, saveSessionLog, toggleUnlock } from '../../../actions';
 import { enrolRoster, publishDaySummary } from '../../../partner-actions';
 import { issueParticipantCertificates } from '../../../cert-actions';
@@ -19,6 +20,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const data = await asUser(me.id, async (q) => {
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
+    await ensureSessions(q, id);
     const [roster, sessions, boxes, unlocks, answers, att, sched, logs, team, forms, expected, summaries, rates, certs] = await Promise.all([
       q(`select e.id, e.person_id, e.track, e.status, exists(select 1 from business_books bb where bb.person_id=e.person_id and bb.status='active') has_book, e.has_business_at_entry, p.display_name, p.full_name, p.birth_year,
            (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id where cv.enrolment_id=e.id)::int boxes
@@ -150,7 +152,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       })()}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Card title="Attendance and session note" subtitle="Choose a day">
+        <Card title="Attendance and session note" subtitle="Choose a day. You can also confirm today's attendance from Programme, Attendance in the menu.">
           <div className="mb-3 flex flex-wrap gap-2">
             {sessions.map((s) => (
               <a key={s.id} href={`/portal/cohorts/${id}?session=${s.id}`} className={`rounded-full px-3 py-1 text-sm font-bold ${s.id === chosen ? 'bg-teal text-white' : 'border border-teal-100 bg-white text-teal'}`}>Day {s.day_number}</a>

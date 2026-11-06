@@ -101,7 +101,7 @@ export default async function Deals() {
         </Card>
       </div>
 
-      <Card title="Invoices" className="mt-4" subtitle="Training invoices are raised when a quotation is accepted. The 30, 60 and 90-day follow-up visits are each invoiced automatically about two weeks before the visit, at a third of the follow-up fee.">
+      <Card title="Invoices" className="mt-4" subtitle="The quotation is dated the day it is placed. The training invoice is raised automatically the day after the programme ends (5 or 12 days). The 30, 60 and 90-day follow-up visits are each invoiced automatically about two weeks before the visit, at a third of the follow-up fee.">
         <Table head={['Invoice', 'Partner', 'Type', 'Amount', 'Paid', 'Due', 'Status', '']}
           rows={X.invoices.map((i) => [<b key="n">{i.number}</b>, i.org_name, i.kind, kes(i.amount_kes), kes(i.paid), d(i.due_on), <Badge key="s" tone={statusTone(i.status)}>{i.status}</Badge>,
             <div key="a" className="flex gap-2"><a className={mini} href={docUrl('invoice', i.share_token)} target="_blank">Open</a>
@@ -123,10 +123,10 @@ export default async function Deals() {
         {!X.invoices.some((i) => i.amount_kes - i.paid > 0) && (
           <div className="mt-4 rounded-lg bg-mist p-3 text-sm">
             <p className="font-bold text-teal">Record a payment you received</p>
-            <p className="mt-1 text-slate-700">There is no unpaid invoice to record a payment against yet. An invoice is raised when you press <b>They accepted</b> on a quotation above. Once it exists, the form to record the payment appears here.</p>
+            <p className="mt-1 text-slate-700">There is no unpaid invoice to record a payment against yet. The training invoice is raised the day after the programme ends, and the follow-up invoices about two weeks before each visit. Once an invoice exists, the form to record the payment appears here.</p>
           </div>
         )}
-        <p className="mt-3 text-xs text-slate-500">The flow: quotation accepted, invoice raised, partner pays, you record the payment (or confirm their notice), the receipt is created below and emailed.</p>
+        <p className="mt-3 text-xs text-slate-500">The flow: quotation placed and accepted, programme delivered, invoice raised the next day, partner pays, you record the payment (or confirm their notice), the receipt is created below and emailed.</p>
       </Card>
 
       <Card title="Receipts" className="mt-4">

@@ -60,7 +60,7 @@ export default async function Timeline() {
                   {loaded} of {c.expected_participants ?? '—'} people listed. {!trained && <Link href={`/portal/partner/roster?cohort=${c.id}`} className="font-bold text-teal underline">Add or review names</Link>}
                 </Step>
                 <Step done={!!trainingInv && trainingInv.paid >= trainingInv.amount_kes} title="Training invoice">
-                  {trainingInv ? <>{trainingInv.number} · {kes(trainingInv.amount_kes)} · due {d(trainingInv.due_on)} · <Badge tone={statusTone(trainingInv.status)}>{trainingInv.status}</Badge></> : 'Raised once the quotation is accepted.'}
+                  {trainingInv ? <>{trainingInv.number} · {kes(trainingInv.amount_kes)} · due {d(trainingInv.due_on)} · <Badge tone={statusTone(trainingInv.status)}>{trainingInv.status}</Badge></> : 'Raised the day after the programme ends.'}
                 </Step>
                 <Step done={sums.length > 0 && (c.status === 'followup' || c.status === 'closed')} title="Training days">
                   {sums.length ? (

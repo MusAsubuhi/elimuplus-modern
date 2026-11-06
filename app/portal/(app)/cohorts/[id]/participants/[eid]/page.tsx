@@ -16,7 +16,8 @@ export default async function Participant({ params }: { params: Promise<{ id: st
   const me = await requireMe('facilitator', 'founder');
   const { id, eid } = await params;
   const x = await asUser(me.id, async (q) => {
-    const e = (await q(`select e.*, p.display_name, p.full_name, p.phone, p.birth_year, p.gender, p.has_disability, c.name cohort_name
+    const e = (await q(`select e.*, p.display_name, p.full_name, p.phone, p.birth_year, p.gender, p.has_disability, c.name cohort_name,
+      (select r.own_consent from cohort_roster r where r.cohort_id = e.cohort_id and r.phone = p.phone limit 1) roster_own
       from enrolments e join people p on p.id = e.person_id join cohorts c on c.id = e.cohort_id where e.id = $1 and e.cohort_id = $2`, [eid, id]))[0];
     if (!e) return null;
     const [base, learn, exit, adult, youth, att, boxes, support, welfare, sched, stories] = await Promise.all([
@@ -37,6 +38,7 @@ export default async function Participant({ params }: { params: Promise<{ id: st
   if (!x) notFound();
   const { e, base: b, learn, exit, adult, youth, att, boxes, support, welfare, sched, stories } = x;
   const pre = learn.find((l) => l.stage === 'pre'), post = learn.find((l) => l.stage === 'post');
+  const minor = !!e.birth_year && new Date().getFullYear() - e.birth_year < 18;
   const isYouth = b?.kind === 'youth' || (!b && e.birth_year && new Date().getFullYear() - e.birth_year < 25);
   const stages = [30, 60, 90];
   const A = (s: number) => adult.find((f) => f.stage === s);
@@ -53,8 +55,10 @@ export default async function Participant({ params }: { params: Promise<{ id: st
         <Stat label="Canvas" value={`${boxes}/12`} sub="boxes filled" />
       </div>
 
-      <Card title="Consent" subtitle="Check before sharing a story or photo, or contacting a guardian.">
-        <Table head={['Story', 'Photo', 'Guardian', 'Guardian consent', 'Recorded']} rows={[[t(e.story_consent), yn(e.photo_consent), e.guardian_name ? `${e.guardian_name}${e.guardian_phone ? ` (${e.guardian_phone})` : ''}` : '—', yn(e.guardian_consent), e.consented_on ? d(e.consented_on) : '—']]} />
+      <Card title="Consent" subtitle={minor ? 'Under 18: a parent or guardian agrees for them. Check before sharing a story or photo, or contacting a guardian.' : 'An adult agrees for themselves; no guardian is involved. Check before sharing a story or photo.'}>
+        {minor
+          ? <Table head={['Story', 'Photo', 'Guardian', 'Guardian agreed', 'Recorded']} rows={[[t(e.story_consent), yn(e.photo_consent), e.guardian_name ? `${e.guardian_name}${e.guardian_phone ? ` (${e.guardian_phone})` : ''}` : '—', yn(e.guardian_consent), e.consented_on ? d(e.consented_on) : '—']]} />
+          : <Table head={['Agreed to take part (themselves)', 'Story', 'Photo', 'Recorded']} rows={[[e.roster_own === true || e.story_consent ? 'Yes' : e.roster_own === false ? 'No' : 'Not recorded', t(e.story_consent), yn(e.photo_consent), e.consented_on ? d(e.consented_on) : '—']]} />}
       </Card>
 
       {b && !isYouth && (

@@ -46,7 +46,8 @@ export default async function PartnerRoster({ searchParams }: { searchParams: Pr
                 <form action={addRoster} className="mt-3 space-y-3">
                   <input type="hidden" name="cohort" value={chosen.id} />
                   <textarea name="list" rows={6} className={inputCls} placeholder={'Amina Wanjiru, 0712345678, F, 19\nJuma Otieno, 0722111222, M, 22'} />
-                  <p className="text-xs text-slate-500">One person per line: name, phone, F or M, age. For anyone under 18, add “yes” at the end to show a parent or guardian agreed.</p>
+                  <p className="text-xs text-slate-500">One person per line: name, phone, F or M, age. For anyone under 18, add “yes” at the end to show a parent or guardian agreed. Adults agree for themselves, so tick the box below; no guardian is needed for them.</p>
+                  <label className="flex items-start gap-2 text-xs"><input type="checkbox" name="adults_agreed" className="mt-0.5" /><span>Everyone aged 18 or over on this list has agreed to take part, and to be contacted for follow-up visits.</span></label>
                   <button className={submitCls}>Add the pasted list</button>
                 </form>
               </details>
