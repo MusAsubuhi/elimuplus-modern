@@ -55,6 +55,11 @@ export const FEATURES: Feature[] = [
   { key: 'book', label: 'My business book', section: 'My work', href: '/portal/book', icon: '▤', delegable: false, roles: ['participant'], note: 'Each participant keeps their own business numbers. Trainers and the team read them only while the owner has switched sharing on.' },
   { key: 'recognition', label: 'Recognition', section: 'My work', href: '/portal/recognition', icon: '✧', delegable: false, roles: ['founder', 'master', 'facilitator', 'participant', 'org_admin'], maxLevel: 'view', note: 'Each person sees only their own standing, earned from recorded work. No rankings.' },
   { key: 'preview', label: 'Preview partner view', section: 'Partners', href: '/portal/preview', icon: '◉', delegable: false, roles: ['founder'], note: 'See exactly what a partner organisation sees.' },
+  { key: 'sales', label: 'Sales pipeline', section: 'Partners', href: '/portal/sales', icon: '➚', delegable: false, roles: ['founder'], note: 'Leads before they sign, follow-ups and expected value.' },
+  { key: 'procurement', label: 'Procurement', section: 'Money', href: '/portal/procurement', icon: '▥', delegable: false, roles: ['founder'], note: 'Purchase orders, approval and goods received.' },
+  { key: 'inventory', label: 'Inventory and assets', section: 'Admin', href: '/portal/inventory', icon: '▤', delegable: false, roles: ['founder'], note: 'Stock with reorder levels and the equipment register.' },
+  { key: 'operations', label: 'Operations and admin', section: 'Admin', href: '/portal/operations', icon: '⚙', delegable: false, roles: ['founder'], note: 'Routine tasks with repeats and the incident register.' },
+  { key: 'compliance', label: 'Compliance', section: 'Admin', href: '/portal/compliance', icon: '⚖', delegable: false, roles: ['founder'], note: 'Filings, licences, insurance, policies and data requests.' },
   { key: 'permissions', label: 'Permissions', section: 'Admin', href: '/portal/permissions', icon: '⚿', delegable: false, roles: ['founder'], note: 'Only founders can change who sees what.' },
   { key: 'audit', label: 'Audit log', section: 'Admin', href: '/portal/audit', icon: '⌕', delegable: false, roles: ['founder'], note: 'Who read what.' },
 ];

@@ -9,11 +9,13 @@ import { kes, pct } from '@/lib/format';
 import { audit } from '@/lib/audit';
 import { loadRaw, receivablesSummary, contractedNotInvoiced, todayIso } from '@/lib/books';
 import { d } from '@/lib/format';
+import { watch } from '@/lib/ops';
 
 export default async function Command() {
   const me = await requireMe('founder');
   await audit(me.id, 'view command', 'dashboard');
   const D = await asUser(me.id, async (q) => ({
+    watch: await watch(q),
     inv: await q(`select coalesce(sum(amount_kes),0)::int billed from invoices`),
     paid: await q(`select coalesce(sum(amount_kes),0)::int paid from payments`),
     exp: await q(`select coalesce(sum(coalesce(paid_amount_kes,amount_kes)),0)::int spent from expense_requests where status in ('paid','reconciled')`),
@@ -51,6 +53,22 @@ export default async function Command() {
         <Stat tone="gold" label="Net" value={kes(paid - spent)} sub={`${pct(paid - spent, paid)}% margin on cash received`} />
         <Stat label="Support given to participants" value={kes(D.support[0].s)} sub="kept separate from fees and costs" />
       </div>
+
+      {(() => {
+        const w = D.watch;
+        const rows: [number, string, string, boolean][] = [
+          [w.complianceOverdue, 'compliance item(s) overdue', '/portal/compliance', true], [w.complianceSoon, 'compliance item(s) due in 14 days', '/portal/compliance', false], [w.complianceNoDate, 'compliance item(s) with no date set', '/portal/compliance', false],
+          [w.dataDue, 'data request(s) to answer within 14 days', '/portal/compliance?view=requests', true], [w.followUps, 'sales follow-up(s) due', '/portal/sales', false], [w.poApproval, 'purchase order(s) awaiting approval', '/portal/procurement', false],
+          [w.poLate, 'late delivery(ies)', '/portal/procurement', true], [w.lowStock, 'stock item(s) at reorder level', '/portal/inventory', false], [w.tasksDue, 'routine task(s) due', '/portal/operations', false], [w.incidents, 'open incident(s)', '/portal/operations?view=incidents', true],
+        ];
+        const live = rows.filter((r) => r[0] > 0);
+        return (
+          <Card title="Attention needed across operations" subtitle="Compliance, sales follow-ups, purchasing, stock and incidents" className="mb-6">
+            {live.length === 0 ? <p className="text-sm text-slate-600">Nothing is overdue or waiting.</p> : (
+              <div className="grid gap-2 sm:grid-cols-2">{live.map(([n, t, href, hot]) => <Link key={t} href={href} className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${hot ? 'border-red-300 bg-red-50' : 'border-teal-100 bg-white'}`}><span><b>{n}</b> {t}</span><span className="text-teal">Open</span></Link>)}</div>)}
+          </Card>
+        );
+      })()}
 
       <Card title="Receivables: money owed to Elimu+" subtitle="Invoices raised and not yet paid, and what is contracted but not yet invoiced" className="mb-6"
         action={<Link href="/portal/books?view=wc" className="text-sm font-bold text-teal underline">Working capital</Link>}>
