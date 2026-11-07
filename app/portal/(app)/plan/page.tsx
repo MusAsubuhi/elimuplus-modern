@@ -6,6 +6,7 @@ import { FOCUS, GOAL_STATUS, SOURCE_LABEL, suggestionsFor } from '@/lib/improvem
 import { Badge, Card, PageHeader, ProgressBar, Stat, inputCls, statusTone, submitCls } from '@/components/ui';
 import { d, daysFromToday, iso } from '@/lib/format';
 import { addGoal, addNote, answerSuggestion, createPlan, setPlanStatus, updateGoal } from '../../plan-actions';
+import { attachResource, detachResource } from '../../learn-actions';
 
 const KIND = { update: 'Update', reviewer_note: 'Note from reviewer', review: 'Review' } as Record<string, string>;
 
@@ -30,10 +31,17 @@ export default async function ImprovementPlan({ searchParams }: { searchParams: 
          (select coalesce(round(avg(progress)),0)::int from improvement_goals g where g.plan_id=pl.id and g.accepted) progress,
          (select count(*)::int from improvement_goals g where g.plan_id=pl.id and not g.accepted) pending
        from improvement_plans pl join people pe on pe.id=pl.person_id where pl.person_id<>$1 and pl.status='active' order by pe.display_name`, [me.id]) : [];
-    return { who, plans, current, goals, checkins, reviewer, suggestions, others };
+    // learning resources attached to this plan's goals, and the ones the reader may add (the database only returns what they can see)
+    const goalRes = current ? await q(
+      `select gr.goal_id, r.id, r.title, r.kind, r.required,
+         exists(select 1 from learning_completions c where c.resource_id=r.id and c.person_id=$2) done
+       from goal_resources gr join learning_resources r on r.id=gr.resource_id
+       where gr.goal_id in (select id from improvement_goals where plan_id=$1) order by r.title`, [current.id, target]) : [];
+    const pickable = current ? await q("select id, title, kind from learning_resources where status='published' order by title") : [];
+    return { who, plans, current, goals, checkins, reviewer, suggestions, others, goalRes, pickable };
   });
   if (!own && data.who && me.roles.includes('founder')) await audit(me.id, 'read improvement plan', 'improvement_plans');
-  const { who, plans, current, goals, checkins, reviewer, suggestions, others } = data;
+  const { who, plans, current, goals, checkins, reviewer, suggestions, others, goalRes, pickable } = data;
   if (!who) return <Card title="Not found">That person could not be found.</Card>;
 
   const accepted = goals.filter((g) => g.accepted);
@@ -111,6 +119,28 @@ export default async function ImprovementPlan({ searchParams }: { searchParams: 
                   {g.measure && <p className="text-sm text-slate-600"><b>How I will know:</b> {g.measure}</p>}
                   {g.source_kind && g.source_kind !== 'own' && <p className="mt-1 text-xs text-slate-500">{SOURCE_LABEL[g.source_kind]}</p>}
                   <div className="mt-2"><ProgressBar value={g.progress} tone={g.progress >= 100 ? 'green' : 'gold'} /><div className="mt-0.5 text-xs text-slate-500">{g.progress}%</div></div>
+                  {(goalRes.some((x: any) => x.goal_id === g.id) || (canWrite && pickable.length > 0)) && (
+                    <div className="mt-3 rounded-lg bg-teal-50 p-3">
+                      <div className="text-xs font-bold uppercase tracking-wide text-slate-500">To help with this goal</div>
+                      <ul className="mt-1 space-y-1">
+                        {goalRes.filter((x: any) => x.goal_id === g.id).map((x: any) => (
+                          <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                            <Link href={`/portal/learn/${x.id}`} className="font-bold text-teal underline">{x.title}</Link>
+                            <span className="flex items-center gap-2">{x.required && <Badge tone="gold">Required</Badge>}{x.done ? <Badge tone="green">Done ✓</Badge> : <Badge tone="grey">{x.kind === 'pdf' ? 'To read' : 'To open'}</Badge>}
+                              {canWrite && <form action={detachResource}><input type="hidden" name="goal" value={g.id} /><input type="hidden" name="resource" value={x.id} /><input type="hidden" name="back" value={back} /><button className="text-xs text-slate-500 underline">Remove</button></form>}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {canWrite && pickable.length > 0 && (
+                        <form action={attachResource} className="mt-2 flex gap-2">
+                          <input type="hidden" name="goal" value={g.id} /><input type="hidden" name="back" value={back} />
+                          <select name="resource" className={inputCls} aria-label="Add a learning resource to this goal" defaultValue=""><option value="" disabled>Add a guide, document or video…</option>
+                            {pickable.filter((x: any) => !goalRes.some((y: any) => y.goal_id === g.id && y.id === x.id)).map((x: any) => <option key={x.id} value={x.id}>{x.title}</option>)}</select>
+                          <button className="rounded-lg border border-teal-100 bg-white px-3 py-1.5 text-xs font-bold text-teal">Add</button>
+                        </form>
+                      )}
+                    </div>
+                  )}
                   {ownsCurrent && canWrite && (
                     <form action={updateGoal} className="mt-3 grid gap-2 sm:grid-cols-[110px_1fr_auto]">
                       <input type="hidden" name="goal" value={g.id} /><input type="hidden" name="plan" value={current.id} /><input type="hidden" name="back" value={back} />
