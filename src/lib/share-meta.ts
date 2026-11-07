@@ -19,6 +19,7 @@ const ROUTES: Array<[RegExp, Share]> = [
   [/^\/portal\/alerts/, { tag: 'Founders', title: 'Alerts', description: 'Welfare, urgent and system alerts for the founders.' }],
   [/^\/portal\/approvals/, { tag: 'Founders', title: 'Approvals', description: 'Founder approvals for payments, stories, reports and requests.' }],
 
+  [/^\/portal\/calendar/, { tag: 'Programme', title: 'Training calendar', description: 'When each Elimu+ training runs, with which trainers, and where trainings overlap.' }],
   [/^\/portal\/cohorts\/[^/]+\/certificates/, { tag: 'Programme', title: 'Cohort certificates', description: 'Issue and check participant certificates for a cohort.' }],
   [/^\/portal\/cohorts\/[^/]+\/outcomes/, { tag: 'Programme', title: 'Cohort outcomes', description: 'Follow-up results for a cohort at 30, 60 and 90 days.' }],
   [/^\/portal\/cohorts\/[^/]+\/participants/, { tag: 'Programme', title: 'Participant record', description: 'A participant’s attendance, canvas and follow-up in one place.' }],

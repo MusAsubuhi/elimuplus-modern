@@ -79,7 +79,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
             <summary className="cursor-pointer">Change dates</summary>
             <form action={setCohortDates} className="mt-2 flex flex-wrap items-end gap-2 text-slate-800">
               <input type="hidden" name="cohort" value={id} />
-              <label className="block text-white">Starts<input type="date" name="start" required defaultValue={String(c.start_date ?? '').slice(0, 10)} className={inputCls} /></label>
+              <label className="block text-white">Starts<input type="date" name="start" required defaultValue={iso(c.start_date)} className={inputCls} /></label>
               <label className="block text-white">Ends<input type="date" name="end" required defaultValue={String(trainingEnds(c) ?? '')} className={inputCls} /></label>
               <button className={submitCls}>Save dates</button>
             </form>
