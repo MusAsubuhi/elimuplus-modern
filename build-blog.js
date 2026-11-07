@@ -285,11 +285,17 @@ ${posts.map((p) => `<item><title>${xml(p.title)}</title><link>${SITE}/blog/${p.s
 `);
 
 // sitemap
-const stat = ['index', 'about', 'programme', 'join', 'calculator', 'partner', 'case-studies', 'trainer', 'sacco', 'pitching', 'directory', 'blog', 'privacy'];
+// Pages that ask search engines not to index them stay out of the sitemap.
+const stat = ['index', 'about', 'programme', 'join', 'calculator', 'partner', 'case-studies', 'trainer', 'sacco', 'pitching', 'directory', 'blog', 'privacy'].filter((s) => {
+  const f = path.join(ROOT, (s === 'index' ? 'index' : s) + '.html');
+  return !fs.existsSync(f) || !/<meta name="robots" content="[^"]*noindex/i.test(fs.readFileSync(f, 'utf8'));
+});
+// Last-changed date = the date the file last changed in git (falls back to today), so the dates tell search engines the truth.
 const today = new Date().toISOString().slice(0, 10);
+const changed = (s) => { try { return require('child_process').execSync(`git log -1 --format=%cs -- ${s}.html`, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || today; } catch (e) { return today; } };
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${stat.map((s) => `<url><loc>${SITE}/${s === 'index' ? '' : s + '.html'}</loc><lastmod>${today}</lastmod></url>`).join('\n')}
+${stat.map((s) => `<url><loc>${SITE}/${s === 'index' ? '' : s + '.html'}</loc><lastmod>${changed(s)}</lastmod></url>`).join('\n')}
 ${posts.map((p) => `<url><loc>${SITE}/blog/${p.slug}.html</loc><lastmod>${p.date}</lastmod></url>`).join('\n')}
 </urlset>
 `);
