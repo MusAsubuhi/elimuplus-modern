@@ -5,7 +5,7 @@ import { submitSignIn } from '../actions';
 import { Shell, inputCls, labelCls, submitCls, whenOf } from '../shell';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Seminar sign-in | Elimu+', robots: { index: false } };
+export const metadata = { title: 'Seminar sign-in | Elimu+', robots: { index: false }, openGraph: { title: 'Elimu+ seminar sign-in', description: 'Sign in to an Elimu+ monthly seminar.' } };
 
 export default async function SignIn({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
