@@ -37,6 +37,7 @@ async function makeDemo(): Promise<Driver> {
   await db.exec(sql('migrations/0008_followup_forms.sql'));
   await db.exec(sql('migrations/0009_impact_data.sql'));
   await db.exec(sql('migrations/0010_form_registry.sql'));
+  await db.exec(sql('migrations/0011_newsletter_sync.sql'));
   await db.exec(sql('migrations/0012_seminars.sql'));
   await db.exec(sql('migrations/0013_email_automation.sql'));
   await db.exec(sql('migrations/0014_newsletter_letters.sql'));
