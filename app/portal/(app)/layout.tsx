@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { TabTitle } from '@/components/tab-title';
 import { getLang, requireMe, type Role } from '@/lib/session';
 import { asAdmin, asUser } from '@/lib/db';
 import { logout, setLang, demoLogin } from '../actions';
@@ -94,6 +95,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (shared.length > 0) navGroups.push({ title: 'Shared with you', items: shared.map((f) => ({ href: f.href, label: f.label, icon: f.icon })) });
   return (
     <div className="min-h-screen">
+      <TabTitle />
       <div className="no-print sticky top-0 z-40 bg-teal text-white">
         <div className="flex items-center gap-2 px-3 py-2 md:px-5">
           <MobileMenu groups={navGroups} label={lang === 'sw' ? 'Fungua menyu' : 'Open menu'} />
