@@ -12,7 +12,12 @@ const isOn = (path: string, href: string) => path === href || (href !== '/portal
 export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: string }) {
   const path = usePathname() ?? '';
   const [open, setOpen] = useState(false);
+  // Each section folds into its heading. The section holding the page you are on starts open; the rest start folded.
+  const activeTitle = groups.find((g) => g.items.some((i) => isOn(path, i.href)))?.title;
+  const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
   useEffect(() => setOpen(false), [path]);
+  useEffect(() => { if (activeTitle) setUnfolded((prev) => (prev.has(activeTitle) ? prev : new Set(prev).add(activeTitle))); }, [activeTitle]);
+  const toggle = (t: string) => setUnfolded((prev) => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
   useEffect(() => {
     if (!open) return;
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
@@ -29,18 +34,32 @@ export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: strin
         <aside id="portal-drawer" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); }}
           className={`absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto bg-teal px-3 pb-8 pt-4 text-white shadow-xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="mb-3 flex justify-end"><button type="button" aria-label="Close" onClick={() => setOpen(false)} className="h-10 w-10 rounded-lg text-xl hover:bg-white/10">✕</button></div>
-          {groups.map((g) => (
-            <div key={g.title} className="mb-4">
-              <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{g.title}</div>
-              {g.items.map((i) => (
-                <Link key={i.href} href={i.href} aria-current={isOn(path, i.href) ? 'page' : undefined} tabIndex={open ? 0 : -1}
-                  className={`flex items-center gap-3 rounded-lg border-l-4 px-3 py-3 text-sm font-semibold ${isOn(path, i.href) ? 'border-gold bg-white/15' : 'border-transparent text-teal-50 hover:bg-white/10'}`}>
-                  <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
-                  {i.badge ? <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold text-teal">{i.badge}</span> : null}
-                </Link>
-              ))}
-            </div>
-          ))}
+          {groups.map((g) => {
+            const single = groups.length === 1;
+            const shown = single || unfolded.has(g.title);
+            const sum = g.items.reduce((a, i) => a + (i.badge ?? 0), 0);
+            const id = `drawer-${g.title.replace(/\W+/g, '-')}`;
+            return (
+              <div key={g.title} className="mb-1">
+                {single ? <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{g.title}</div> : (
+                  <button type="button" aria-expanded={shown} aria-controls={id} tabIndex={open ? 0 : -1} onClick={() => toggle(g.title)}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-teal-50 hover:bg-white/10">
+                    <span className="text-[10px] text-gold">{shown ? '▾' : '▸'}</span>{g.title}
+                    {!shown && sum ? <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold normal-case tracking-normal text-teal">{sum}</span> : null}
+                  </button>)}
+                {shown && (
+                  <div id={id} className="mb-2">
+                    {g.items.map((i) => (
+                      <Link key={i.href} href={i.href} aria-current={isOn(path, i.href) ? 'page' : undefined} tabIndex={open ? 0 : -1}
+                        className={`flex items-center gap-3 rounded-lg border-l-4 px-3 py-3 text-sm font-semibold ${isOn(path, i.href) ? 'border-gold bg-white/15' : 'border-transparent text-teal-50 hover:bg-white/10'}`}>
+                        <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
+                        {i.badge ? <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold text-teal">{i.badge}</span> : null}
+                      </Link>
+                    ))}
+                  </div>)}
+              </div>
+            );
+          })}
         </aside>
       </div>
     </div>
