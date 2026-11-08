@@ -101,8 +101,12 @@ export async function assignToCohort(f: FormData) {
     await asUser(me.id, (q) => q(
       'insert into cohort_facilitators(cohort_id, person_id, role) values ($1,$2,$3) on conflict (cohort_id, person_id) do update set role = excluded.role', [cohort, person, role]));
   } catch (e) { console.error('[portal action]', e); back(to, 'Could not add that person to the cohort.', 'err'); }
+  await audit(me.id, `assigned a trainer to a cohort as ${role}`, 'cohort_facilitators');
   revalidatePath('/portal', 'layout');
-  back(to, 'Added to the cohort');
+  revalidatePath('/portal/calendar');
+  const who = (await asUser(me.id, (q) => q("select coalesce(nullif(display_name,''), full_name) n from people where id=$1", [person])))[0]?.n ?? 'The trainer';
+  const word = role === 'lead' ? 'lead trainer' : role === 'co' ? 'co-facilitator' : 'observer';
+  back(to, `${who} is now ${word} of this training. It appears in their portal, the calendar and their phone feed, and the training page names them.`);
 }
 
 export async function removeFromCohort(f: FormData) {

@@ -75,9 +75,11 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
     ...(isFinalDay ? [['cost_types_order', 'Cost types taught in order: sunk, fixed, variable'], ['followup_dates_confirmed', 'Follow-up dates confirmed'], ['certificates_ready', 'Certificates flagged for founders to issue']] as [string, string][] : []),
   ];
   const log = logs.find((l) => l.session_id === chosen);
+  const leads = team.filter((t: any) => t.role === 'lead').map((t: any) => t.display_name), helpers = team.filter((t: any) => t.role === 'co').map((t: any) => t.display_name);
+  const leadLine = leads.length ? `Led by ${leads.join(' and ')}${helpers.length ? `, with ${helpers.join(' and ')}` : ''}` : 'No lead trainer yet';
   return (
     <>
-      <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${dateRange(c, d)} · ${c.venue ?? ''}`}>
+      <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${dateRange(c, d)} · ${c.venue ?? ''} · ${leadLine}`}>
         <Link href={`/portal/cohorts/${id}/outcomes`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Outcomes</Link>
         <Link href={`/portal/consent?cohort=${id}`} className="rounded-lg bg-white/15 px-3 py-1 text-xs font-bold">Print consent forms</Link>
         {me.roles.includes('founder') && (
