@@ -135,7 +135,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
                   <span className="text-xs text-slate-600">{t.org} · {t.start ? d(t.start) : 'no date yet'} · {STATUS_LABEL[t.status] ?? t.status}</span>
                 </div>
                 <p className="mt-1 text-xs text-slate-700">{t.trainers.length ? `Team so far: ${t.trainers.map((x) => `${x.name} (${x.role})`).join(', ')}` : 'Nobody assigned.'}</p>
-                <AssignTrainer cohort={t.id} people={options} returnTo={`${returnTo}#t-${t.id}`} label="Assign a lead" />
+                <AssignTrainer cohort={t.id} people={options} team={t.trainers} returnTo={`${returnTo}#t-${t.id}`} label="Assign a lead" />
               </li>
             ))}
           </ul>
@@ -336,7 +336,7 @@ function TrainingCard({ t, clashes, founder, today, returnTo, options }: { t: Tr
             <div><dt className="text-xs font-semibold text-slate-500">Invoice</dt><dd>{t.invoice ? `${t.invoice.number} · ${t.invoice.status.replace('_', ' ')}` : 'No invoice yet'}</dd></div>
           )}
         </dl>
-        {founder && <AssignTrainer cohort={t.id} people={options} returnTo={`${returnTo}#t-${t.id}`} label={t.trainers.length ? 'Add or change a trainer' : 'Assign a trainer'} />}
+        {founder && <AssignTrainer cohort={t.id} people={options} team={t.trainers} returnTo={`${returnTo}#t-${t.id}`} label={t.trainers.length ? 'Add or change a trainer' : 'Assign a trainer'} />}
         {t.canSetTime && (
           <details className="mt-3 rounded-lg border border-teal-100 p-2 text-sm">
             <summary className="cursor-pointer font-bold text-teal">{t.startTime ? 'Change the time' : 'Set the time'}</summary>
