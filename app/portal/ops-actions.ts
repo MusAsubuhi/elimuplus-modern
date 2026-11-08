@@ -10,8 +10,10 @@ import { checkKey, syncNewsletter, ensureWebhook } from '@/lib/brevo';
 import { setSequenceOn, sequenceOn, sendLetterTest } from '@/lib/newsletter';
 import { CONCERN_FROM_TEXT, reportLevelOf, templateFor } from '@/lib/levels';
 
-const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never =>
-  redirect(`${path}${path.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}`);
+const back = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never => {
+  const [base, hash] = path.split('#');
+  return redirect(`${base}${base.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}${hash ? `#${hash}` : ''}`);
+};
 const s = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
 const num = (v: string) => (v !== '' && Number.isFinite(Number(v)) ? Math.round(Number(v)) : null);
 
@@ -92,7 +94,8 @@ export async function assignToCohort(f: FormData) {
   const me = await requireMe('founder');
   const cohort = s(f, 'cohort'), person = s(f, 'person');
   const role = ['lead', 'co', 'observer'].includes(s(f, 'role')) ? s(f, 'role') : 'observer';
-  const to = s(f, 'back') || '/portal/crm';
+  const asked = s(f, 'back');
+  const to = asked.startsWith('/portal') && !asked.startsWith('//') ? asked : '/portal/crm';
   if (!cohort || !person) back(to, 'Choose a person.', 'err');
   try {
     await asUser(me.id, (q) => q(

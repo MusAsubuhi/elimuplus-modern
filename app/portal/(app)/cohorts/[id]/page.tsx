@@ -13,6 +13,7 @@ import { enrolRoster, publishDaySummary } from '../../../partner-actions';
 import { issueParticipantCertificates } from '../../../cert-actions';
 import SessionPhotoAdder from '@/components/session-photo-adder';
 import SessionPhotoGrid from '@/components/session-photo-grid';
+import { AssignTrainer } from '../../assign-trainer';
 import { signSessionPhotos, MAX_SESSION_PHOTOS_PER_DAY } from '@/lib/session-photos';
 
 export default async function CohortPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ session?: string }> }) {
@@ -50,6 +51,11 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
     return { photos, rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked: new Set(unlocks.map((u) => u.box_number)), answers, att, sched, logs, team, forms, chosen, present: new Set(present.map((p) => p.enrolment_id)) };
   });
   if (!data) notFound();
+  const isFounder = me.roles.includes('founder');
+  const trainerOptions = isFounder
+    ? (await asUser(me.id, (q) => q(`select distinct p.id, coalesce(nullif(p.display_name,''), p.full_name) name, r.tier from people p join role_assignments r on r.person_id=p.id and r.status='active' and r.role='facilitator' order by 2`)))
+        .map((x: any) => ({ id: x.id, name: x.name, tier: x.tier ?? null }))
+    : [];
   const { photos, rates, certs, expected, summaries, c, roster, sessions, boxes, unlocked, answers, att, sched, logs, team, forms, chosen, present } = data;
   const signed = await signSessionPhotos(photos.map((x: any) => x.storage_path));
   const photoDays = Array.from({ length: c.format === '12-day' ? 12 : 5 }, (_, i) => ({ n: i + 1, left: MAX_SESSION_PHOTOS_PER_DAY - photos.filter((x: any) => x.day_number === i + 1).length })).filter((x) => x.left > 0);
@@ -87,6 +93,13 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
         )}
         {team.map((t) => <span key={t.display_name} className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">{t.display_name} · {t.role}</span>)}
       </PageHeader>
+
+      {isFounder && (
+        <div className="mb-6">
+          <p className="text-sm text-slate-700"><b>Trainers:</b> {team.length ? team.map((t) => `${t.display_name} (${t.role === 'co' ? 'co-facilitator' : t.role})`).join(', ') : <span className="font-semibold text-red-700">nobody assigned yet</span>}</p>
+          <AssignTrainer cohort={id} people={trainerOptions} returnTo={`/portal/cohorts/${id}`} label={team.length ? 'Add or change a trainer' : 'Assign a trainer'} />
+        </div>
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat tone="teal" label="Programme progress" value={`${pct(daysDone, totalDays)}%`} sub={`${daysDone} of ${totalDays} training days done`} />
