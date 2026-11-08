@@ -9,7 +9,10 @@ import { loadCalendar, newFeedToken } from '@/lib/calendar';
 import { pairKey } from '@/lib/calendar-core';
 
 const s = (f: FormData, k: string) => String(f.get(k) ?? '').trim();
-const go = (to: string, msg: string, kind: 'ok' | 'err' = 'ok'): never => redirect(`${to}${to.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}&n=${Date.now()}`);
+const go = (to: string, msg: string, kind: 'ok' | 'err' = 'ok'): never => {
+  const [path, hash] = to.split('#');
+  redirect(`${path}${path.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}&n=${Date.now()}${hash ? `#${hash}` : ''}`);
+};
 const back = (f: FormData) => { const r = s(f, 'return'); return r.startsWith('/portal/calendar') ? r : '/portal/calendar'; };
 
 /**
@@ -70,4 +73,31 @@ export async function removeFeed(f: FormData) {
   await audit(me.id, 'switched off the phone calendar address', 'calendar_feeds');
   revalidatePath('/portal/calendar');
   go(to, 'Your phone calendar address is switched off.');
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * Sets the daily time of a training once it has been agreed with the client.
+ * The database allows only a founder or the lead or co-facilitator of that training to change it.
+ */
+export async function setTrainingTime(f: FormData) {
+  const me = await requireFeature('calendar');
+  const to = back(f);
+  const cohort = s(f, 'cohort');
+  const start = s(f, 'start'), end = s(f, 'end');
+  const note = s(f, 'note').slice(0, 200) || null;
+  if (!/^[0-9a-f-]{36}$/.test(cohort)) go(to, 'That training was not recognised.', 'err');
+  if ((start && !HHMM.test(start)) || (end && !HHMM.test(end))) go(to, 'Enter the times like 09:00 and 16:00.', 'err');
+  if (!!start !== !!end) go(to, 'Give both a start time and an end time, or leave both empty to clear it.', 'err');
+  if (start && end <= start) go(to, 'The end time must be after the start time.', 'err');
+  let refused = false;
+  await asUser(me.id, async (q) => {
+    try { await q('select app.set_training_time($1::uuid, $2::time, $3::time, $4)', [cohort, start || null, end || null, note]); }
+    catch { refused = true; }
+  });
+  if (refused) go(to, 'Only a founder or the lead or co-facilitator of this training can set its time.', 'err');
+  await audit(me.id, start ? `set the daily time of a training to ${start}-${end}` : 'cleared the daily time of a training', 'cohorts');
+  revalidatePath('/portal/calendar');
+  go(to, start ? `Saved: ${start} to ${end} each day.` : 'The time was cleared.');
 }

@@ -2,7 +2,7 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import type { Q } from './db';
 import { programmeDays, trainingDates, trainingEnds } from './billing';
-import { findClashes, isoOf, type Clash, type Confirmation, type Training } from './calendar-core';
+import { findClashes, hhmm, isoOf, type Clash, type Confirmation, type Training } from './calendar-core';
 
 export type CalendarData = { trainings: Training[]; clashes: Map<string, Clash[]> };
 
@@ -11,9 +11,9 @@ export type CalendarData = { trainings: Training[]; clashes: Map<string, Clash[]
  * Run it inside asUser so the database decides what each person sees: founders see everything,
  * trainers see the trainings they deliver. Money is only read for founders.
  */
-export async function loadCalendar(q: Q, opts: { founder: boolean }): Promise<CalendarData> {
+export async function loadCalendar(q: Q, opts: { founder: boolean; meId?: string }): Promise<CalendarData> {
   const cohorts = await q(`select c.id, c.name, c.format, c.language, c.audience, c.start_date, c.end_date, c.venue,
-      c.expected_participants, c.status, o.name org_name,
+      c.expected_participants, c.status, c.daily_start, c.daily_end, c.time_note, o.name org_name,
       (select count(*) from enrolments e where e.cohort_id=c.id)::int n
     from cohorts c join organisations o on o.id=c.organisation_id order by c.start_date nulls last, c.seq`);
   if (!cohorts.length) return { trainings: [], clashes: new Map() };
@@ -43,13 +43,16 @@ export async function loadCalendar(q: Q, opts: { founder: boolean }): Promise<Ca
       if (kept.length) days.splice(0, days.length, ...kept);
     }
     const iv = inv.find((x) => x.cohort_id === c.id);
+    const trainers = facs.filter((f) => f.cohort_id === c.id).map((f) => ({ id: f.person_id, name: f.name, role: f.role }));
     return {
       id: c.id, name: c.name, org: c.org_name, status: c.status, format: c.format, language: c.language,
       audience: c.audience ?? null, venue: c.venue ?? null, expected: c.expected_participants ?? null, enrolled: c.n,
       start: days[0] ?? (c.start_date ? isoOf(c.start_date) : null),
       end: days.length ? days[days.length - 1] : trainingEnds(c),
       days,
-      trainers: facs.filter((f) => f.cohort_id === c.id).map((f) => ({ id: f.person_id, name: f.name, role: f.role })),
+      trainers,
+      startTime: hhmm(c.daily_start), endTime: hhmm(c.daily_end), timeNote: c.time_note ?? null,
+      canSetTime: opts.founder || trainers.some((x) => x.id === opts.meId && (x.role === 'lead' || x.role === 'co')),
       invoice: opts.founder ? (iv ? { number: iv.number, status: iv.status, amountKes: iv.amount_kes } : null) : undefined,
     };
   });

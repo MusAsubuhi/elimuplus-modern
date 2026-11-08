@@ -8,7 +8,7 @@ import {
   addDays, isActive, isTentative, monthStart, monthWeeks, pairKey, shiftMonth, worstLevel,
   type Clash, type ClashLevel, type Training,
 } from '@/lib/calendar-core';
-import { confirmClash, makeFeed, removeFeed, withdrawClash } from '../../calendar-actions';
+import { confirmClash, makeFeed, removeFeed, setTrainingTime, withdrawClash } from '../../calendar-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +43,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   const mineOnly = sp.mine === '1';
 
   const [{ trainings, clashes }, feed] = await Promise.all([
-    asUser(me.id, (q) => loadCalendar(q, { founder })),
+    asUser(me.id, (q) => loadCalendar(q, { founder, meId: me.id })),
     asUser(me.id, (q) => q('select token, created_at, last_read_at from calendar_feeds where person_id=$1', [me.id])),
   ]);
 
@@ -95,7 +95,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
     const w = worstLevel(clashes.get(t.id));
     const n = t.days.indexOf(date) + 1;
     return (
-      <a key={t.id} href={`#t-${t.id}`} title={`${t.name}, ${t.org}, day ${n} of ${t.days.length}${w ? `, ${MARK_WORD[w]}` : ''}`}
+      <a key={t.id} href={`#t-${t.id}`} title={`${t.name}, ${t.org}, day ${n} of ${t.days.length}${t.startTime ? `, ${t.startTime} to ${t.endTime}` : ''}${w ? `, ${MARK_WORD[w]}` : ''}`}
         className={`block h-2 truncate rounded text-[11px] font-semibold leading-tight md:h-auto md:px-1.5 md:py-0.5 ${chipCls(t.status)} ${w === 'conflict' ? 'ring-2 ring-red-600' : w === 'check' ? 'ring-2 ring-gold' : ''}`}>
         <span className="hidden md:inline">{w ? `${MARK[w]} ` : ''}{t.name}</span>
       </a>
@@ -221,7 +221,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
                         return (
                           <a key={t.id} href={`#t-${t.id}`} className={`block rounded px-2 py-1 ${chipCls(t.status)} ${w === 'conflict' ? 'ring-2 ring-red-600' : w === 'check' ? 'ring-2 ring-gold' : ''}`}>
                             <span className="block truncate text-xs font-bold">{w ? `${MARK[w]} ` : ''}{t.name}</span>
-                            <span className="block truncate text-[11px] opacity-90">{t.org} · {t.trainers.length ? t.trainers.map((x) => x.name).join(', ') : 'no trainer yet'}{isTentative(t.status) ? ' · tentative' : ''}</span>
+                            <span className="block truncate text-[11px] opacity-90">{t.startTime ? `${t.startTime} to ${t.endTime} · ` : ''}{t.org} · {t.trainers.length ? t.trainers.map((x) => x.name).join(', ') : 'no trainer yet'}{isTentative(t.status) ? ' · tentative' : ''}</span>
                           </a>
                         );
                       })}
@@ -236,7 +236,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
 
       <h2 className="mb-3 text-lg font-bold text-teal">{view === 'list' ? 'Trainings in the next 90 days' : `Trainings in ${MONTH(month)}`}</h2>
       <div className="mb-6 space-y-3">
-        {cards.map((t) => <TrainingCard key={t.id} t={t} clashes={clashes.get(t.id) ?? []} founder={founder} today={today} />)}
+        {cards.map((t) => <TrainingCard key={t.id} t={t} clashes={clashes.get(t.id) ?? []} founder={founder} today={today} returnTo={returnTo} />)}
         {!cards.length && <Card>No trainings with dates {view === 'list' ? 'in the next 90 days' : 'this month'}{(who || mineOnly) ? ' for this filter' : ''}.</Card>}
       </div>
 
@@ -282,7 +282,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   );
 }
 
-function TrainingCard({ t, clashes, founder, today }: { t: Training; clashes: Clash[]; founder: boolean; today: string }) {
+function TrainingCard({ t, clashes, founder, today, returnTo }: { t: Training; clashes: Clash[]; founder: boolean; today: string; returnTo: string }) {
   const w = worstLevel(clashes);
   const lead = t.trainers.filter((x) => x.role === 'lead'), others = t.trainers.filter((x) => x.role !== 'lead');
   const past = (t.end ?? '') < today;
@@ -302,6 +302,7 @@ function TrainingCard({ t, clashes, founder, today }: { t: Training; clashes: Cl
         </div>
         <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <div><dt className="text-xs font-semibold text-slate-500">When</dt><dd>{t.start ? `${d(t.start)} to ${d(t.end)}` : 'Dates to be set'}{t.days.length ? ` · ${t.days.length} training days` : ''}{past ? ' · finished' : ''}</dd></div>
+          <div><dt className="text-xs font-semibold text-slate-500">Time each day</dt><dd>{t.startTime ? `${t.startTime} to ${t.endTime} (East Africa Time)${t.timeNote ? ` · ${t.timeNote}` : ''}` : <span className="text-slate-600">Not agreed yet</span>}</dd></div>
           <div><dt className="text-xs font-semibold text-slate-500">Where</dt><dd>{t.venue || 'Venue not set'}</dd></div>
           <div><dt className="text-xs font-semibold text-slate-500">Trainers</dt>
             <dd>{t.trainers.length ? <>{lead.map((x) => `${x.name} (lead)`).concat(others.map((x) => `${x.name} (${x.role === 'co' ? 'co-facilitator' : 'observer'})`)).join(', ')}</> : <span className="font-semibold text-red-700">No trainer assigned yet</span>}</dd></div>
@@ -310,6 +311,19 @@ function TrainingCard({ t, clashes, founder, today }: { t: Training; clashes: Cl
             <div><dt className="text-xs font-semibold text-slate-500">Invoice</dt><dd>{t.invoice ? `${t.invoice.number} · ${t.invoice.status.replace('_', ' ')}` : 'No invoice yet'}</dd></div>
           )}
         </dl>
+        {t.canSetTime && (
+          <details className="mt-3 rounded-lg border border-teal-100 p-2 text-sm">
+            <summary className="cursor-pointer font-bold text-teal">{t.startTime ? 'Change the time' : 'Set the time'}</summary>
+            <form action={setTrainingTime} className="mt-2 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="cohort" value={t.id} /><input type="hidden" name="return" value={`${returnTo}#t-${t.id}`} />
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Starts</span><input type="time" name="start" defaultValue={t.startTime ?? ''} className={inputCls} /></label>
+              <label className="block"><span className="mb-1 block text-xs font-semibold text-slate-600">Ends</span><input type="time" name="end" defaultValue={t.endTime ?? ''} className={inputCls} /></label>
+              <label className="block min-w-[12rem] flex-1"><span className="mb-1 block text-xs font-semibold text-slate-600">Note, for example lunch 13:00 to 14:00</span><input name="note" maxLength={200} defaultValue={t.timeNote ?? ''} className={inputCls} /></label>
+              <button className={submitCls}>Save time</button>
+            </form>
+            <p className="mt-1 text-xs text-slate-500">Agree it with the client first. It applies to every day of this training and shows on everyone's calendar and phone feed. Clear both boxes to remove it.</p>
+          </details>
+        )}
         {clashes.length > 0 && (
           <ul className="mt-3 space-y-1.5 text-sm">
             {clashes.map((c) => (
