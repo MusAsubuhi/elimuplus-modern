@@ -5,7 +5,7 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, submitCls } from '@/com
 import { AddPersonForm, InvitePartnerForm, ResetPinButton } from '@/components/pin-forms';
 import { EDUCATION, ROLE_OPTIONS, educationLabel, roleLabel } from '@/lib/options';
 import { audit } from '@/lib/audit';
-import { endRole, grantRole, issueCertificate } from '../../team-actions';
+import { certifyFoundingTrainer, endRole, grantRole, issueCertificate } from '../../team-actions';
 import { assignSupervisor } from '../../ops-actions';
 
 export default async function Team() {
@@ -26,6 +26,9 @@ export default async function Team() {
   const supOf = new Map(T.sup.map((x) => [x.person_id, x.display_name]));
   const juniors = T.people.filter((p) => (p.roles as any[]).some((r) => r.role === 'facilitator' && r.tier <= 1));
   const seniors = T.people.filter((p) => (p.roles as any[]).some((r) => r.role === 'founder' || (r.role === 'facilitator' && r.tier >= 2)));
+  const isFounderRow = (p: any) => (p.roles as any[]).some((r) => r.role === 'founder');
+  const founderPeers = T.people.filter((p) => isFounderRow(p) && p.id !== me.id);
+  const meFounder = T.people.find((p) => p.id === me.id);
   const nextTier = (p: any) => (p.cert_tier ?? 0) + 1;
   return (
     <>
@@ -71,6 +74,20 @@ export default async function Team() {
               <select name="supervisor" className={`${inputCls} w-44`}>{seniors.filter((x) => x.id !== p.id).map((x) => <option key={x.id} value={x.id}>{x.display_name}</option>)}</select>
               <button className={submitCls}>Set</button></form>])} />)}
       </Card>
+
+      {founderPeers.length > 0 && (
+        <Card className="mt-4" title="Founders as Master Trainers" subtitle="The founders sit at the top of the trainer ladder. You certify your co-founder as a Master Trainer (ToT Lead) and they certify you. Once certified, a founder appears in every trainer list and can lead trainings.">
+          <ul className="space-y-2 text-sm">
+            {founderPeers.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                <b>{p.full_name}</b>
+                {p.cert_tier === 4 ? <Badge tone="green">Master Trainer</Badge> : (
+                  <form action={certifyFoundingTrainer}><input type="hidden" name="person" value={p.id} /><button className={`${submitCls} whitespace-nowrap`}>Certify {p.display_name || p.full_name} as Master Trainer</button></form>)}
+              </li>))}
+          </ul>
+          {meFounder && meFounder.cert_tier !== 4 && <p className="mt-2 text-xs text-slate-600">Your own certificate is issued by your co-founder from their Team page.</p>}
+        </Card>
+      )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="Give someone another role" subtitle="For example a participant who becomes a trainer candidate, or a partner admin for a new organisation. Founders cannot raise their own facilitator tier.">
