@@ -206,6 +206,35 @@ export async function issueCertificate(f: FormData) {
   back('/portal/team', `Tier ${tier} certificate issued`);
 }
 
+/**
+ * Founding master trainers. The two founders are the top of the trainer ladder from the start, so a founder can certify
+ * the OTHER founder straight to the highest tier (Master Trainer, ToT Lead) without the lower tiers. Nobody can do it for
+ * themselves, and it works for founders only; everyone else still climbs one tier at a time.
+ */
+export async function certifyFoundingTrainer(f: FormData) {
+  const me = await requireMe('founder');
+  const person = s(f, 'person');
+  if (!person) back('/portal/team', 'Choose a founder.', 'err');
+  if (person === me.id) back('/portal/team', 'You cannot certify yourself. Your co-founder certifies you.', 'err');
+  try {
+    await asUser(me.id, async (q) => {
+      if (!(await q("select 1 from role_assignments where person_id=$1 and role='founder' and status='active'", [person])).length)
+        throw new Error('NOTFOUNDER');
+      if ((await q("select 1 from certifications where person_id=$1 and tier=4 and status='active'", [person])).length) throw new Error('ALREADY');
+      await q("insert into certifications(person_id,tier,number,issued_on,status) values ($1,4,$2,current_date,'active')", [person, await nextTrainerNumber(q, 4)]);
+      await q("update role_assignments set status='ended', end_date=current_date where person_id=$1 and role='facilitator' and status='active'", [person]);
+      await q("insert into role_assignments(person_id, role, tier) values ($1,'facilitator',4)", [person]);
+    });
+  } catch (e: any) {
+    if (e.message === 'NOTFOUNDER') back('/portal/team', 'This shortcut is for the founders only.', 'err');
+    if (e.message === 'ALREADY') back('/portal/team', 'That founder is already a Master Trainer.', 'err');
+    console.error('[portal action]', e); back('/portal/team', 'Could not certify that founder.', 'err');
+  }
+  await audit(me.id, 'certified a co-founder as Master Trainer (ToT Lead)', 'certifications');
+  revalidatePath('/portal', 'layout');
+  back('/portal/team', 'Master Trainer certificate issued. They now appear in the trainer lists.');
+}
+
 /* ---------- founders go through the journey they teach ---------- */
 export async function startJourney(f: FormData) {
   const me = await requireFeature('journey', 'edit');
