@@ -27,6 +27,12 @@ export type Training = {
   /** Every training day as an ISO date, weekends skipped. Empty when the training has no dates yet. */
   days: string[];
   trainers: Trainer[];
+  /** The agreed daily time, 'HH:MM', set by a founder or the lead or co-facilitator. Both or neither. */
+  startTime: string | null;
+  endTime: string | null;
+  timeNote: string | null;
+  /** Whether the person looking may set the time. */
+  canSetTime: boolean;
   /** Founders only: the latest invoice for this training. */
   invoice?: { number: string; status: string; amountKes: number } | null;
 };
@@ -165,7 +171,20 @@ export type IcsEvent = {
   location?: string;
   url?: string;
   tentative?: boolean;
+  /** Agreed times in East Africa Time, 'HH:MM'. Without them the event is an all-day entry. */
+  startTime?: string;
+  endTime?: string;
 };
+
+/** East Africa Time is UTC+3 all year, so a local time becomes UTC by taking three hours off. */
+export function eatToUtc(date: string, hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const t = new Date(`${date}T00:00:00Z`);
+  t.setUTCHours(h - 3, m, 0, 0);
+  return t.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+export const hhmm = (t: string | null | undefined): string | null => (t ? String(t).slice(0, 5) : null);
 
 const icsText = (s: string) => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
@@ -200,12 +219,14 @@ export function icsCalendar(name: string, events: IcsEvent[], now: Date = new Da
     'X-PUBLISHED-TTL:PT6H',
   ];
   for (const e of events) {
+    const timed = e.startTime && e.endTime;
     lines.push(
       'BEGIN:VEVENT',
       `UID:${e.uid}`,
       `DTSTAMP:${stamp}`,
-      `DTSTART;VALUE=DATE:${e.date.replace(/-/g, '')}`,
-      `DTEND;VALUE=DATE:${addDays(e.date, 1).replace(/-/g, '')}`,
+      ...(timed
+        ? [`DTSTART:${eatToUtc(e.date, e.startTime!)}`, `DTEND:${eatToUtc(e.date, e.endTime!)}`]
+        : [`DTSTART;VALUE=DATE:${e.date.replace(/-/g, '')}`, `DTEND;VALUE=DATE:${addDays(e.date, 1).replace(/-/g, '')}`]),
       `SUMMARY:${icsText(e.summary)}`,
     );
     if (e.description) lines.push(`DESCRIPTION:${icsText(e.description)}`);
@@ -229,6 +250,7 @@ export function trainingEvents(trainings: Training[], clashes: Map<string, Clash
       const warn = worst === 'conflict' ? ' ⚠ trainer clash' : worst === 'check' ? ' ⚠ overlaps another training' : '';
       const desc = [
         `${t.org}`,
+        t.startTime && t.endTime ? `Time: ${t.startTime} to ${t.endTime} (East Africa Time)${t.timeNote ? `, ${t.timeNote}` : ''}` : 'Time not agreed yet',
         `Day ${i + 1} of ${total}${t.format ? ` (${t.format === '12-day' ? '12-Day' : '5-Day'} programme)` : ''}`,
         t.trainers.length ? `Trainers: ${t.trainers.map((x) => `${x.name} (${x.role})`).join(', ')}` : 'Trainer not assigned yet',
         t.venue ? `Venue: ${t.venue}` : '',
@@ -245,6 +267,8 @@ export function trainingEvents(trainings: Training[], clashes: Map<string, Clash
         location: t.venue ?? undefined,
         url: `${baseUrl}/portal/cohorts/${t.id}`,
         tentative,
+        startTime: t.startTime ?? undefined,
+        endTime: t.endTime ?? undefined,
       });
     });
   }

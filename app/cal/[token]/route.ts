@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   });
   if (!who) return notFound();
 
-  const { trainings, clashes } = await asUser(who.id, (q) => loadCalendar(q, { founder: who.founder }));
+  const { trainings, clashes } = await asUser(who.id, (q) => loadCalendar(q, { founder: who.founder, meId: who.id }));
   const today = todayEAT();
   const from = addDays(today, -60), to = addDays(today, 550);
   const shown = trainings.filter((t) => isActive(t.status) || t.status === 'followup' || (t.end ?? '') >= from);
