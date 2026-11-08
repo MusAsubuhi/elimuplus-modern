@@ -38,7 +38,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       q(`select sc.*, p.display_name, e.id enrolment_id from followup_schedule sc join enrolments e on e.id=sc.enrolment_id
          join people p on p.id=e.person_id where e.cohort_id=$1 order by sc.due_date, p.display_name`, [id]),
       q(`select l.*, s.day_number, p.display_name author from session_logs l join sessions s on s.id=l.session_id join people p on p.id=l.author_id where s.cohort_id=$1 order by s.day_number`, [id]),
-      q(`select p.display_name, cf.role from cohort_facilitators cf join people p on p.id=cf.person_id where cf.cohort_id=$1`, [id]),
+      q(`select p.display_name, p.id person_id, cf.role from cohort_facilitators cf join people p on p.id=cf.person_id where cf.cohort_id=$1`, [id]),
       q(`select id, stage, participant_name, visited_on, business_status, urgent, sales_range, stock_value_kes, answers from followup_forms where cohort_id=$1 order by visited_on desc, created_at desc`, [id]),
       q("select id, full_name, phone, status from cohort_roster where cohort_id=$1 order by created_at", [id]),
       q('select * from day_summaries where cohort_id=$1', [id]),
@@ -97,7 +97,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       {isFounder && (
         <div className="mb-6">
           <p className="text-sm text-slate-700"><b>Trainers:</b> {team.length ? team.map((t) => `${t.display_name} (${t.role === 'co' ? 'co-facilitator' : t.role})`).join(', ') : <span className="font-semibold text-red-700">nobody assigned yet</span>}</p>
-          <AssignTrainer cohort={id} people={trainerOptions} returnTo={`/portal/cohorts/${id}`} label={team.length ? 'Add or change a trainer' : 'Assign a trainer'} />
+          <AssignTrainer cohort={id} people={trainerOptions} team={team.map((t: any) => ({ id: t.person_id, name: t.display_name, role: t.role }))} returnTo={`/portal/cohorts/${id}`} label={team.length ? 'Add or change a trainer' : 'Assign a trainer'} />
         </div>
       )}
 

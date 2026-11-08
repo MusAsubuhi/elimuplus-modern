@@ -105,6 +105,20 @@ export async function assignToCohort(f: FormData) {
   back(to, 'Added to the cohort');
 }
 
+export async function removeFromCohort(f: FormData) {
+  const me = await requireMe('founder');
+  const cohort = s(f, 'cohort'), person = s(f, 'person');
+  const asked = s(f, 'back');
+  const to = asked.startsWith('/portal') && !asked.startsWith('//') ? asked : '/portal/crm';
+  if (!cohort || !person) back(to, 'Choose a person.', 'err');
+  try {
+    await asUser(me.id, (q) => q('delete from cohort_facilitators where cohort_id=$1 and person_id=$2', [cohort, person]));
+  } catch (e) { console.error('[portal action]', e); back(to, 'Could not remove that person from the training.', 'err'); }
+  await audit(me.id, 'removed a trainer from a cohort', 'cohort_facilitators');
+  revalidatePath('/portal', 'layout');
+  back(to, 'Removed from the training');
+}
+
 /* ---------- CRM ---------- */
 export async function logActivity(f: FormData) {
   const me = await requireMe('founder', 'master');
