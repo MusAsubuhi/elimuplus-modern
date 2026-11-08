@@ -12,7 +12,7 @@ import { confirmClash, makeFeed, removeFeed, withdrawClash } from '../../calenda
 
 export const dynamic = 'force-dynamic';
 
-const ghost = 'rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal hover:bg-teal-50';
+const ghost = 'whitespace-nowrap rounded-lg border border-teal px-3 py-1.5 text-xs font-bold text-teal hover:bg-teal-50';
 const MONTH = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const DAYNUM = (iso: string) => Number(iso.slice(8, 10));
 const STATUS_LABEL: Record<string, string> = { requested: 'Requested', quoted: 'Quoted', confirmed: 'Confirmed', delivering: 'Running now', followup: 'Follow-up stage', closed: 'Closed' };
@@ -83,6 +83,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   const weeks = monthWeeks(month);
   const monthEnd = addDays(shiftMonth(month, 1), -1);
   const inMonth = scheduled.filter((t) => t.days.some((x) => x >= month && x <= monthEnd));
+  const dayList = weeks.flat().filter((x) => x >= month && x <= monthEnd).map((date) => ({ date, here: scheduled.filter((t) => t.days.includes(date)) })).filter((x) => x.here.length);
   const horizon = addDays(today, 90);
   const ahead = scheduled.filter((t) => (t.end ?? '') >= today && (t.start ?? '') <= horizon);
   const cards = view === 'list' ? ahead : inMonth;
@@ -95,8 +96,8 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
     const n = t.days.indexOf(date) + 1;
     return (
       <a key={t.id} href={`#t-${t.id}`} title={`${t.name}, ${t.org}, day ${n} of ${t.days.length}${w ? `, ${MARK_WORD[w]}` : ''}`}
-        className={`block truncate rounded px-1.5 py-0.5 text-[11px] font-semibold leading-tight ${chipCls(t.status)} ${w === 'conflict' ? 'ring-2 ring-red-600' : w === 'check' ? 'ring-2 ring-gold' : ''}`}>
-        {w ? `${MARK[w]} ` : ''}{t.name}
+        className={`block h-2 truncate rounded text-[11px] font-semibold leading-tight md:h-auto md:px-1.5 md:py-0.5 ${chipCls(t.status)} ${w === 'conflict' ? 'ring-2 ring-red-600' : w === 'check' ? 'ring-2 ring-gold' : ''}`}>
+        <span className="hidden md:inline">{w ? `${MARK[w]} ` : ''}{t.name}</span>
       </a>
     );
   };
@@ -186,18 +187,18 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
             <Link href={href({ m: monthStart(today).slice(0, 7) })} className={ghost}>Today</Link>
             <Link href={href({ m: shiftMonth(month, 1).slice(0, 7) })} className={ghost} aria-label="Next month">Next ›</Link>
           </div>}>
-          <div className="hidden md:block">
+          <div>
             <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-teal-100 bg-teal-100 text-xs">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((n) => <div key={n} className="bg-teal-50 px-2 py-1 text-center font-bold text-teal">{n}</div>)}
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((n) => <div key={n} className="bg-teal-50 px-0.5 py-1 text-center font-bold text-teal md:px-2"><span className="md:hidden">{n[0]}</span><span className="hidden md:inline">{n}</span></div>)}
               {weeks.flat().map((date) => {
                 const out = date.slice(0, 7) !== month.slice(0, 7);
                 const wk = new Date(date + 'T00:00:00Z').getUTCDay();
                 const here = scheduled.filter((t) => t.days.includes(date));
                 return (
-                  <div key={date} className={`min-h-[92px] space-y-1 p-1.5 ${out ? 'bg-slate-50 text-slate-400' : wk === 0 || wk === 6 ? 'bg-[#F5FAF8]' : 'bg-white'} ${date === today ? 'outline outline-2 -outline-offset-2 outline-gold' : ''}`}>
-                    <div className={`text-right font-bold ${date === today ? 'text-gold-600' : ''}`}>{DAYNUM(date)}</div>
+                  <div key={date} className={`min-h-[58px] space-y-1 p-1 md:min-h-[92px] md:p-1.5 ${out ? 'bg-slate-50 text-slate-400' : wk === 0 || wk === 6 ? 'bg-[#F5FAF8]' : 'bg-white'} ${date === today ? 'outline outline-2 -outline-offset-2 outline-gold' : ''}`}>
+                    <div className={`text-right text-[11px] font-bold md:text-xs ${date === today ? 'text-gold-600' : ''}`}>{DAYNUM(date)}</div>
                     {here.slice(0, 4).map((t) => chip(t, date))}
-                    {here.length > 4 && <div className="text-[11px] font-semibold text-slate-500">+{here.length - 4} more</div>}
+                    {here.length > 4 && <div className="text-[10px] font-semibold text-slate-500 md:text-[11px]">+{here.length - 4}<span className="hidden md:inline"> more</span></div>}
                   </div>
                 );
               })}
@@ -207,7 +208,29 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
               <span>✖ trainer clash</span><span>⚠ overlap to confirm</span><span>✓ overlap confirmed</span>
             </p>
           </div>
-          <p className="text-sm text-slate-600 md:hidden">The month grid shows on a wider screen. The trainings for {MONTH(month)} are listed below.</p>
+          <div className="mt-4 md:hidden">
+            <h3 className="mb-2 text-sm font-bold text-teal">Day by day</h3>
+            {dayList.length ? (
+              <ul className="divide-y divide-teal-100 rounded-lg border border-teal-100 text-sm">
+                {dayList.map(({ date, here }) => (
+                  <li key={date} className={`flex gap-3 p-2.5 ${date === today ? 'bg-[#FFF8E6]' : ''}`}>
+                    <div className="w-12 shrink-0 text-center leading-tight"><div className="text-[11px] font-semibold uppercase text-slate-500">{new Date(date + 'T00:00:00Z').toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })}</div><div className="text-lg font-bold text-teal">{DAYNUM(date)}</div></div>
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      {here.map((t) => {
+                        const w = worstLevel(clashes.get(t.id));
+                        return (
+                          <a key={t.id} href={`#t-${t.id}`} className={`block rounded px-2 py-1 ${chipCls(t.status)} ${w === 'conflict' ? 'ring-2 ring-red-600' : w === 'check' ? 'ring-2 ring-gold' : ''}`}>
+                            <span className="block truncate text-xs font-bold">{w ? `${MARK[w]} ` : ''}{t.name}</span>
+                            <span className="block truncate text-[11px] opacity-90">{t.org} · {t.trainers.length ? t.trainers.map((x) => x.name).join(', ') : 'no trainer yet'}{isTentative(t.status) ? ' · tentative' : ''}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-slate-600">No training days in {MONTH(month)}.</p>}
+          </div>
         </Card>
       )}
 
