@@ -4,6 +4,7 @@ import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, inputCls, submitCls } from '@/components/ui';
 import { d, todayEAT } from '@/lib/format';
 import { loadCalendar } from '@/lib/calendar';
+import { AssignTrainer, type TrainerOption } from '../assign-trainer';
 import {
   addDays, isActive, isTentative, monthStart, monthWeeks, pairKey, shiftMonth, worstLevel,
   type Clash, type ClashLevel, type Training,
@@ -42,10 +43,14 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   const who = /^[0-9a-f-]{36}$/.test(sp.who ?? '') ? sp.who! : '';
   const mineOnly = sp.mine === '1';
 
-  const [{ trainings, clashes }, feed] = await Promise.all([
+  const [{ trainings, clashes }, feed, people] = await Promise.all([
     asUser(me.id, (q) => loadCalendar(q, { founder, meId: me.id })),
     asUser(me.id, (q) => q('select token, created_at, last_read_at from calendar_feeds where person_id=$1', [me.id])),
+    founder
+      ? asUser(me.id, (q) => q(`select distinct p.id, coalesce(nullif(p.display_name,''), p.full_name) name, r.tier from people p join role_assignments r on r.person_id=p.id and r.status='active' and r.role='facilitator' order by 2`))
+      : Promise.resolve([] as any[]),
   ]);
+  const options: TrainerOption[] = people.map((x: any) => ({ id: x.id, name: x.name, tier: x.tier ?? null }));
 
   // The overlaps panel looks at every training the person can see, whatever the filters; the filters shape only what is drawn.
   const trainers = new Map<string, string>();
@@ -56,6 +61,8 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
     (!mineOnly || t.trainers.some((x) => x.id === me.id)));
   const scheduled = visible.filter((t) => t.days.length);
   const unscheduled = visible.filter((t) => !t.days.length && isActive(t.status));
+  // Founders see every training, so they can see which ones still have nobody leading them.
+  const noLead = founder ? trainings.filter((t) => isActive(t.status) && (t.end ?? '9999') >= today && !t.trainers.some((x) => x.role === 'lead')) : [];
 
   // each overlapping pair once, from the trainings still ahead of us
   const pairs: { a: Training; b: Training; c: Clash }[] = [];
@@ -110,12 +117,30 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
         <Link href={href({ view: 'list' })} className={`rounded-lg px-3 py-1.5 text-xs font-bold ${view === 'list' ? 'bg-white text-teal' : 'border border-white/70 text-white'}`}>Next 90 days</Link>
       </PageHeader>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+      <div className={`mb-6 grid gap-4 ${founder ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
         <Stat label="Trainings shown" value={visible.length} sub={`${scheduled.length} with dates`} />
         <Stat tone={open.some((p) => p.c.level === 'conflict') ? 'red' : 'green'} label="Trainer clashes" value={open.filter((p) => p.c.level === 'conflict').length} sub="a trainer on two at once" />
         <Stat tone={open.some((p) => p.c.level === 'check') ? 'gold' : 'green'} label="Overlaps to confirm" value={open.filter((p) => p.c.level === 'check').length} sub="different trainers, to check" />
         <Stat tone="gold" label="No dates yet" value={unscheduled.length} />
+        {founder && <Stat tone={noLead.length ? 'red' : 'green'} label="No lead trainer" value={noLead.length} sub="still to assign" />}
       </div>
+
+      {noLead.length > 0 && (
+        <Card className="mb-6 border-red-300" title="Trainings with no lead trainer" subtitle="Until someone leads a training it cannot be checked for trainer clashes, and nobody sees it in their own calendar. Assign a trainer here.">
+          <ul className="space-y-3 text-sm">
+            {noLead.map((t) => (
+              <li key={t.id} className="rounded-lg border border-red-200 bg-red-50 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <b className="text-teal">{t.name}</b>
+                  <span className="text-xs text-slate-600">{t.org} · {t.start ? d(t.start) : 'no date yet'} · {STATUS_LABEL[t.status] ?? t.status}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-700">{t.trainers.length ? `Team so far: ${t.trainers.map((x) => `${x.name} (${x.role})`).join(', ')}` : 'Nobody assigned.'}</p>
+                <AssignTrainer cohort={t.id} people={options} returnTo={`${returnTo}#t-${t.id}`} label="Assign a lead" />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {(open.length > 0 || done.length > 0) && (
         <Card className="mb-6" title="Overlapping trainings" subtitle="Two trainings can run on the same days, but each needs its own trainer. A founder confirms the pair once the trainers and the venue are checked.">
@@ -236,7 +261,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
 
       <h2 className="mb-3 text-lg font-bold text-teal">{view === 'list' ? 'Trainings in the next 90 days' : `Trainings in ${MONTH(month)}`}</h2>
       <div className="mb-6 space-y-3">
-        {cards.map((t) => <TrainingCard key={t.id} t={t} clashes={clashes.get(t.id) ?? []} founder={founder} today={today} returnTo={returnTo} />)}
+        {cards.map((t) => <TrainingCard key={t.id} t={t} clashes={clashes.get(t.id) ?? []} founder={founder} today={today} returnTo={returnTo} options={options} />)}
         {!cards.length && <Card>No trainings with dates {view === 'list' ? 'in the next 90 days' : 'this month'}{(who || mineOnly) ? ' for this filter' : ''}.</Card>}
       </div>
 
@@ -282,7 +307,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   );
 }
 
-function TrainingCard({ t, clashes, founder, today, returnTo }: { t: Training; clashes: Clash[]; founder: boolean; today: string; returnTo: string }) {
+function TrainingCard({ t, clashes, founder, today, returnTo, options }: { t: Training; clashes: Clash[]; founder: boolean; today: string; returnTo: string; options: TrainerOption[] }) {
   const w = worstLevel(clashes);
   const lead = t.trainers.filter((x) => x.role === 'lead'), others = t.trainers.filter((x) => x.role !== 'lead');
   const past = (t.end ?? '') < today;
@@ -311,6 +336,7 @@ function TrainingCard({ t, clashes, founder, today, returnTo }: { t: Training; c
             <div><dt className="text-xs font-semibold text-slate-500">Invoice</dt><dd>{t.invoice ? `${t.invoice.number} · ${t.invoice.status.replace('_', ' ')}` : 'No invoice yet'}</dd></div>
           )}
         </dl>
+        {founder && <AssignTrainer cohort={t.id} people={options} returnTo={`${returnTo}#t-${t.id}`} label={t.trainers.length ? 'Add or change a trainer' : 'Assign a trainer'} />}
         {t.canSetTime && (
           <details className="mt-3 rounded-lg border border-teal-100 p-2 text-sm">
             <summary className="cursor-pointer font-bold text-teal">{t.startTime ? 'Change the time' : 'Set the time'}</summary>
