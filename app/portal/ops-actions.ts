@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { asAdmin, asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { requireFeature } from '@/lib/access';
+import { noticeAssigned } from '@/lib/trainer-alerts';
 import { audit } from '@/lib/audit';
 import { notify, flushAlerts } from '@/lib/mail';
 import { checkKey, syncNewsletter, ensureWebhook } from '@/lib/brevo';
@@ -106,7 +107,16 @@ export async function assignToCohort(f: FormData) {
   revalidatePath('/portal/calendar');
   const who = (await asUser(me.id, (q) => q("select coalesce(nullif(display_name,''), full_name) n from people where id=$1", [person])))[0]?.n ?? 'The trainer';
   const word = role === 'lead' ? 'lead trainer' : role === 'co' ? 'co-facilitator' : 'observer';
-  back(to, `${who} is now ${word} of this training. It appears in their portal, the calendar and their phone feed, and the training page names them.`);
+  let told = '';
+  if (person !== me.id) {
+    const r = await noticeAssigned(person, cohort, role, me.displayName).catch((e) => { console.error('[trainer notice]', e); return null; });
+    told = !r ? ' The notice could not be saved.'
+      : r.emailed ? ' They have a notice in the portal and an email.'
+      : r.reason === 'no_email' ? ' They have a notice in the portal, but there is no email address on their record, so no email was sent.'
+      : r.reason === 'email_off' ? ' They have a notice in the portal; email is not switched on yet, so none was sent.'
+      : ' They have a notice in the portal; the email could not be sent.';
+  }
+  back(to, `${who} is now ${word} of this training. It appears in their portal, the calendar and their phone feed, and the training page names them.${told}`);
 }
 
 export async function removeFromCohort(f: FormData) {
@@ -300,4 +310,12 @@ export async function testLetter(f: FormData) {
   try { await sendLetterTest(to, trim(f, 'subject'), trim(f, 'body')); }
   catch (e: any) { back('/portal/newsletter', String(e.message).slice(0, 160), 'err'); }
   back('/portal/newsletter', `Test sent to ${to}.`);
+}
+
+/** A trainer marks their own notices as seen. */
+export async function markNoticesRead() {
+  const me = await requireMe();
+  await asUser(me.id, (q) => q('update trainer_alerts set read_at=now() where person_id=$1 and read_at is null', [me.id]));
+  revalidatePath('/portal', 'layout');
+  redirect('/portal/notices');
 }
