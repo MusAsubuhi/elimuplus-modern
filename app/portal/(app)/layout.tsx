@@ -91,6 +91,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
   if (!isFounder && me.roles.some((r) => r === 'facilitator' || r === 'master')) navGroups.sort((a, b) => (order.indexOf(a.title) < 0 ? 99 : order.indexOf(a.title)) - (order.indexOf(b.title) < 0 ? 99 : order.indexOf(b.title)) || 0);
   const isEmployee = (await asAdmin((q) => q('select 1 from employees where person_id=$1 limit 1', [me.id])).catch(() => [])).length > 0;
+  if (me.roles.some((r) => r === 'facilitator' || r === 'master')) {
+    const n = Number((await asUser(me.id, (q) => q('select count(*)::int n from trainer_alerts where person_id=$1 and read_at is null', [me.id])).catch(() => [{ n: 0 }]))[0].n);
+    addTo('My work', [{ href: '/portal/notices', label: 'My notices', icon: '✉', badge: n }]);
+  }
   if (isEmployee) addTo('My work', [{ href: '/portal/my-pay', label: 'My pay and leave', icon: '₭' }]);
   if (shared.length > 0) navGroups.push({ title: 'Shared with you', items: shared.map((f) => ({ href: f.href, label: f.label, icon: f.icon })) });
   return (
