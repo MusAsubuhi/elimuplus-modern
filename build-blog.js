@@ -41,7 +41,8 @@ function parsePost(file) {
   meta.draft = /^(true|yes)$/i.test(meta.draft || '');
   meta.soon = /^(true|yes)$/i.test(meta.soon || '');
   meta.body = m[2].trim();
-  meta.words = meta.body.split(/\s+/).length;
+  meta.rich = /^(true|yes)$/i.test(meta.rich || '');
+  meta.words = meta.body.replace(/<[^>]+>/g, ' ').split(/\s+/).length;
   meta.minutes = Math.max(1, Math.round(meta.words / 200));
   return meta;
 }
@@ -49,6 +50,7 @@ function parsePost(file) {
 function inline(t) {
   t = esc(t);
   t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+  t = t.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
   t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   t = t.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>');
   t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, a, u) => {
@@ -71,6 +73,22 @@ function markdown(src) {
       out.push('<h' + lvl + '>' + inline(m[2]) + '</h' + lvl + '>'); i++; continue;
     }
     if (/^(-{3,}|\*{3,})$/.test(line.trim())) { out.push('<hr>'); i++; continue; }
+    // Raw HTML block (callouts, charts, stat tiles): starts with a tag, ends at the next blank line. Keep blank lines out of it.
+    if (/^<(div|section|figure|table|svg|aside|p|ul|ol|blockquote|details)\b/.test(line)) {
+      const h = [];
+      while (i < lines.length && lines[i].trim()) { h.push(lines[i]); i++; }
+      out.push(h.join('\n')); continue;
+    }
+    // Pipe table: | a | b | then a |---|---| line
+    if (/^\|.*\|\s*$/.test(line) && i + 1 < lines.length && /^\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+      const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+      const head = cells(line); i += 2;
+      const rows = [];
+      while (i < lines.length && /^\|.*\|\s*$/.test(lines[i])) { rows.push(cells(lines[i])); i++; }
+      out.push('<div class="fx-table-wrap"><table class="fx-table"><thead><tr>' + head.map((c) => '<th scope="col">' + inline(c) + '</th>').join('') + '</tr></thead><tbody>' +
+        rows.map((r) => '<tr>' + r.map((c, j) => (j === 0 ? '<th scope="row">' : '<td>') + inline(c) + (j === 0 ? '</th>' : '</td>')).join('') + '</tr>').join('') + '</tbody></table></div>');
+      continue;
+    }
     if ((m = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/))) {
       out.push('<figure class="post-figure"><img src="' + m[2] + '" alt="' + esc(m[1]) + '" loading="lazy" decoding="async">' +
         (m[1] ? '<figcaption>' + esc(m[1]) + '</figcaption>' : '') + '</figure>'); i++; continue;
@@ -91,7 +109,7 @@ function markdown(src) {
       out.push('<ol>' + items.join('') + '</ol>'); continue;
     }
     const para = [];
-    while (i < lines.length && lines[i].trim() && !/^(#{2,4}\s|>|[-*]\s|\d+[.)]\s|!\[)/.test(lines[i])) { para.push(lines[i]); i++; }
+    while (i < lines.length && lines[i].trim() && !/^(#{2,4}\s|>|[-*]\s|\d+[.)]\s|!\[|<(div|section|figure|table|svg|aside)\b|\|.*\|\s*$)/.test(lines[i])) { para.push(lines[i]); i++; }
     out.push('<p>' + inline(para.join(' ')) + '</p>');
   }
   return out.join('\n');
@@ -110,7 +128,7 @@ function rel(html, depth) {
   return html.replace(/(href|src)="(?!https?:|\/\/|#|mailto:|tel:|\.\.\/)([^"]*)"/g, '$1="' + pre + '$2"');
 }
 
-function page({ title, desc, canonical, image, body, depth, type, ld }) {
+function page({ title, desc, canonical, image, body, depth, type, ld, rich }) {
   const css = rel('<link rel="stylesheet" href="css/styles.css">', depth);
   const fav = rel('<link rel="icon" href="images/favicon.png" type="image/png">', depth);
   return `<!DOCTYPE html>
@@ -141,6 +159,7 @@ function page({ title, desc, canonical, image, body, depth, type, ld }) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  ${rich ? '<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,800;1,9..144,500&family=Caveat:wght@600&display=swap" rel="stylesheet">' : ''}
   ${css}
   <script defer data-domain="elimuplus.com" src="https://plausible.io/js/script.js"></script>
 ${ld ? '  <script type="application/ld+json">' + JSON.stringify(ld) + '</script>\n' : ''}</head>
@@ -217,9 +236,9 @@ posts.forEach((p) => {
     </section>
 
     <article class="section">
-      <div class="container post">
+      <div class="container post${p.rich ? ' post--rich' : ''}">
         ${cover}
-        <div class="post__body">
+        <div class="post__body${p.rich ? ' post__body--rich' : ''}">
 ${markdown(p.body).replace(/src="images\//g, 'src="../images/')}
         </div>
         <aside class="post-cta">
@@ -246,7 +265,7 @@ ${others.map((o) => card(o, '../')).join('\n')}
     image: imgUrl(p.image), mainEntityOfPage: url,
   };
   fs.writeFileSync(path.join(OUT_DIR, p.slug + '.html'),
-    page({ title: p.title + ' | Elimu+ blog', desc: p.summary, canonical: url, image: imgUrl(p.image), body, depth: 1, type: 'article', ld }));
+    page({ title: p.title + ' | Elimu+ blog', desc: p.summary, canonical: url, image: imgUrl(p.image), body, depth: 1, type: 'article', ld, rich: p.rich }));
 });
 
 // listing page
