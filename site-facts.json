@@ -1,0 +1,24 @@
+{
+  "_readme": "SINGLE SOURCE OF TRUTH for numbers, dates and names shown on the site. Edit values here, then run: node build-facts.js . Pages hold <!--f:key-->value<!--/f--> markers that the script fills. Add :cap after the key for a capitalised start, e.g. <!--f:cohorts_word:cap-->. Check without writing: node build-facts.js --check",
+  "_updated": "2026-11-09",
+  "people_total": "55",
+  "cohorts_word": "five",
+  "ke358_cohorts_word": "four",
+  "newest_partner": "KE740 GNCA Mtongwe",
+  "mtongwe_size": "13",
+  "mtongwe_size_word": "thirteen",
+  "mtongwe_start": "November 2026",
+  "first_forum_date": "28 October 2026",
+  "forum_registered": "39",
+  "forum_registered_word": "thirty-nine",
+  "savings_interest": "23",
+  "next_forum": "at the end of November",
+  "res_active_60": "8 of 10",
+  "res_rising_income": "5 of 10",
+  "res_invested": "KES 213,190",
+  "copyright_year": "2026",
+  "_stale_phrases": [
+    "About 45", "about 45", "four cohorts", "Four cohorts",
+    "forum is coming", "first forum is planned", "first forum will"
+  ]
+}
