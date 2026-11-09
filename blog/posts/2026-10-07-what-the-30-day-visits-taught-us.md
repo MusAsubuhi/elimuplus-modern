@@ -3,7 +3,7 @@ title: What our first 30-day visits taught us about stock, capital and the house
 date: 2026-10-07
 category: Field notes
 author: The Elimu+ team
-soon: true
+draft: true
 summary: Our first follow-up visits, and what they taught us about stock, capital and household money. Publishing soon.
 ---
 
