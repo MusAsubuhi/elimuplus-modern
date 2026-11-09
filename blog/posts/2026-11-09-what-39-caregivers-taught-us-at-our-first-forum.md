@@ -18,6 +18,8 @@ Registration opened at 1:00 pm and the programme began at 2:00 pm, as planned. A
 <div class="fx-stat"><b>3</b><span>caregivers on the panel</span></div>
 </div>
 
+![Infographic: the day at a glance, from registration at 1:00 pm to the close at 4:30 pm, with nine sessions and the speed introductions marked as the favourite](images/blog/forum-day-timeline.png)
+
 ## What they asked for: ==knowledge first, capital second==
 
 On arrival every caregiver was handed a slip with two questions: what do you want from this forum, and what is the biggest challenge in your business? Twenty-four slips came back. Reading them together was the most useful hour of our week.
@@ -65,6 +67,8 @@ A question from the floor then showed where the idea needs finishing. A trader b
 | 3. Put back money for restocking | This is the KES 700 above, kept aside to buy the same stock again | (kept aside) |
 | 4. Take out your share of the day's fixed costs | Transport, charcoal, power, licence, shared across the days you trade | 120 |
 | 5. What is left is realised profit | Pay yourself a salary from this, not from stock you have not yet sold | 180 |
+
+![Infographic: a worked example of paying yourself from profit. KES 1,000 sales, minus KES 700 cost of items sold, minus KES 120 fixed costs, leaves KES 180 realised profit. Invented numbers.](images/blog/pay-yourself-infographic.png)
 
 Unsold stock is not a loss: here KES 1,300 of it is still on the shelf and will sell. What matters is the cost of the items that were sold, the share of fixed costs for the day, and putting back the money for restocking before any salary is paid. These amounts are an illustration and not a real trader's figures. The free [Uchumi wa Bidhaa calculator](../calculator.html) helps a trader work this out for her own products, and it is the second half of "pay yourself" that we will teach hands-on at the next forum.
 
@@ -121,6 +125,8 @@ An honest forum report has a column for this. These are the lessons, and what we
 <li><strong>Savings groups.</strong> The CDC and its Savings Group Ministry will call everyone who put their name down and hold a separate launch meeting once leaders and materials are in place.</li>
 <li><strong>No forum in December.</strong> We will rest, and see you in the new year.</li>
 </ul>
+
+![Infographic: the first forum on one page, with 39 registered, 27 with a business, 24 slips, 3 panellists, 10 to 15 toddlers, training 16 and capital 10 on the slips, and 23 of 39 (59 percent) wanting savings groups](images/blog/forum-in-numbers.png)
 
 <div class="fx-callout">
 <h3>A note on the numbers</h3>
