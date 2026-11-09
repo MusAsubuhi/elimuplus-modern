@@ -15,3 +15,10 @@ Static site (HTML, CSS, JS). Blog: see BLOG-GUIDE.md and build-blog.js.
     git add -A
     git commit -m "Add organisation-only registration, Biashara za Elimu+ preview and Elimu+ SACCO page"
     git push origin main
+
+
+## Facts and after-event routine
+Numbers, dates and partner names live in `site-facts.json`; run `node build-facts.js` (and `--check`). See `AFTER-EVENT.md`.
+
+## Newsletter sign-ups
+`api/subscribe.js` adds consenting people to Brevo. Set `BREVO_API_KEY` (and optionally `BREVO_LIST_NEWSLETTER`, `BREVO_LIST_PARTNERS`) in Vercel environment variables.

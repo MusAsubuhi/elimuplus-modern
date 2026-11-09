@@ -108,6 +108,19 @@ function initFormspreeForms() {
       })
         .then(function (response) {
           if (response.ok) {
+            /* Newsletter list: only with explicit consent (the newsletter form's required
+               checkbox, or the optional opt-in tick on registration forms). Fire and forget. */
+            var optEl = form.querySelector('input[name="consent"], input[name="newsletter_optin"]');
+            var subEmail = form.querySelector('input[name="email"]');
+            if (optEl && optEl.checked && subEmail && subEmail.value) {
+              var subName = form.querySelector('input[name="name"], input[name="contact_person"], input[name="full_name"]');
+              var src = form.getAttribute('data-confirm') || (form.getAttribute('data-source') || 'newsletter');
+              fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: subEmail.value, name: subName ? subName.value : '', consent: 'yes', source: src })
+              }).catch(function () {});
+            }
             var kind = form.getAttribute('data-confirm');
             if (kind) {
               /* Fire-and-forget acknowledgement email; the form itself has already succeeded. */

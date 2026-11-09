@@ -284,7 +284,7 @@
           <h2>Request a quote.</h2>
           <p class="lede" style="color:var(--dark-text);">Tell us your group and we will send a written quotation within two working days. 2026 rates apply.</p>
         </div>
-        <form class="form js-form" action="https://formspree.io/f/mljgjbnj" method="POST" novalidate>
+        <form class="form js-form" action="https://formspree.io/f/mljgjbnj" method="POST" data-source="partner" novalidate>
           <input type="hidden" name="_subject" value="Elimu+ website: Quote request">
           <div class="form-row form-row--2">
             <div class="field"><label for="q-institution">Institution name</label><input type="text" id="q-institution" name="institution_name" required></div>
@@ -307,6 +307,7 @@
           <div class="form-row"><div class="field"><label for="q-msg">Anything else we should know? (optional)</label><textarea id="q-msg" name="message"></textarea></div></div>
           <div class="field field--honeypot" aria-hidden="true"><label for="q-gotcha">Leave this blank</label><input type="text" id="q-gotcha" name="_gotcha" tabindex="-1" autocomplete="off"></div>
           <p class="form-privacy">We use these details only to prepare your quotation. Read our <a href="privacy.html">privacy notice</a>.</p>
+          <div class="field field--check"><label for="optin-part0"><input type="checkbox" id="optin-part0" name="newsletter_optin" value="yes"> Optional: send me the Elimu+ letter by email. <a href="privacy.html">Privacy notice</a></label></div>
           <button type="submit" class="btn btn--primary btn--block">Request My Quote</button>
           <div class="form-feedback form-feedback--success" role="status">Thank you. We have your request and will send a quotation within two working days.</div>
           <div class="form-feedback form-feedback--error" role="alert">Something went wrong. Please email us directly at hello@elimuplus.com</div>
@@ -322,7 +323,7 @@
         </div>
 
         <!-- TODO: Replace YOUR_FORM_ID with actual Formspree endpoint after account setup -->
-        <form class="form js-form" action="https://formspree.io/f/mljgjbnj" method="POST" novalidate>
+        <form class="form js-form" action="https://formspree.io/f/mljgjbnj" method="POST" data-source="partner" novalidate>
           <input type="hidden" name="_subject" value="Elimu+ website: Partner enquiry">
           <input type="hidden" name="_subject" value="Elimu+ website: Partner enquiry">
           <div class="form-row form-row--2">
@@ -393,6 +394,7 @@
 
           <p class="form-privacy">We use these details only to reply to you. Read our <a href="privacy.html">privacy notice</a>.</p>
 
+          <div class="field field--check"><label for="optin-part1"><input type="checkbox" id="optin-part1" name="newsletter_optin" value="yes"> Optional: send me the Elimu+ letter by email. <a href="privacy.html">Privacy notice</a></label></div>
           <button type="submit" class="btn btn--primary btn--block">Send My Details</button>
 
           <div class="form-feedback form-feedback--success" role="status">Thank you. Musa or James will be in touch within 48 hours.</div>
