@@ -8,6 +8,7 @@ import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, statusTone } from '@/components/ui';
 import { d, pct } from '@/lib/format';
 import { BarCard } from '@/components/charts';
+import { cohortPhase, phaseLabel } from '@/lib/impact';
 
 export default async function Cohorts() {
   const me = await requireMe('facilitator', 'founder');
@@ -17,6 +18,7 @@ export default async function Cohorts() {
     rows: await q(`select c.*, o.name org_name,
       (select count(*) from enrolments e where e.cohort_id=c.id)::int n,
       (select count(*) from enrolments e where e.cohort_id=c.id and e.status='completed')::int completed,
+      (select count(*) from enrolments e where e.cohort_id=c.id and e.status='dropped')::int dropped,
       (select count(*) from sessions s where s.cohort_id=c.id and (s.attendance_confirmed_at is not null or s.session_date < (now() at time zone 'Africa/Nairobi')::date))::int days_done,
       (select count(distinct a.box_number) from canvas_answers a join canvases cv on cv.id=a.canvas_id join enrolments e on e.id=cv.enrolment_id where e.cohort_id=c.id)::int boxes_touched,
       (select count(*) from canvas_unlocks u where u.cohort_id=c.id)::int unlocked
@@ -26,13 +28,21 @@ export default async function Cohorts() {
       where s.status='scheduled' order by s.due_date`),
   }));
   const overdue = due.filter((x) => new Date(x.due_date) < new Date(new Date().toDateString()));
+  const split = { trained: 0, ongoing: 0, upcoming: 0, missed: 0 };
+  for (const r of rows) {
+    const live = Math.max(0, r.n - r.completed - r.dropped), ph = cohortPhase({ start: r.start_date, end: r.end_date });
+    split.trained += r.completed;
+    if (ph === 'upcoming') split.upcoming += live; else if (ph === 'running') split.ongoing += live; else split.missed += live;
+  }
   const chart = rows.map((r) => ({ cohort: r.name.replace(' (demo figures)', '').replace(' (demo)', ''), enrolled: r.n, completed: r.completed }));
   return (
     <>
       <PageHeader image="/images/home-facilitator.jpg" title="My cohorts" subtitle={`${greeting('en', me.displayName)}. Every cohort you are assigned to, with attendance, canvas progress and follow-up tasks.`} />
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Stat label="Cohorts" value={rows.length} />
-        <Stat tone="green" label="Participants" value={rows.reduce((s, r) => s + r.n, 0)} />
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <Stat label="Cohorts" value={rows.length} sub={`${rows.reduce((s, r) => s + r.n, 0)} participants in all`} />
+        <Stat tone="green" label="Completed training" value={split.trained} sub={split.missed ? `${split.missed} finished without completing` : 'Attended enough days'} />
+        <Stat tone="gold" label="In training now" value={split.ongoing} sub="Cohorts running today" />
+        <Stat label="Upcoming" value={split.upcoming} sub="Cohorts not yet started" />
         <Stat tone={overdue.length ? 'red' : 'gold'} label="Follow-ups overdue" value={overdue.length} sub={`${due.length} open in total`} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
@@ -45,10 +55,10 @@ export default async function Cohorts() {
                     <h3 className="text-lg font-bold text-teal">{c.name}</h3>
                     <p className="text-sm text-slate-600">{c.org_name} · {c.format === '12-day' ? '12-Day' : '5-Day'} · {c.language === 'sw' ? 'Kiswahili' : 'English'} · {dateRange(c, d)}</p>
                   </div>
-                  <Badge tone={statusTone(c.status)}>{c.status}</Badge>
+                  <div className="flex gap-1.5"><Badge tone={cohortPhase({ start: c.start_date, end: c.end_date }) === 'running' ? 'gold' : cohortPhase({ start: c.start_date, end: c.end_date }) === 'finished' ? 'green' : 'grey'}>{phaseLabel(cohortPhase({ start: c.start_date, end: c.end_date }))}</Badge><Badge tone={statusTone(c.status)}>{c.status}</Badge></div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-3 text-center text-sm">
-                  <div><div className="text-2xl font-bold text-ink">{c.n}</div><div className="text-xs text-slate-500">enrolled</div></div>
+                  <div><div className="text-2xl font-bold text-ink">{c.n}</div><div className="text-xs text-slate-500">enrolled · {c.completed} completed</div></div>
                   <div><div className="text-2xl font-bold text-ink">{pct(Math.min(c.days_done, c.format === '12-day' ? 12 : 5), c.format === '12-day' ? 12 : 5)}%</div><div className="text-xs text-slate-500">through the programme ({Math.min(c.days_done, c.format === '12-day' ? 12 : 5)} of {c.format === '12-day' ? 12 : 5} days{c.completed ? `, ${c.completed} finished` : ''})</div></div>
                   <div><div className="text-2xl font-bold text-ink">{c.unlocked}/12</div><div className="text-xs text-slate-500">boxes unlocked</div></div>
                 </div>
