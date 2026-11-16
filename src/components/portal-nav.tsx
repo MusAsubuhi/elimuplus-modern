@@ -32,8 +32,8 @@ export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: strin
       <div className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
         <div onClick={() => setOpen(false)} className={`absolute inset-0 bg-black/50 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} />
         <aside id="portal-drawer" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); }}
-          className={`absolute inset-y-0 left-0 w-72 max-w-[85vw] overflow-y-auto bg-teal px-3 pb-8 pt-4 text-white shadow-xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="mb-3 flex justify-end"><button type="button" aria-label="Close" onClick={() => setOpen(false)} className="h-10 w-10 rounded-lg text-xl hover:bg-white/10">✕</button></div>
+          className={`absolute left-0 top-0 max-h-[45vh] w-72 max-w-[85vw] overflow-y-auto rounded-br-2xl bg-teal px-3 pb-4 pt-2 text-white shadow-xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="mb-1 flex justify-end"><button type="button" aria-label="Close" onClick={() => setOpen(false)} className="h-9 w-9 rounded-lg text-xl hover:bg-white/10">✕</button></div>
           {groups.map((g) => {
             const single = groups.length === 1;
             const shown = single || unfolded.has(g.title);
@@ -43,7 +43,7 @@ export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: strin
               <div key={g.title} className="mb-1">
                 {single ? <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-teal-100/70">{g.title}</div> : (
                   <button type="button" aria-expanded={shown} aria-controls={id} tabIndex={open ? 0 : -1} onClick={() => toggle(g.title)}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-teal-50 hover:bg-white/10">
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-teal-50 hover:bg-white/10">
                     <span className="text-[10px] text-gold">{shown ? '▾' : '▸'}</span>{g.title}
                     {!shown && sum ? <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold normal-case tracking-normal text-teal">{sum}</span> : null}
                   </button>)}
@@ -51,7 +51,7 @@ export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: strin
                   <div id={id} className="mb-2">
                     {g.items.map((i) => (
                       <Link key={i.href} href={i.href} aria-current={isOn(path, i.href) ? 'page' : undefined} tabIndex={open ? 0 : -1}
-                        className={`flex items-center gap-3 rounded-lg border-l-4 px-3 py-3 text-sm font-semibold ${isOn(path, i.href) ? 'border-gold bg-white/15' : 'border-transparent text-teal-50 hover:bg-white/10'}`}>
+                        className={`flex items-center gap-3 rounded-lg border-l-4 px-3 py-2 text-sm font-semibold ${isOn(path, i.href) ? 'border-gold bg-white/15' : 'border-transparent text-teal-50 hover:bg-white/10'}`}>
                         <span className="w-4 text-center text-gold">{i.icon}</span>{i.label}
                         {i.badge ? <span className="ml-auto rounded-full bg-gold px-2 text-[11px] font-bold text-teal">{i.badge}</span> : null}
                       </Link>
