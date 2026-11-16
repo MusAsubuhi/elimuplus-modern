@@ -14,6 +14,12 @@ export async function GET(req: Request) {
      from (select count(*)::int n from day_reports where status = 'submitted' and created_at < now() - interval '2 days') t
      where n > 0 and not exists (select 1 from founder_alerts where kind = 'reminder' and created_at > now() - interval '20 hours' and source_table = 'day_reports')
      returning id`));
+  const unacked = await asAdmin((q) => q(
+    `insert into founder_alerts(kind, severity, title, body, link, source_table)
+     select 'reminder', 'attention', n || ' website enquir' || case when n = 1 then 'y has' else 'ies have' end || ' not been acknowledged', 'No confirmation email reached them. Open Website enquiries, resend it or copy the message and send it yourself.', '/portal/enquiries', 'web_enquiries'
+     from (select count(*)::int n from web_enquiries where status = 'new' and ack_sent_at is null and created_at < now() - interval '1 hour') t
+     where n > 0 and not exists (select 1 from founder_alerts where kind = 'reminder' and created_at > now() - interval '20 hours' and source_table = 'web_enquiries')
+     returning id`));
   const r = await flushAlerts();
-  return NextResponse.json({ ...r, reminders: stale.length });
+  return NextResponse.json({ ...r, reminders: stale.length + unacked.length });
 }

@@ -27,6 +27,14 @@ export function listHeaders(email: string): Record<string, string> {
 
 async function log(kind: string, email: string, detail?: string, error?: string) {
   await asAdmin((q) => q('insert into email_log (kind, email, detail, error) values ($1,$2,$3,$4)', [kind, lc(email), detail ?? null, error ?? null]));
+  if (error) {
+    // Safety net: tell the founders when an email that should have gone out did not. One alert per kind of email every 6 hours.
+    await asAdmin((q) => q(
+      `insert into founder_alerts(kind, severity, title, body, link, source_table)
+       select 'email_failed', 'urgent', $1, $2, '/portal/enquiries', 'email_log'
+        where not exists (select 1 from founder_alerts where kind='email_failed' and title=$1 and created_at > now() - interval '6 hours')`,
+      [`An email could not be sent (${kind.replace(/_/g, ' ')})`, `The message to ${lc(email)} was not delivered: ${error.slice(0, 200)}. Open Website enquiries to copy the message and send it yourself, then fix the email service.`])).catch(() => {});
+  }
 }
 
 /** Adds the person to the portal's own subscriber list. Someone who unsubscribed stays off unless they sign up again on purpose. */

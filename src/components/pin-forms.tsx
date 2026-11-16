@@ -39,7 +39,7 @@ export function AddPersonForm({ orgs, cohorts, defaults = {} }: { orgs: { id: st
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
   const [role, setRole] = useState(defaults.role ?? 'participant');
-  useEffect(() => { if (state?.ok) { router.refresh(); ref.current?.reset(); } }, [state, router]);
+  useEffect(() => { if (state?.ok && !defaults.enquiry) { router.refresh(); ref.current?.reset(); } }, [state, router, defaults.enquiry]);
   const needsOrg = role === 'org_admin' || role === 'org_viewer';
   return (
     <form ref={ref} onSubmit={submitter(action)} className="grid gap-3 text-sm sm:grid-cols-2">
@@ -129,7 +129,7 @@ export function InvitePartnerForm({ orgs, defaults = {} }: { orgs: { id: string;
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
   const [org, setOrg] = useState(defaults.org ?? '');
-  useEffect(() => { if (state?.ok) { router.refresh(); ref.current?.reset(); setOrg(''); } }, [state, router]);
+  useEffect(() => { if (state?.ok && !defaults.enquiry) { router.refresh(); ref.current?.reset(); setOrg(''); } }, [state, router, defaults.enquiry]);
   return (
     <form ref={ref} onSubmit={submitter(action)} className="grid gap-3 text-sm sm:grid-cols-2">
       {defaults.enquiry && <input type="hidden" name="enquiry" value={defaults.enquiry} />}

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { asAdmin } from '@/lib/db';
+import { sendEnquiryAck } from '@/lib/enquiry';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,13 +45,16 @@ export async function POST(req: Request) {
   const label = kind === 'trainer' ? 'Trainer interest' : kind === 'organisation' ? 'Organisation registration' : kind === 'partner' ? 'Partner enquiry' : 'Quote request';
 
   try {
+    let newId = '';
     await asAdmin(async (q) => {
       const dup = (await q("select id from web_enquiries where kind=$1 and lower(coalesce(email,''))=$2 and created_at > now() - interval '10 minutes'", [kind, email]))[0];
       if (dup) return;
       const row = (await q('insert into web_enquiries(kind, name, email, phone, org_name, payload) values ($1,$2,$3,$4,$5,$6) returning id', [kind, name || null, email || null, phone || null, orgName || null, JSON.stringify(payload)]))[0];
+      newId = row.id;
       await q(`insert into founder_alerts(kind, severity, title, body, link, source_table, source_id) values ('enquiry','attention',$1,$2,'/portal/enquiries','web_enquiries',$3)`,
         [`New website enquiry: ${label}`, `${name || email || 'Someone'}${orgName ? ` (${orgName})` : ''} filled in the ${label.toLowerCase()} form on the website. Open Website enquiries to review it and create their sign-in.`, row.id]);
     });
+    if (newId && email) await sendEnquiryAck(newId);
   } catch (e) { console.error('[enquiry]', e); return NextResponse.json({ ok: false }, { status: 502, headers: h }); }
   return NextResponse.json({ ok: true }, { headers: h });
 }

@@ -89,7 +89,14 @@ export async function addPerson(_prev: PinState, f: FormData): Promise<PinState>
   await closeEnquiry(me.id, s(f, 'enquiry'), personId, orgId);
   await audit(me.id, `added ${role.role}${role.tier ? ' tier ' + role.tier : ''}: ${name}`, 'people');
   revalidatePath('/portal/team');
-  return { ok: true, name, phone, pin };
+  const link = `${(process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '')}/portal/login`;
+  const first = name.split(/\s+/)[0];
+  const message = role.role === 'facilitator' || role.role === 'trainer_candidate'
+    ? (s(f, 'lang') === 'en'
+      ? `Hello ${first}, thank you for your interest in training with Elimu+. Your account on the Elimu+ portal is ready.\n\nSign in here: ${link}\nPhone: ${phone}\nTemporary PIN: ${pin}\n\nYou will choose your own PIN the first time you sign in. Once inside, start with My journey, where you take the same programme you will teach. Reply to this message if you need any help.`
+      : `Habari ${first}, asante kwa nia yako ya kufundisha na Elimu+. Akaunti yako kwenye tovuti ya Elimu+ iko tayari.\n\nIngia hapa: ${link}\nSimu: ${phone}\nPIN ya muda: ${pin}\n\nUtachagua PIN yako mwenyewe unapoingia mara ya kwanza. Ukiwa ndani, anza na Safari Yangu, ambapo unapitia programu ile ile utakayofundisha. Tujibu ukihitaji msaada.`)
+    : undefined;
+  return { ok: true, name, phone, pin, message };
 }
 
 /** One step for a new partner contact: the organisation (if it is new), the person, a partner role and a first sign-in. */
