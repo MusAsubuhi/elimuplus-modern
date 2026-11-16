@@ -16,7 +16,7 @@ export default async function Attendance({ searchParams }: { searchParams: Promi
   const cards = await asUser(me.id, async (q) => {
     // cohorts that are running, or start in the next two days; each gets its programme days created if they are missing
     const cohorts = await q(`select c.id, c.name, c.format, c.start_date, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id
-      where c.status in ('confirmed','delivering') and c.start_date is not null and c.start_date <= current_date + 2 order by c.start_date`);
+      where c.status in ('quoted','confirmed','delivering') and c.start_date is not null and c.start_date <= current_date + 2 order by c.start_date`);
     const out: any[] = [];
     for (const c of cohorts) {
       await ensureSessions(q, c.id);
@@ -42,7 +42,7 @@ export default async function Attendance({ searchParams }: { searchParams: Promi
         <Stat tone={waiting ? 'gold' : 'green'} label="Days not confirmed yet" value={waiting} />
         <Stat label="Today" value={d(today)} />
       </div>
-      {cards.length === 0 && <Card><p className="text-sm text-slate-600">No cohort is in session. Attendance appears here from the day a confirmed cohort starts. For a past cohort, open it from <Link href="/portal/cohorts" className="font-bold text-teal underline">Cohorts</Link>.</p></Card>}
+      {cards.length === 0 && <Card><p className="text-sm text-slate-600">No cohort is in session. Attendance appears here from two days before a cohort starts until its last day is confirmed (cohorts that are only requested, or already closed, are left out). For a past cohort, open it from <Link href="/portal/cohorts" className="font-bold text-teal underline">Cohorts</Link>.</p></Card>}
       <div className="space-y-4">
         {cards.map(({ c, sessions, chosen, roster, present, recorded }) => (
           <Card key={c.id} title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12' : '5'}-day programme · ${roster.length} participants`}>

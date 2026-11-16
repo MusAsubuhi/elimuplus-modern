@@ -46,7 +46,7 @@ export async function renderReportPdf(inp: PdfInput): Promise<Uint8Array> {
   // ---- headline tiles
   const t = inp.model.total;
   const tiles: [string, string, string][] = [
-    ['People trained', String(t.enrolled), `${t.completed} completed`],
+    ['Trained', String(inp.model.split.trained), `${inp.model.split.inTraining} in training, ${inp.model.split.upcoming} upcoming`],
     ['Completion', t.completion != null ? `${t.completion}%` : '-', 'of those enrolled'],
     ['Attendance', t.attendance != null ? `${t.attendance}%` : '-', 'average'],
     [t.stages[2].trading != null ? 'Trading at 90 days' : 'Trading at 30 days', String((t.stages[2].trading ?? t.stages[0].trading) ?? '-') + ((t.stages[2].trading ?? t.stages[0].trading) != null ? '%' : ''), 'of those reached'],

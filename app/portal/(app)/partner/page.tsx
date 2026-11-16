@@ -10,7 +10,7 @@ import { BarCard, Gauge, PieCard } from '@/components/charts';
 import { d, pct } from '@/lib/format';
 import { followupStats } from '@/lib/data';
 import { nominate } from '../../actions';
-import { loadImpact, totals } from '@/lib/impact';
+import { loadImpact, stageSplit, totals } from '@/lib/impact';
 import { Outcomes } from '@/components/outcomes';
 import SessionPhotoGrid from '@/components/session-photo-grid';
 import { signSessionPhotos } from '@/lib/session-photos';
@@ -36,6 +36,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
   const incomePie = ['higher', 'same', 'lower'].map((k) => ({ name: k, value: follow.filter((f) => f.income === k).length, color: k === 'higher' ? '#2E8B7A' : k === 'same' ? '#D4A843' : '#C8553D' })).filter((x) => x.value);
   const shown = impact.find((c) => c.id === sp.c) ?? impact.find((c) => c.m.adult?.['30']?.n || c.m.baseline?.n) ?? impact[0];
   const tt = totals(impact);
+  const sg = stageSplit(impact);
   const myOrg = orgs.find((o) => me.orgIds.includes(o.id)) ?? orgs[0];
   return (
     <>
@@ -57,7 +58,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
       {shown && (
         <div className="mt-6">
           <h2 className="mb-1 text-lg font-extrabold text-teal">Results for {shown.name}</h2>
-          <p className="mb-3 text-sm text-slate-600">Totals across {tt.enrolled} participants in your cohorts, {tt.female} women and {tt.male} men. Pick a cohort:{' '}
+          <p className="mb-3 text-sm text-slate-600">Of {sg.total} participants in your cohorts: {sg.trained} trained, {sg.inTraining} in training now and {sg.upcoming} upcoming ({tt.female} women, {tt.male} men). Pick a cohort:{' '}
             {impact.map((c) => <Link key={c.id} href={`/portal/partner?c=${c.id}`} className={`mr-2 underline ${c.id === shown.id ? 'font-bold text-teal' : 'text-slate-600'}`}>{c.name}</Link>)}</p>
           <Outcomes m={shown.m} />
         </div>

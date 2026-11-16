@@ -47,7 +47,7 @@ export default async function OrgReports({ searchParams }: { searchParams: Promi
       </Card>
 
       <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="People trained" value={t.enrolled} sub={`${t.completed} completed`} />
+        <Stat label="Trained" value={r.model.split.trained} sub={`${r.model.split.inTraining} in training now · ${r.model.split.upcoming} upcoming`} />
         <Stat tone="gold" label="Completion" value={t.completion != null ? `${t.completion}%` : '—'} />
         <Stat tone="green" label="Learning gain" value={t.gain != null ? `+${t.gain} pts` : '—'} sub={t.pairedN ? `${t.pairedN} people, same check twice` : 'Needs both checks'} />
         <Stat label="Trading at 90 days" value={t.stages[2].trading != null ? `${t.stages[2].trading}%` : '—'} sub={`${t.stages[2].reached} reached`} />

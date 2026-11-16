@@ -1,5 +1,5 @@
 import 'server-only';
-import type { Impact } from './impact';
+import { stageSplit, type Impact } from './impact';
 
 /**
  * One model feeds the on-screen preview, the PDF and the CSV, so the three can never disagree.
@@ -28,7 +28,7 @@ export interface Row {
   youthN: number; firstIncome: number | null; cvReady: number | null; interviews: number;
   exitN: number; rating: number | null; recommend: number | null;
 }
-export interface Model { rows: Row[]; total: Row; photoCount: number }
+export interface Model { rows: Row[]; total: Row; photoCount: number; split: ReturnType<typeof stageSplit> }
 
 function stageOf(m: Impact, st: number): Stage {
   const a = m.adult?.[String(st)] ?? {};
@@ -79,7 +79,7 @@ export function buildModel(list: CohortIn[], photoCount = 0): Model {
     youthN: sum((r) => r.youthN), firstIncome: wavg((r) => r.firstIncome, (r) => r.youthN), cvReady: wavg((r) => r.cvReady, (r) => r.youthN), interviews: sum((r) => r.interviews),
     exitN: sum((r) => r.exitN), rating: wavg((r) => r.rating, (r) => r.exitN, 1), recommend: wavg((r) => r.recommend, (r) => r.exitN),
   };
-  return { rows, total, photoCount };
+  return { rows, total, photoCount, split: stageSplit(list) };
 }
 
 export const hasData = (m: Model, key: string) => {

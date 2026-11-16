@@ -1,5 +1,6 @@
 import 'server-only';
 import type { Q } from './db';
+import { todayNairobi } from './book';
 
 export type Impact = Record<string, any>;
 
@@ -38,3 +39,29 @@ export function totals(list: { m: Impact }[]) {
 
 export const label = (k: string) => k.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
 export const tallyRows = (t: Record<string, number> | null | undefined) => Object.entries(t ?? {}).filter(([k]) => k !== 'null').sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ name: label(k), value: v }));
+
+export type Phase = 'upcoming' | 'running' | 'finished';
+const isoDay = (v: unknown) => (v ? (v instanceof Date ? v.toISOString() : String(v)).slice(0, 10) : null);
+
+/** Where a cohort is on the calendar: not started, in session today, or past its last day. */
+export function cohortPhase(c: { start: unknown; end: unknown }, today = todayNairobi()): Phase {
+  const s = isoDay(c.start), e = isoDay(c.end) ?? s;
+  if (!s || s > today) return 'upcoming';
+  return e && e < today ? 'finished' : 'running';
+}
+
+/** Who is where: trained (completed), in training now, upcoming, and finished without completing. Dropped people are counted apart. */
+export function stageSplit(list: { start: unknown; end: unknown; m: Impact }[]) {
+  const today = todayNairobi();
+  const out = { trained: 0, inTraining: 0, upcoming: 0, notCompleted: 0, dropped: 0, total: 0 };
+  for (const c of list) {
+    const enrolled = n(c.m.enrolled), completed = n(c.m.completed), dropped = n(c.m.dropped);
+    const live = Math.max(0, enrolled - completed - dropped);
+    const ph = cohortPhase(c, today);
+    out.trained += completed; out.dropped += dropped; out.total += enrolled;
+    if (ph === 'upcoming') out.upcoming += live; else if (ph === 'running') out.inTraining += live; else out.notCompleted += live;
+  }
+  return out;
+}
+
+export const phaseLabel = (p: Phase) => (p === 'upcoming' ? 'Upcoming' : p === 'running' ? 'In training' : 'Finished');
