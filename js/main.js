@@ -207,10 +207,12 @@ function initLazyLoadFallback() {
    desktop nav and the mobile panel.
    ------------------------------------------------------------- */
 function initActiveNavLink() {
-  var currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  // Addresses carry no .html (clean URLs); compare pages by name, with the home page as an empty name.
+  var norm = function (p) { return p.replace(/^(\.\.\/|\.\/|\/)+/, '').replace(/\.html$/, '').replace(/\/$/, '').replace(/^index$/, ''); };
+  var currentPage = norm(window.location.pathname.split('/').pop() || '');
 
   document.querySelectorAll('.navbar__links a, .navbar__mobile-panel a').forEach(function (link) {
-    var linkPage = link.getAttribute('href').split('#')[0];
+    var linkPage = norm(link.getAttribute('href').split('#')[0]);
     if (linkPage === currentPage) {
       link.classList.add('active');
     }

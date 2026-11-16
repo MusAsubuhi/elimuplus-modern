@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "redirects": [
     {
       "source": "/index.html",
@@ -7,242 +8,242 @@
     },
     {
       "source": "/about-us",
-      "destination": "/about.html",
+      "destination": "/about",
       "permanent": true
     },
     {
       "source": "/about-us/",
-      "destination": "/about.html",
+      "destination": "/about",
       "permanent": true
     },
     {
       "source": "/about",
-      "destination": "/about.html",
+      "destination": "/about",
       "permanent": true
     },
     {
       "source": "/about/",
-      "destination": "/about.html",
+      "destination": "/about",
       "permanent": true
     },
     {
       "source": "/who-we-are",
-      "destination": "/about.html",
+      "destination": "/about",
       "permanent": true
     },
     {
       "source": "/who-we-are/",
-      "destination": "/about.html",
+      "destination": "/about",
       "permanent": true
     },
     {
       "source": "/services",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/services/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/our-services",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/our-services/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/programs",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/programs/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/programmes",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/programmes/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/programme",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/programme/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/our-programme",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/our-programme/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/training",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/training/",
-      "destination": "/programme.html",
+      "destination": "/programme",
       "permanent": true
     },
     {
       "source": "/contact-us",
-      "destination": "/about.html#contact",
+      "destination": "/about#contact",
       "permanent": true
     },
     {
       "source": "/contact-us/",
-      "destination": "/about.html#contact",
+      "destination": "/about#contact",
       "permanent": true
     },
     {
       "source": "/contact",
-      "destination": "/about.html#contact",
+      "destination": "/about#contact",
       "permanent": true
     },
     {
       "source": "/contact/",
-      "destination": "/about.html#contact",
+      "destination": "/about#contact",
       "permanent": true
     },
     {
       "source": "/get-in-touch",
-      "destination": "/about.html#contact",
+      "destination": "/about#contact",
       "permanent": true
     },
     {
       "source": "/get-in-touch/",
-      "destination": "/about.html#contact",
+      "destination": "/about#contact",
       "permanent": true
     },
     {
       "source": "/partner",
-      "destination": "/partner.html",
+      "destination": "/partner",
       "permanent": true
     },
     {
       "source": "/partner/",
-      "destination": "/partner.html",
+      "destination": "/partner",
       "permanent": true
     },
     {
       "source": "/partners",
-      "destination": "/partner.html",
+      "destination": "/partner",
       "permanent": true
     },
     {
       "source": "/partners/",
-      "destination": "/partner.html",
+      "destination": "/partner",
       "permanent": true
     },
     {
       "source": "/partner-with-us",
-      "destination": "/partner.html",
+      "destination": "/partner",
       "permanent": true
     },
     {
       "source": "/partner-with-us/",
-      "destination": "/partner.html",
+      "destination": "/partner",
       "permanent": true
     },
     {
       "source": "/trainer",
-      "destination": "/trainer.html",
+      "destination": "/trainer",
       "permanent": true
     },
     {
       "source": "/trainer/",
-      "destination": "/trainer.html",
+      "destination": "/trainer",
       "permanent": true
     },
     {
       "source": "/become-a-trainer",
-      "destination": "/trainer.html",
+      "destination": "/trainer",
       "permanent": true
     },
     {
       "source": "/become-a-trainer/",
-      "destination": "/trainer.html",
+      "destination": "/trainer",
       "permanent": true
     },
     {
       "source": "/join",
-      "destination": "/join.html",
+      "destination": "/join",
       "permanent": true
     },
     {
       "source": "/join/",
-      "destination": "/join.html",
+      "destination": "/join",
       "permanent": true
     },
     {
       "source": "/join-a-programme",
-      "destination": "/join.html",
+      "destination": "/join",
       "permanent": true
     },
     {
       "source": "/join-a-programme/",
-      "destination": "/join.html",
+      "destination": "/join",
       "permanent": true
     },
     {
       "source": "/calculator",
-      "destination": "/calculator.html",
+      "destination": "/calculator",
       "permanent": true
     },
     {
       "source": "/calculator/",
-      "destination": "/calculator.html",
+      "destination": "/calculator",
       "permanent": true
     },
     {
       "source": "/privacy-policy",
-      "destination": "/privacy.html",
+      "destination": "/privacy",
       "permanent": true
     },
     {
       "source": "/privacy-policy/",
-      "destination": "/privacy.html",
+      "destination": "/privacy",
       "permanent": true
     },
     {
       "source": "/privacy",
-      "destination": "/privacy.html",
+      "destination": "/privacy",
       "permanent": true
     },
     {
       "source": "/privacy/",
-      "destination": "/privacy.html",
+      "destination": "/privacy",
       "permanent": true
     },
     {
       "source": "/blog",
-      "destination": "/blog.html",
+      "destination": "/blog",
       "permanent": true
     },
     {
       "source": "/blog/",
-      "destination": "/blog.html",
+      "destination": "/blog",
       "permanent": true
     },
     {
@@ -267,12 +268,12 @@
     },
     {
       "source": "/category/:path*",
-      "destination": "/blog.html",
+      "destination": "/blog",
       "permanent": true
     },
     {
       "source": "/tag/:path*",
-      "destination": "/blog.html",
+      "destination": "/blog",
       "permanent": true
     }
   ],

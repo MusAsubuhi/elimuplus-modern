@@ -119,13 +119,13 @@ function markdown(src) {
 const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const header = indexHtml.match(/<header>[\s\S]*?<\/header>/)[0]
   .replace(/ class="active" aria-current="page"/g, '').replace(/ class="active"/g, '')
-  .replace(/<a href="blog\.html">/g, '<a href="blog.html" class="active" aria-current="page">');
+  .replace(/<a href="blog">/g, '<a href="blog" class="active" aria-current="page">');
 const footer = indexHtml.match(/<footer[\s\S]*?<\/footer>/)[0];
 
 function rel(html, depth) {
   if (!depth) return html;
   const pre = '../'.repeat(depth);
-  return html.replace(/(href|src)="(?!https?:|\/\/|#|mailto:|tel:|\.\.\/)([^"]*)"/g, '$1="' + pre + '$2"');
+  return html.replace(/(href|src)="(?!https?:|\/\/|#|mailto:|tel:|\.\.\/)([^"]*)"/g, (m, a, v) => a + '="' + pre + (v === './' ? '' : v) + '"');
 }
 
 function page({ title, desc, canonical, image, body, depth, type, ld, rich }) {
@@ -199,12 +199,12 @@ function card(p, depthPrefix) {
     ? `<img class="blog-card__img" src="${depthPrefix}${p.image}" alt="${esc(p.imagealt || '')}" loading="lazy" decoding="async">`
     : `<div class="blog-card__img blog-card__img--none" aria-hidden="true"><span>Elimu<b>+</b></span></div>`;
   return `<article class="blog-card">
-  <a class="blog-card__media" href="${depthPrefix}blog/${p.slug}.html" tabindex="-1" aria-hidden="true">${img}</a>
+  <a class="blog-card__media" href="${depthPrefix}blog/${p.slug}" tabindex="-1" aria-hidden="true">${img}</a>
   <div class="blog-card__body">
     <p class="blog-card__meta"><span class="card__badge">${esc(p.category)}</span> <time datetime="${p.date}">${fmtDate(p.date)}</time> · ${p.minutes} min read</p>
-    <h3><a href="${depthPrefix}blog/${p.slug}.html">${esc(p.title)}</a></h3>
+    <h3><a href="${depthPrefix}blog/${p.slug}">${esc(p.title)}</a></h3>
     <p>${esc(p.summary)}</p>
-    <a class="card-link" href="${depthPrefix}blog/${p.slug}.html">Read the post →</a>
+    <a class="card-link" href="${depthPrefix}blog/${p.slug}">Read the post →</a>
   </div>
 </article>`;
 }
@@ -221,13 +221,13 @@ function soonCard(p) {
 }
 
 posts.forEach((p) => {
-  const url = `${SITE}/blog/${p.slug}.html`;
+  const url = `${SITE}/blog/${p.slug}`;
   const others = posts.filter((o) => o.slug !== p.slug).slice(0, 2);
   const cover = p.image ? `<figure class="post-cover"><img src="../${p.image}" alt="${esc(p.imagealt || '')}" decoding="async"></figure>` : '';
   const body = `  <main id="main">
     <section class="hero hero--short text-white">
       <div class="hero__inner">
-        <p class="eyebrow"><a href="../blog.html" style="color:inherit">The Elimu+ blog</a> · ${esc(p.category)}</p>
+        <p class="eyebrow"><a href="../blog" style="color:inherit">The Elimu+ blog</a> · ${esc(p.category)}</p>
         <h1>${esc(p.title)}</h1>
         <p class="lede">${esc(p.summary)}</p>
         <p class="post-meta"><time datetime="${p.date}">${fmtDate(p.date)}</time> · ${esc(p.author)} · ${p.minutes} min read</p>
@@ -244,7 +244,7 @@ ${markdown(p.body).replace(/src="images\//g, 'src="../images/')}
         <aside class="post-cta">
           <h2>Want Elimu+ in your community?</h2>
           <p>We train through churches, NGOs and colleges, then follow up at 30, 60 and 90 days.</p>
-          <p><a class="btn btn--primary" href="../partner.html">Partner With Us</a> <a class="btn btn--outline-teal" href="https://wa.me/254798639546?text=Hello%20Elimu%2B%2C%20I%20read%20your%20blog%20and%20would%20like%20to%20talk." target="_blank" rel="noopener">WhatsApp Us</a></p>
+          <p><a class="btn btn--primary" href="../partner">Partner With Us</a> <a class="btn btn--outline-teal" href="https://wa.me/254798639546?text=Hello%20Elimu%2B%2C%20I%20read%20your%20blog%20and%20would%20like%20to%20talk." target="_blank" rel="noopener">WhatsApp Us</a></p>
         </aside>
       </div>
     </article>
@@ -290,16 +290,16 @@ ${(posts.length || soonPosts.length) ? `        <div class="grid grid-3 blog-gri
 fs.writeFileSync(path.join(ROOT, 'blog.html'), page({
   title: 'Blog | Elimu+ field notes from Likoni',
   desc: 'Weekly notes from Elimu+ on training entrepreneurs in Likoni, Mombasa and following up until their businesses stand.',
-  canonical: SITE + '/blog.html', image: DEFAULT_OG, body: listBody, depth: 0, type: 'website',
+  canonical: SITE + '/blog', image: DEFAULT_OG, body: listBody, depth: 0, type: 'website',
 }));
 
 // RSS
 const rfc = (d) => new Date(d + 'T06:00:00Z').toUTCString();
 fs.writeFileSync(path.join(ROOT, 'rss.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
-<title>Elimu+ blog</title><link>${SITE}/blog.html</link>
+<title>Elimu+ blog</title><link>${SITE}/blog</link>
 <description>Weekly notes from Elimu+ on entrepreneurship training and follow-through in Likoni, Mombasa.</description><language>en-ke</language>
-${posts.map((p) => `<item><title>${xml(p.title)}</title><link>${SITE}/blog/${p.slug}.html</link><guid>${SITE}/blog/${p.slug}.html</guid><pubDate>${rfc(p.date)}</pubDate><description>${xml(p.summary)}</description></item>`).join('\n')}
+${posts.map((p) => `<item><title>${xml(p.title)}</title><link>${SITE}/blog/${p.slug}</link><guid>${SITE}/blog/${p.slug}</guid><pubDate>${rfc(p.date)}</pubDate><description>${xml(p.summary)}</description></item>`).join('\n')}
 </channel></rss>
 `);
 
@@ -314,8 +314,8 @@ const today = new Date().toISOString().slice(0, 10);
 const changed = (s) => { try { return require('child_process').execSync(`git log -1 --format=%cs -- ${s}.html`, { cwd: ROOT, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || today; } catch (e) { return today; } };
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${stat.map((s) => `<url><loc>${SITE}/${s === 'index' ? '' : s + '.html'}</loc><lastmod>${changed(s)}</lastmod></url>`).join('\n')}
-${posts.map((p) => `<url><loc>${SITE}/blog/${p.slug}.html</loc><lastmod>${p.date}</lastmod></url>`).join('\n')}
+${stat.map((s) => `<url><loc>${SITE}/${s === 'index' ? '' : s}</loc><lastmod>${changed(s)}</lastmod></url>`).join('\n')}
+${posts.map((p) => `<url><loc>${SITE}/blog/${p.slug}</loc><lastmod>${p.date}</lastmod></url>`).join('\n')}
 </urlset>
 `);
 fs.writeFileSync(path.join(ROOT, 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${SITE}/sitemap.xml\n`);

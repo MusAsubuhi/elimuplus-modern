@@ -2,7 +2,7 @@
 /**
  * Tells Bing (and other search engines that support IndexNow) which pages changed, so they are crawled
  * within minutes instead of days. Run it after a deploy:   node indexnow.js
- * It sends every address in sitemap.xml, or only the addresses you pass:   node indexnow.js https://elimuplus.com/join.html
+ * It sends every address in sitemap.xml, or only the addresses you pass:   node indexnow.js https://elimuplus.com/join
  * The key file c4f0f06e94c9d648ec5def4bb98169aa.txt in this folder proves the site is ours. The key is public by design.
  */
 const fs = require('fs');
