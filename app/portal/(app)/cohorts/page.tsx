@@ -3,6 +3,7 @@ import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
 import { asAdmin, asUser } from '@/lib/db';
 import { refreshCompletion } from '@/lib/completion';
+import { advanceCohortStatuses } from '@/lib/cohort-status';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, statusTone } from '@/components/ui';
 import { d, pct } from '@/lib/format';
@@ -10,6 +11,7 @@ import { BarCard } from '@/components/charts';
 
 export default async function Cohorts() {
   const me = await requireMe('facilitator', 'founder');
+  await asAdmin((q) => advanceCohortStatuses(q)).catch(() => {});
   await asAdmin((q) => refreshCompletion(q)).catch(() => {});
   const { rows, due } = await asUser(me.id, async (q) => ({
     rows: await q(`select c.*, o.name org_name,

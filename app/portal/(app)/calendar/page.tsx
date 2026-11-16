@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
+import { asAdmin, asUser } from '@/lib/db';
+import { advanceCohortStatuses } from '@/lib/cohort-status';
 import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader, Stat, inputCls, submitCls } from '@/components/ui';
 import { d, todayEAT } from '@/lib/format';
@@ -43,6 +44,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   const who = /^[0-9a-f-]{36}$/.test(sp.who ?? '') ? sp.who! : '';
   const mineOnly = sp.mine === '1';
 
+  await asAdmin((q) => advanceCohortStatuses(q)).catch(() => {});
   const [{ trainings, clashes }, feed, people] = await Promise.all([
     asUser(me.id, (q) => loadCalendar(q, { founder, meId: me.id })),
     asUser(me.id, (q) => q('select token, created_at, last_read_at from calendar_feeds where person_id=$1', [me.id])),
@@ -62,6 +64,7 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
   const scheduled = visible.filter((t) => t.days.length);
   const unscheduled = visible.filter((t) => !t.days.length && isActive(t.status));
   // Founders see every training, so they can see which ones still have nobody leading them.
+  const startedUnconfirmed = founder ? trainings.filter((t) => isTentative(t.status) && t.start && t.start <= today && (t.end ?? t.start) >= today) : [];
   const noLead = founder ? trainings.filter((t) => isActive(t.status) && (t.end ?? '9999') >= today && !t.trainers.some((x) => x.role === 'lead')) : [];
 
   // each overlapping pair once, from the trainings still ahead of us
@@ -124,6 +127,16 @@ export default async function TrainingCalendar({ searchParams }: { searchParams:
         <Stat tone="gold" label="No dates yet" value={unscheduled.length} />
         {founder && <Stat tone={noLead.length ? 'red' : 'green'} label="No lead trainer" value={noLead.length} sub="still to assign" />}
       </div>
+
+      {startedUnconfirmed.length > 0 && (
+        <Card className="mb-6 border-amber-300" title="Training has started but is not confirmed" subtitle="These show as tentative, and stay out of payouts, reports and forms until confirmed. Open the partner and move the cohort to confirmed (or delivering).">
+          <ul className="space-y-2 text-sm">
+            {startedUnconfirmed.map((t) => (
+              <li key={t.id} className="rounded-lg border border-amber-200 bg-amber-50 p-3"><b className="text-teal">{t.name}</b> <span className="text-xs text-slate-600">· {t.org} · started {d(t.start!)} · {STATUS_LABEL[t.status] ?? t.status}</span></li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {noLead.length > 0 && (
         <Card className="mb-6 border-red-300" title="Trainings with no lead trainer" subtitle="Until someone leads a training it cannot be checked for trainer clashes, and nobody sees it in their own calendar. Assign a trainer here.">

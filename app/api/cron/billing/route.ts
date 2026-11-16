@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { asAdmin } from '@/lib/db';
 import { refreshCompletion } from '@/lib/completion';
+import { advanceCohortStatuses } from '@/lib/cohort-status';
 import { addDaysIso, alertFounders, createInvoice, docUrl, mailDoc, orgContacts, releaseDueQuotes, splitFollowup, trainingEnds, visitDates } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
