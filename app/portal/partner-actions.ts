@@ -6,7 +6,6 @@ import { requireMe } from '@/lib/session';
 import { normPhone } from '@/lib/accounts';
 import { alertFounders, createInvoice } from '@/lib/billing';
 import { rosterRoom, supplementCost } from '@/lib/roster';
-import { FOLLOWUP_PER_PARTICIPANT } from '@/lib/pricing';
 import { audit } from '@/lib/audit';
 
 const s = (f: FormData, k: string, n = 500) => String(f.get(k) ?? '').trim().slice(0, n);
@@ -135,10 +134,10 @@ export async function confirmExtras(f: FormData) {
       const extras = await q("select id from cohort_roster where cohort_id=$1 and status='pending_extra' order by created_at", [cohort]);
       if (!extras.length || !room.quoted) throw new Error('none');
       const cost = supplementCost(room.cap ?? room.quoted, extras.length, room.sessions);
-      const qt = (await q('select id from quotes where cohort_id=$1 order by issued_on desc limit 1', [cohort]))[0];
+      const qt = (await q("select id from quotes where cohort_id=$1 and scope='training' order by issued_on desc limit 1", [cohort]))[0];
       const due = new Date(); due.setDate(due.getDate() + 14);
       const inv = await createInvoice(q, { quoteId: qt?.id ?? null, orgId: c.organisation_id, cohortId: cohort, kind: 'other', amount: cost.total, dueOn: due.toISOString().slice(0, 10),
-        description: `Supplemental invoice: ${extras.length} additional participant${extras.length === 1 ? '' : 's'} added to ${c.name} after the quotation (${extras.length} × KES ${cost.rate} × ${room.sessions} sessions, plus follow-up at KES ${FOLLOWUP_PER_PARTICIPANT} each)` });
+        description: `Supplemental invoice: ${extras.length} additional participant${extras.length === 1 ? '' : 's'} added to ${c.name} after the quotation (${extras.length} × KES ${cost.rate} × ${room.sessions} sessions)` });
       await q("update cohort_roster set status='expected', extra_invoice_id=$2 where cohort_id=$1 and status='pending_extra'", [cohort, inv.id]);
       await alertFounders(q, `Supplemental invoice ready to review: ${c.org_name}`, `${extras.length} extra participant${extras.length === 1 ? '' : 's'} confirmed for ${c.name}. Invoice ${inv.number}, KES ${cost.total.toLocaleString('en-KE')}. Review it on Proposals and receipts, then email it.`, '/portal/deals', 'attention');
       return `${extras.length} extra ${extras.length === 1 ? 'person has' : 'people have'} joined the list. We have prepared a supplemental invoice for ${inv.number}, KES ${cost.total.toLocaleString('en-KE')}; you will find it under Invoices and payments once we have checked and sent it.`;

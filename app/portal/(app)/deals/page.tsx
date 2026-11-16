@@ -3,9 +3,9 @@ import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { d, kes } from '@/lib/format';
 import { docUrl } from '@/lib/billing';
-import { training, followups } from '@/lib/pricing';
+import { training } from '@/lib/pricing';
 import { recordPayment } from '../../actions';
-import { acceptDeal, confirmNotice, createDeal, declineDeal, rejectNotice, resendReceipt, sendDeal, sendInvoice } from '../../deal-actions';
+import { acceptDeal, applyDiscount, confirmNotice, createDeal, declineDeal, quoteFollowups, rejectNotice, removeDiscount, resendReceipt, sendDeal, sendInvoice } from '../../deal-actions';
 
 const mini = 'rounded border border-teal-100 bg-white px-2 py-1 text-xs font-bold text-teal hover:bg-mist';
 const Hidden = ({ k, v }: { k: string; v: string }) => <input type="hidden" name={k} value={v} />;
@@ -14,14 +14,18 @@ export default async function Deals() {
   const me = await requireMe('founder');
   const X = await asUser(me.id, async (q) => ({
     orgs: await q('select id, name, code from organisations where coalesce(is_internal,false)=false order by name'),
-    quotes: await q(`select qt.*, o.name org_name, c.name cohort_name, c.format, (select coalesce(sum(qty*unit_kes),0)::int from quote_lines l where l.quote_id=qt.id) total
+    quotes: await q(`select qt.*, o.name org_name, c.name cohort_name, c.format, (select coalesce(sum(qty*unit_kes),0)::int from quote_lines l where l.quote_id=qt.id) total,
+      (select coalesce(sum(-qty*unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind='discount') discount,
+      (select count(*)::int from quote_lines l where l.quote_id=qt.id and l.kind='training') n_training,
+      (select count(*)::int from quotes f where f.cohort_id=qt.cohort_id and f.scope='followup' and f.status<>'declined') n_followup_quotes,
+      (select count(*)::int from enrolments e where e.cohort_id=qt.cohort_id and e.status <> 'dropped') enrolled
       from quotes qt join organisations o on o.id=qt.organisation_id left join cohorts c on c.id=qt.cohort_id order by qt.issued_on desc, qt.number desc nulls last`),
     invoices: await q(`select i.*, o.name org_name, coalesce((select sum(amount_kes) from payments p where p.invoice_id=i.id),0)::int paid from invoices i join organisations o on o.id=i.organisation_id order by i.issued_on desc`),
     notices: await q(`select n.*, i.number inv, o.name org_name from payment_notices n join invoices i on i.id=n.invoice_id join organisations o on o.id=n.organisation_id where n.status='pending' order by n.created_at`),
     receipts: await q(`select r.*, p.amount_kes, i.number inv, o.name org_name from receipts r join payments p on p.id=r.payment_id join invoices i on i.id=p.invoice_id join organisations o on o.id=i.organisation_id order by r.issued_on desc, r.number desc limit 30`),
   }));
   const open = X.quotes.filter((x) => ['draft', 'sent'].includes(x.status));
-  const sample = (n: number) => `${kes(training(n, 5).total)} + ${kes(followups(n).total)}`;
+  const sample = (n: number) => kes(training(n, 5).total);
   return (
     <>
       <PageHeader image="/images/hero-bg.jpg" title="Proposals and receipts" subtitle="From a warm lead to a signed quotation, an invoice and a receipt, all numbered and sent from here." />
@@ -29,7 +33,7 @@ export default async function Deals() {
         <Stat label="Waiting for an answer" value={open.length} sub="drafts and sent quotations" />
         <Stat tone="gold" label="Payments to confirm" value={X.notices.length} sub="partners who say they paid" />
         <Stat tone="green" label="Receipts issued" value={X.receipts.length} />
-        <Stat tone="teal" label="Example, 30 people" value={sample(30)} sub="training + follow-up" />
+        <Stat tone="teal" label="Example, 30 people" value={sample(30)} sub="training only; follow-ups quoted later" />
       </div>
 
       {X.notices.length > 0 && (
@@ -73,7 +77,7 @@ export default async function Deals() {
             </div>
             <label className="block font-bold">Venue<input name="venue" className={inputCls} /></label>
             <button className={submitCls}>Create proposal and quotation</button>
-            <p className="text-xs text-slate-500">Prices follow the standard tiers (300, 250 and 200 per session by size, with the small-group rate) and the follow-up fee of KES 1,000 per participant. The organisation must already exist under People and partners.</p>
+            <p className="text-xs text-slate-500">Prices follow the standard tiers (300, 250 and 200 per session by size, with the small-group rate). The quotation covers the training only: when the training is done, use “Quote the follow-ups” on it to prepare the follow-up quotation. The organisation must already exist under People and partners.</p>
           </form>
         </Card>
 
@@ -82,8 +86,8 @@ export default async function Deals() {
             {X.quotes.map((x) => (
               <div key={x.id} className="rounded-lg border border-teal-100 p-3 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div><b>{x.number ?? 'Unnumbered'}</b> · {x.org_name}{x.cohort_name ? ` · ${x.cohort_name}` : ''} <Badge tone={statusTone(x.status)}>{x.status}</Badge></div>
-                  <b>{kes(x.total)}</b>
+                  <div><b>{x.number ?? 'Unnumbered'}</b> · {x.org_name}{x.cohort_name ? ` · ${x.cohort_name}` : ''} {x.scope === 'followup' && <Badge tone="gold">follow-up visits</Badge>} <Badge tone={statusTone(x.status)}>{x.status}</Badge></div>
+                  <div className="text-right"><b>{kes(x.total)}</b>{x.discount > 0 && <div className="text-[11px] font-semibold text-emerald-700">after {kes(x.discount)} discount</div>}</div>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{x.participants ?? '—'} participants · {x.sessions} sessions · issued {d(x.issued_on)} · valid to {d(x.valid_until)}{x.sent_at ? ` · sent ${d(x.sent_at)} to ${x.sent_to}` : ''}{x.self_service && x.status === 'draft' ? ` · requested by the partner, releases automatically after ${new Date(x.release_at).toLocaleString('en-GB', { timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ''}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -93,6 +97,26 @@ export default async function Deals() {
                   {['draft', 'sent'].includes(x.status) && <form action={acceptDeal}><Hidden k="quote" v={x.id} /><button className={mini}>They accepted</button></form>}
                   {['draft', 'sent'].includes(x.status) && <form action={declineDeal}><Hidden k="quote" v={x.id} /><button className={mini}>Declined</button></form>}
                 </div>
+                {x.status !== 'declined' && (
+                  <details className="mt-2 rounded-lg bg-mist p-2 text-xs">
+                    <summary className="cursor-pointer font-bold text-teal">{x.discount > 0 ? `Discount: ${kes(x.discount)} (change or remove)` : 'Give a discount'}</summary>
+                    <form action={applyDiscount} className="mt-2 flex flex-wrap items-end gap-2"><Hidden k="quote" v={x.id} />
+                      <label className="font-bold">Discount<input name="value" type="number" min="1" step="any" required className="mt-0.5 block w-24 rounded border border-teal-100 px-2 py-1" /></label>
+                      <label className="font-bold">As<select name="mode" className="mt-0.5 block rounded border border-teal-100 px-2 py-1"><option value="percent">% off</option><option value="amount">KES off</option></select></label>
+                      <label className="font-bold">Reason (shown on the quotation, optional)<input name="reason" maxLength={120} placeholder="e.g. partner of long standing" className="mt-0.5 block w-56 rounded border border-teal-100 px-2 py-1" /></label>
+                      <button className={mini}>Apply discount</button>
+                    </form>
+                    {x.discount > 0 && <form action={removeDiscount} className="mt-2"><Hidden k="quote" v={x.id} /><button className={mini}>Remove the discount</button></form>}
+                    <p className="mt-1 text-slate-500">Applying a new discount replaces the old one. If the training invoice is already raised and unpaid, it is updated to match; you may need to send it again.</p>
+                  </details>
+                )}
+                {x.scope !== 'followup' && x.cohort_name && x.n_training > 0 && x.n_followup_quotes === 0 && x.status === 'signed' && (
+                  <form action={quoteFollowups} className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-gold/40 bg-gold/10 p-2 text-xs"><Hidden k="quote" v={x.id} />
+                    <label className="font-bold">Participants for the follow-up<input name="participants" type="number" min="1" defaultValue={x.enrolled || x.participants || ''} className="mt-0.5 block w-28 rounded border border-teal-100 px-2 py-1" /></label>
+                    <button className={mini}>Quote the follow-ups</button>
+                    <span className="text-slate-600">The first quotation covers the training only. This prepares a separate quotation for the 30, 60 and 90-day visits.</span>
+                  </form>
+                )}
                 <p className="mt-2 break-all text-[11px] text-slate-400">Quotation link: {docUrl('quote', x.share_token)}</p>
               </div>
             ))}
@@ -101,7 +125,7 @@ export default async function Deals() {
         </Card>
       </div>
 
-      <Card title="Invoices" className="mt-4" subtitle="The quotation is dated the day it is placed. The training invoice is raised automatically the day after the programme ends (5 or 12 days). The 30, 60 and 90-day follow-up visits are each invoiced automatically about two weeks before the visit, at a third of the follow-up fee.">
+      <Card title="Invoices" className="mt-4" subtitle="The quotation is dated the day it is placed. The training invoice is raised automatically the day after the programme ends (5 or 12 days). The follow-up visits are quoted separately once the training is done (“Quote the follow-ups” on the quotation); after that quotation is accepted, each visit is invoiced automatically about two weeks before it, at a third of the follow-up fee.">
         <Table head={['Invoice', 'Partner', 'Type', 'Amount', 'Paid', 'Due', 'Status', '']}
           rows={X.invoices.map((i) => [<b key="n">{i.number}</b>, i.org_name, i.kind, kes(i.amount_kes), kes(i.paid), d(i.due_on), <Badge key="s" tone={statusTone(i.status)}>{i.status}</Badge>,
             <div key="a" className="flex gap-2"><a className={mini} href={docUrl('invoice', i.share_token)} target="_blank">Open</a>
@@ -123,7 +147,7 @@ export default async function Deals() {
         {!X.invoices.some((i) => i.amount_kes - i.paid > 0) && (
           <div className="mt-4 rounded-lg bg-mist p-3 text-sm">
             <p className="font-bold text-teal">Record a payment you received</p>
-            <p className="mt-1 text-slate-700">There is no unpaid invoice to record a payment against yet. The training invoice is raised the day after the programme ends, and the follow-up invoices about two weeks before each visit. Once an invoice exists, the form to record the payment appears here.</p>
+            <p className="mt-1 text-slate-700">There is no unpaid invoice to record a payment against yet. The training invoice is raised the day after the programme ends, and the follow-up invoices (once the follow-up quotation is accepted) about two weeks before each visit. Once an invoice exists, the form to record the payment appears here.</p>
           </div>
         )}
         <p className="mt-3 text-xs text-slate-500">The flow: quotation placed and accepted, programme delivered, invoice raised the next day, partner pays, you record the payment (or confirm their notice), the receipt is created below and emailed.</p>

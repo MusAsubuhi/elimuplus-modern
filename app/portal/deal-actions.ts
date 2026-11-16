@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { audit } from '@/lib/audit';
-import { createInvoice, docUrl, issueReceipt, mailDoc, nextQuoteNumber, orgCode, orgContacts, quoteLines } from '@/lib/billing';
+import { createInvoice, docUrl, issueReceipt, mailDoc, nextQuoteNumber, orgCode, orgContacts, quoteLines, followupLines } from '@/lib/billing';
 import { MIN_SESSIONS } from '@/lib/pricing';
 
 const P = '/portal/deals';
@@ -43,13 +43,117 @@ export async function createDeal(f: FormData) {
   back(`Proposal and quotation created (${id.slice(0, 4)}…). Review them, then send.`);
 }
 
+/**
+ * Give a discount on a quotation, at any time, as a negative line. A percentage is taken off the fee the quotation covers
+ * (training, or follow-up for a follow-up quotation); an amount is taken off as typed. Applying again replaces the earlier discount.
+ * If the invoice for this quotation has been raised and nothing has been paid on it yet, it is brought down to the new amount.
+ */
+export async function applyDiscount(f: FormData) {
+  const me = await requireMe('founder');
+  const id = s(f, 'quote');
+  const mode = s(f, 'mode') === 'amount' ? 'amount' : 'percent';
+  const value = Number(s(f, 'value'));
+  const reason = s(f, 'reason', 120);
+  if (!(value > 0)) back('Enter the discount, as a percentage or an amount.', 'err');
+  if (mode === 'percent' && value > 100) back('A percentage cannot be more than 100.', 'err');
+  let msg = '';
+  try {
+    msg = await asUser(me.id, async (q) => {
+      const qt = (await q('select * from quotes where id=$1', [id]))[0];
+      if (!qt) throw new Error('missing');
+      if (qt.status === 'declined') throw new Error('declined');
+      await q("delete from quote_lines where quote_id=$1 and kind='discount'", [id]);
+      const base = Number((await q("select coalesce(sum(qty*unit_kes) filter (where kind in ('training','followup_30','followup_60','followup_90','other')),0)::int n from quote_lines where quote_id=$1", [id]))[0].n);
+      const off = mode === 'percent' ? Math.round((base * value) / 100) : Math.round(value);
+      if (!(base > 0)) throw new Error('nothing');
+      if (off > base) throw new Error('toomuch');
+      const label = mode === 'percent' ? `Discount (${value}%)` : 'Discount';
+      await q('insert into quote_lines(quote_id, kind, description, qty, unit_kes) values ($1,$2,$3,1,$4)', [id, 'discount', reason ? `${label}: ${reason}` : label, -off]);
+      return await syncInvoiceToQuote(q, id, `Discount of KES ${off.toLocaleString('en-KE')} applied.`);
+    });
+  } catch (e: any) {
+    console.error('[discount]', e);
+    if (e?.message === 'toomuch') back('The discount is more than the quotation. Check the amount.', 'err');
+    if (e?.message === 'nothing') back('There is nothing on this quotation to discount.', 'err');
+    back('Could not apply the discount.', 'err');
+  }
+  await audit(me.id, `discount on quotation (${mode === 'percent' ? value + '%' : 'KES ' + value})`, 'quotes');
+  revalidatePath('/portal', 'layout');
+  back(msg);
+}
+
+export async function removeDiscount(f: FormData) {
+  const me = await requireMe('founder');
+  const id = s(f, 'quote');
+  let msg = '';
+  try {
+    msg = await asUser(me.id, async (q) => {
+      await q("delete from quote_lines where quote_id=$1 and kind='discount'", [id]);
+      return await syncInvoiceToQuote(q, id, 'Discount removed.');
+    });
+  } catch (e) { console.error('[discount]', e); back('Could not remove the discount.', 'err'); }
+  await audit(me.id, 'discount removed from quotation', 'quotes');
+  revalidatePath('/portal', 'layout');
+  back(msg);
+}
+
+/** After a discount changes, bring the training invoice (if already raised and still unpaid) in line with the quotation. Follow-up invoices are raised later from the quotation, so they follow it automatically. */
+async function syncInvoiceToQuote(q: any, quoteId: string, done: string): Promise<string> {
+  const hasTraining = (await q("select 1 from quote_lines where quote_id=$1 and kind='training'", [quoteId])).length > 0;
+  if (!hasTraining) return `${done} Follow-up invoices not yet raised will use the new amount.`;
+  const fee = Number((await q("select coalesce(sum(qty*unit_kes),0)::int n from quote_lines where quote_id=$1 and kind in ('training','discount')", [quoteId]))[0].n);
+  const inv = (await q("select i.id, i.number, i.amount_kes, coalesce((select sum(amount_kes) from payments p where p.invoice_id=i.id),0)::int paid from invoices i where i.quote_id=$1 and i.kind='training' order by i.issued_on desc limit 1", [quoteId]))[0];
+  if (!inv) return `${done} The training invoice, when it is raised, will use the new amount.`;
+  if (inv.paid > 0) return `${done} Invoice ${inv.number} already has a payment on it, so it was left as it is. Adjust it by hand if needed.`;
+  if (inv.amount_kes === fee) return done;
+  await q("update invoices set amount_kes=$2, status='issued' where id=$1", [inv.id, fee]);
+  return `${done} Invoice ${inv.number} is now KES ${fee.toLocaleString('en-KE')}. If you already emailed it, send it again so the partner has the new amount.`;
+}
+
+/** Once the training is done: a separate quotation for the 30, 60 and 90-day follow-up visits, for the people who actually took part. */
+export async function quoteFollowups(f: FormData) {
+  const me = await requireMe('founder');
+  const id = s(f, 'quote');
+  let msg = '';
+  try {
+    msg = await asUser(me.id, async (q) => {
+      const base = (await q('select * from quotes where id=$1', [id]))[0];
+      if (!base || !base.cohort_id) throw new Error('missing');
+      if ((await q("select 1 from quotes where cohort_id=$1 and scope='followup' and status<>'declined'", [base.cohort_id])).length) throw new Error('exists');
+      const en = Number((await q("select count(*)::int n from enrolments where cohort_id=$1 and status <> 'dropped'", [base.cohort_id]))[0].n);
+      const participants = Number(s(f, 'participants')) || en || Number(base.participants) || 0;
+      if (!(participants > 0)) throw new Error('count');
+      const o = (await q('select id, name, code from organisations where id=$1', [base.organisation_id]))[0];
+      const num = await nextQuoteNumber(q, orgCode(o.name, o.code));
+      const qt = (await q(
+        `insert into quotes(organisation_id, cohort_id, number, participants, sessions, valid_until, status, scope)
+         values ($1,$2,$3,$4,$5,$6,'draft','followup') returning id`, [base.organisation_id, base.cohort_id, num, participants, base.sessions, addDays(30)]))[0];
+      for (const l of followupLines(participants))
+        await q('insert into quote_lines(quote_id, kind, description, qty, unit_kes) values ($1,$2,$3,$4,$5)', [qt.id, l.kind, l.description, l.qty, l.unit_kes]);
+      return `Follow-up quotation ${num} created for ${participants} participants. Review it, add a discount if you are giving one, then email it. Once they accept, each visit is invoiced about two weeks before it.`;
+    });
+  } catch (e: any) {
+    console.error('[followup quote]', e);
+    if (e?.message === 'exists') back('A follow-up quotation already exists for this cohort.', 'err');
+    if (e?.message === 'count') back('Enter how many participants the follow-up covers.', 'err');
+    back('Could not create the follow-up quotation.', 'err');
+  }
+  await audit(me.id, 'created a follow-up quotation', 'quotes');
+  revalidatePath(P);
+  back(msg);
+}
+
 export async function sendDeal(f: FormData) {
   const me = await requireMe('founder');
   const id = s(f, 'quote');
   const x = (await asUser(me.id, (q) => q(`select qt.*, o.name org_name, o.contact_person from quotes qt join organisations o on o.id=qt.organisation_id where qt.id=$1`, [id])))[0];
   if (!x) back('That quotation is not there.', 'err');
   const to = await orgContacts(x.organisation_id);
-  const err = await mailDoc(to, `Elimu+ partnership proposal and quotation for ${x.org_name}`,
+  const err = x.scope === 'followup'
+    ? await mailDoc(to, `Elimu+ quotation for follow-up visits: ${x.org_name}`,
+      `Dear ${x.contact_person || x.org_name},\n\nThank you for partnering with us on the training. Here is our quotation for the 30, 60 and 90-day follow-up visits. You can read, print or save it as PDF from the link below. It is valid until ${x.valid_until}.\n\nWarm regards,\nElimu+`,
+      [{ label: 'Open the quotation', url: docUrl('quote', x.share_token) }])
+    : await mailDoc(to, `Elimu+ partnership proposal and quotation for ${x.org_name}`,
     `Dear ${x.contact_person || x.org_name},\n\nThank you for your interest in working with Elimu+. We have prepared a partnership proposal and a quotation for ${x.org_name}. You can read, print or save both as PDF from the links below. The quotation is valid until ${x.valid_until}.\n\nWe would be glad to talk it through and confirm a start date with you.\n\nWarm regards,\nElimu+`,
     [{ label: 'Read the partnership proposal', url: docUrl('proposal', x.share_token) }, { label: 'Open the quotation', url: docUrl('quote', x.share_token) }]);
   if (err) back(err, 'err');

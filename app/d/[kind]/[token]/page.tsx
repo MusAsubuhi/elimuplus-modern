@@ -123,10 +123,23 @@ export default async function Doc({ params }: { params: Promise<{ kind: string; 
   notFound();
 }
 
-function Quotation({ qt, org, co }: any) {
+const lineSum = (lines: any[], f: (l: any) => boolean) => lines.filter(f).reduce((a, l) => a + l.qty * l.unit_kes, 0);
+
+function Quotation({ qt, org, co, lines = [] }: any) {
   const n = Number(qt.participants) || Number(co?.expected_participants) || 15;
   const sessions = Number(qt.sessions) || 5;
   const t = training(n, sessions), f = followups(n);
+  // What this quotation actually covers comes from its lines. The first quotation is training only; the follow-up visits are quoted separately.
+  // A quotation with no lines at all (an old one) shows both, as it always did.
+  const noLines = !lines.length;
+  const showTraining = noLines || lines.some((l: any) => l.kind === 'training');
+  const showFollow = noLines || lines.some((l: any) => String(l.kind).startsWith('followup'));
+  const discountLines = lines.filter((l: any) => l.kind === 'discount');
+  const discount = -lineSum(lines, (l) => l.kind === 'discount');
+  const trainingFee = noLines ? t.total : lineSum(lines, (l) => l.kind === 'training');
+  const followFee = noLines ? f.total : lineSum(lines, (l) => String(l.kind).startsWith('followup'));
+  const gross = trainingFee + followFee;
+  const total = gross - discount;
   const sizes = Array.from(new Set([n, ...(n <= 15 ? [10, 15] : n <= 25 ? [16, 20, 25] : [26, 30, 40])])).sort((a, b) => a - b);
   return (
     <>
@@ -138,6 +151,7 @@ function Quotation({ qt, org, co }: any) {
           <Pair k="Prepared for" v={<>{org.name}{org.code ? ` (${org.code})` : ''}</>} /><Pair k="Valid until" v={d(qt.valid_until)} />
           <Pair k="Prepared by" v="Elimu+, Mombasa" /><Pair k="Tier" v={t.tier.label} />
         </div>
+        {showTraining && <>
         <h2 className={h2}>Pricing basis</h2>
         <table className="break-inside-avoid mt-2 w-full border-collapse"><tbody>
           <tr><td className={td}>Participant tier</td><td className={td}>{t.tier.label}</td></tr>
@@ -150,15 +164,22 @@ function Quotation({ qt, org, co }: any) {
         <h2 className={h2}>Estimated training cost</h2>
         <table className="break-inside-avoid mt-2 w-full border-collapse"><thead><tr><th className={th}>Participants</th><th className={th}>Per participant ({sessions} sessions)</th><th className={th}>Estimated total</th></tr></thead>
           <tbody>{sizes.map((s) => { const tt = training(s, sessions); return <tr key={s} className={s === n ? 'bg-gold-100 font-bold' : ''}><td className={td}>{s}{s === n ? ' (this quotation)' : ''}</td><td className={td}>{kes(tt.perParticipant)}</td><td className={td}>{kes(tt.total)}</td></tr>; })}</tbody></table>
+        </>}
+        {showFollow && <>
         <h2 className={h2}>Follow-up visits (30, 60 and 90 days)</h2>
         <table className="break-inside-avoid mt-2 w-full border-collapse"><thead><tr><th className={th}>Participants</th><th className={th}>Per participant</th><th className={th}>Estimated total</th></tr></thead>
           <tbody>{sizes.map((s) => { const ff = followups(s); return <tr key={s} className={s === n ? 'bg-gold-100 font-bold' : ''}><td className={td}>{s}</td><td className={td}>{kes(ff.perParticipant)}</td><td className={td}>{kes(ff.total)}</td></tr>; })}</tbody></table>
         <p className="mt-2 text-xs text-slate-600">The follow-up fee is shared equally across the three visits. Each visit is invoiced separately, about two weeks before it takes place.</p>
-        <div className="break-inside-avoid mt-5 rounded-lg bg-mist p-4 text-sm"><b>This quotation: </b>training {kes(t.total)} + follow-up {kes(f.total)} = <b>{kes(t.total + f.total)}</b> for {n} participants.</div>
+        </>}
+        <div className="break-inside-avoid mt-5 rounded-lg bg-mist p-4 text-sm">
+          <b>This quotation: </b>{[showTraining && `training ${kes(trainingFee)}`, showFollow && `follow-up visits ${kes(followFee)}`].filter(Boolean).join(' + ')}
+          {discount > 0 && <> − discount {kes(discount)}{discountLines[0]?.description?.includes(':') ? ` (${discountLines[0].description.split(':').slice(1).join(':').trim()})` : ''}</>} = <b>{kes(total)}</b> for {n} participants.
+          {showTraining && !showFollow && <p className="mt-2 text-xs text-slate-600">This quotation covers the training only. The 30, 60 and 90-day follow-up visits are quoted separately once the training is complete.</p>}
+        </div>
         <h2 className={h2}>What is included</h2>
-        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">Curriculum &amp; facilitation (two trained facilitators, SAME framework &amp; SEE Canvas) · Bilingual materials (Swahili-first) · 30/60/90-day follow-up visits · Formal programme report · Certificates of Completion.</p>
+        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">{showTraining ? 'Curriculum & facilitation (two trained facilitators, SAME framework & SEE Canvas) · Bilingual materials (Swahili-first) · Formal programme report · Certificates of Completion.' : ''}{showTraining && showFollow ? ' ' : ''}{showFollow ? '30/60/90-day follow-up visits to record how each participant’s business and income are doing.' : ''}</p>
         <h2 className={h2}>Payment terms</h2>
-        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">Payment is per participant, per session, at the rate shown. Final invoicing is based on confirmed attendance registers. This quotation is valid until {d(qt.valid_until)} and may be revised if final numbers fall outside the tier indicated.</p>
+        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">{showTraining ? 'Payment is per participant, per session, at the rate shown. Final invoicing is based on confirmed attendance registers.' : 'Each follow-up visit is invoiced separately, about two weeks before it takes place.'} This quotation is valid until {d(qt.valid_until)} and may be revised if final numbers fall outside the tier indicated.</p>
         <p className="mt-2 text-sm"><b>Bank details:</b> Account name: {BANK.name} · Account number: {BANK.number} · Bank: {BANK.bank}</p>
         <p className="break-inside-avoid mt-6 text-sm">We look forward to partnering with {org.name} on this cohort.<br />For Elimu+,<br /><b>{CONTACT.signer}</b><br />{CONTACT.signerRole}, Elimu+</p>
       </div>
@@ -211,9 +232,11 @@ function Receipt({ r, p, inv, org, total }: any) {
   );
 }
 
-function Proposal({ qt, org, co, proof }: any) {
+function Proposal({ qt, org, co, proof, lines = [] }: any) {
   const n = Number(qt.participants) || Number(co?.expected_participants) || 15;
   const t = training(n, Number(qt.sessions) || 5), f = followups(n);
+  const trainingFee = lines.some((l: any) => l.kind === 'training') ? lineSum(lines, (l) => l.kind === 'training') : t.total;
+  const discount = -lineSum(lines, (l) => l.kind === 'discount');
   const fmt = co?.format === '12-day' ? '12-Day Programme' : '5-Day Foundation';
   const Box = ({ title, children }: { title: string; children: React.ReactNode }) => <div className="break-inside-avoid rounded-lg border border-teal-100 bg-mist p-4"><div className="font-extrabold text-teal">{title}</div><div className="mt-1 text-sm leading-relaxed">{children}</div></div>;
   return (
@@ -244,7 +267,7 @@ function Proposal({ qt, org, co, proof }: any) {
           <Box title={`${org.name} provides`}>Participant recruitment and mobilisation · a venue for sessions · a liaison for coordination · contribution to the programme cost, as set out in the attached quotation.</Box>
         </div>
         <h2 className={h2}>Investment</h2>
-        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">For {n} participants: training {kes(t.total)} and follow-up visits {kes(f.total)}, a total of <b>{kes(t.total + f.total)}</b>. Rates by group size: {TIERS.map((x) => `${x.label} at KES ${x.rate} per participant per session`).join('; ')}. Full details are in quotation {qt.number}.</p>
+        <p className="break-inside-avoid mt-2 text-sm leading-relaxed">For {n} participants the training costs <b>{kes(trainingFee)}</b>{discount > 0 ? <>, less a discount of {kes(discount)}, so <b>{kes(trainingFee - discount)}</b></> : ''}. The 30, 60 and 90-day follow-up visits are quoted separately once the training is complete; for {n} participants they are indicatively {kes(f.total)}. Rates by group size: {TIERS.map((x) => `${x.label} at KES ${x.rate} per participant per session`).join('; ')}. Full details are in quotation {qt.number}.</p>
         <h2 className={h2}>Beyond the cohort</h2>
         <p className="break-inside-avoid mt-2 text-sm leading-relaxed">Graduates can grow from participant to active alumni (after the 90-day visit), peer mentor and certified facilitator, so your investment grows with every cohort. Monthly forums keep alumni connected to each other and to us.</p>
         <h2 className={h2}>The team</h2>

@@ -1,10 +1,10 @@
 import type { Q } from './db';
-import { FOLLOWUP_PER_PARTICIPANT, MIN_SESSIONS, tierFor } from './pricing';
+import { MIN_SESSIONS, tierFor } from './pricing';
 
 /** How many people the quotation covers, how many are already on the list, and the cost of each extra person. */
 export async function rosterRoom(q: Q, cohortId: string) {
   const c = (await q('select expected_participants from cohorts where id=$1', [cohortId]))[0];
-  const qt = (await q('select participants, sessions from quotes where cohort_id=$1 order by issued_on desc limit 1', [cohortId]))[0];
+  const qt = (await q("select participants, sessions from quotes where cohort_id=$1 and scope='training' order by issued_on desc limit 1", [cohortId]))[0];
   const quoted = Number(qt?.participants ?? c?.expected_participants ?? 0) || null;
   const sessions = Number(qt?.sessions) || MIN_SESSIONS;
   const counts = (await q(
@@ -14,9 +14,9 @@ export async function rosterRoom(q: Q, cohortId: string) {
   return { quoted, cap, sessions, active: counts.active as number, pending: counts.pending as number, room: cap === null ? Infinity : Math.max(0, cap - counts.active) };
 }
 
-/** Price of extra people joining during a session: each at the rate for the new group size, plus the follow-up fee per person. */
+/** Price of extra people joining during a session: each at the rate for the new group size. Their follow-up visits are quoted later with everyone else's. */
 export function supplementCost(quoted: number, extra: number, sessions: number) {
   const rate = tierFor(quoted + extra).rate;
-  const training = rate * sessions * extra, followup = FOLLOWUP_PER_PARTICIPANT * extra;
-  return { rate, training, followup, total: training + followup };
+  const training = rate * sessions * extra;
+  return { rate, training, followup: 0, total: training };
 }

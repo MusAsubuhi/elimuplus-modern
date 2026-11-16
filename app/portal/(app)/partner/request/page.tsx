@@ -26,7 +26,7 @@ export default async function RequestTraining() {
         </Card>
         <Card title="Requests and bookings" className="lg:col-span-2">
           <Table head={['Cohort', 'Programme', 'Preferred start', 'Size', 'Status']} rows={reqs.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', d(c.start_date), c.expected_participants ?? '—', <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>])} empty="No open requests." />
-          <p className="mt-3 text-xs text-slate-500">Quotes always show the training fee and the 30, 60 and 90 day follow-up visits as separate lines.</p>
+          <p className="mt-3 text-xs text-slate-500">Your quotation covers the training only. The 30, 60 and 90 day follow-up visits are quoted separately once the training is done.</p>
         </Card>
       </div>
     </>

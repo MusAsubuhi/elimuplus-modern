@@ -28,13 +28,20 @@ export async function nextReceiptNumber(q: Q) {
   return `ELIMU+-R-${y}-${String(n).padStart(4, '0')}`;
 }
 
-/** Quote lines from the standard price list. Training is one line; the three follow-up visits are one line, billed ahead of the first visit. */
+/** Quote lines for the first quotation: the training only. The follow-up visits are quoted separately, later (see followupLines). */
 export function quoteLines(participants: number, sessions = MIN_SESSIONS) {
-  const t = training(participants, sessions), f = followups(participants);
+  const t = training(participants, sessions);
   return [
     t.flat
       ? { kind: 'training', description: `Training: flat rate per 2-hour session, ${sessions} sessions (${participants} participants)`, qty: sessions, unit_kes: t.perSession }
       : { kind: 'training', description: `Training: KES ${t.tier.rate} per participant per 2-hour session, ${sessions} sessions (${t.tier.label})`, qty: participants * sessions, unit_kes: t.tier.rate },
+  ];
+}
+
+/** Quote lines for the separate follow-up quotation: the three follow-up visits as one line, billed ahead of each visit. */
+export function followupLines(participants: number) {
+  const f = followups(participants);
+  return [
     f.total === 10000 && participants <= 10
       ? { kind: 'followup_30', description: '30, 60 and 90-day follow-up visits (flat rate for up to 10 participants)', qty: 1, unit_kes: f.total }
       : { kind: 'followup_30', description: '30, 60 and 90-day follow-up visits (per participant)', qty: participants, unit_kes: f.perParticipant },

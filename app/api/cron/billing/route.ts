@@ -17,7 +17,8 @@ export async function GET(req: Request) {
   const out: string[] = [];
   const cands = await asAdmin((q) => q(
     `select c.id, c.name, c.organisation_id, c.start_date, c.end_date, c.format, qt.id quote_id,
-        (select coalesce(sum(l.qty*l.unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind like 'followup%') fee
+        (select coalesce(sum(l.qty*l.unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind like 'followup%')
+          + (case when exists (select 1 from quote_lines t where t.quote_id=qt.id and t.kind='training') then 0 else (select coalesce(sum(l.qty*l.unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind='discount') end) fee
        from cohorts c join quotes qt on qt.cohort_id=c.id and qt.status='signed' and qt.accepted_at is not null
       where c.status in ('confirmed','delivering','followup')`));
   for (const c of cands) {
@@ -48,7 +49,7 @@ export async function GET(req: Request) {
   // Training invoices: the quotation is dated the day it was placed; the invoice is dated the day after the programme ends (5 or 12 days).
   const trainingCands = await asAdmin((q) => q(
     `select c.id, c.name, c.organisation_id, c.start_date, c.end_date, c.format, qt.id quote_id, qt.participants, qt.sessions,
-        (select coalesce(sum(l.qty*l.unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind='training') fee
+        (select coalesce(sum(l.qty*l.unit_kes),0)::int from quote_lines l where l.quote_id=qt.id and l.kind in ('training','discount')) fee
        from cohorts c join quotes qt on qt.cohort_id=c.id and qt.status='signed' and qt.accepted_at is not null
       where c.status in ('confirmed','delivering','followup','closed')
         and not exists (select 1 from invoices i where i.cohort_id=c.id and i.kind='training')`));
