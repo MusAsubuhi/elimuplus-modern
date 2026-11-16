@@ -9,7 +9,7 @@ import { rosterRoom, supplementCost } from '@/lib/roster';
 import { audit } from '@/lib/audit';
 
 const s = (f: FormData, k: string, n = 500) => String(f.get(k) ?? '').trim().slice(0, n);
-const go = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never => redirect(`${path}?${kind}=${encodeURIComponent(msg)}`);
+const go = (path: string, msg: string, kind: 'ok' | 'err' = 'ok'): never => redirect(`${path}${path.includes('?') ? '&' : '?'}${kind}=${encodeURIComponent(msg)}`);
 
 /** "We have paid": a partner tells us, we match it against the bank or M-Pesa statement and issue the receipt. */
 export async function notifyPayment(f: FormData) {
@@ -87,8 +87,9 @@ function parseRosterFields(f: FormData) {
 
 export async function addRoster(f: FormData) {
   const me = await requireMe('org_admin');
-  const P = '/portal/partner/roster';
   const cohort = s(f, 'cohort');
+  // Always come back to the same training, never to a different one.
+  const P = `/portal/partner/roster?cohort=${encodeURIComponent(cohort)}`;
   if (!cohort) go(P, 'Choose the cohort first.', 'err');
   const fromForm = parseRosterFields(f);
   const fromPaste = parseRoster(String(f.get('list') ?? '').slice(0, 60000), f.get('adults_agreed') === 'on');
@@ -103,6 +104,7 @@ export async function addRoster(f: FormData) {
     }));
     if (!co) throw new Error('cohort');
     let left = room.room;
+    const before = room.active;
     for (const r of rows) {
       const within = left > 0;
       const args = [cohort, co.organisation_id, r.name, r.phone, r.gender, r.year, r.guardian, me.id, r.own];
@@ -114,16 +116,21 @@ export async function addRoster(f: FormData) {
              values ($1,$2,$3,$4,$5,$6,$7,$8,'pending_extra',$9) on conflict do nothing returning id`, args));
       if (!x.length) dup++; else if (within) { added++; left--; } else held++;
     }
+    // A training that is not confirmed yet is not charged extra; tell the founders so they can update its quotation before it is confirmed.
+    if (!room.confirmed && room.quoted && before <= room.quoted && before + added > room.quoted) {
+      const info = (await asUser(me.id, (q) => q('select c.name, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [cohort])))[0];
+      await asAdmin((q) => alertFounders(q, `${info?.org_name ?? 'A partner'} is planning more people than quoted`, `${info?.name ?? 'This training'} is quoted for ${room.quoted} but ${before + added} are listed. It is not confirmed yet, so update its quotation to match before it is accepted.`, '/portal/deals', 'attention'));
+    }
   } catch (e) { console.error('[roster]', e); go(P, 'We could not add those. Make sure the cohort is one of yours.', 'err'); }
-  revalidatePath(P);
+  revalidatePath('/portal/partner/roster');
   go(P, `${added} added${held ? `, ${held} held as extra (beyond the number on your quotation, see below)` : ''}${dup ? `, ${dup} already on the list` : ''}${bad.length ? `, ${bad.length} skipped (${bad.slice(0, 2).join('; ')})` : ''}.`);
 }
 
 /** The partner agrees to the extra people: they join the list and a supplemental invoice is raised for the founders to review and send. */
 export async function confirmExtras(f: FormData) {
   const me = await requireMe('org_admin');
-  const P = '/portal/partner/roster';
   const cohort = s(f, 'cohort');
+  const P = `/portal/partner/roster?cohort=${encodeURIComponent(cohort)}`;
   let msg = '';
   try {
     const mine = await asUser(me.id, (q) => q('select c.id, c.name, c.organisation_id, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [cohort]));
@@ -143,15 +150,15 @@ export async function confirmExtras(f: FormData) {
       return `${extras.length} extra ${extras.length === 1 ? 'person has' : 'people have'} joined the list. We have prepared a supplemental invoice for ${inv.number}, KES ${cost.total.toLocaleString('en-KE')}; you will find it under Invoices and payments once we have checked and sent it.`;
     });
   } catch (e) { console.error('[roster]', e); go(P, 'We could not confirm the extra people. There may be none waiting.', 'err'); }
-  revalidatePath(P);
+  revalidatePath('/portal/partner/roster');
   go(P, msg);
 }
 
 export async function removeRoster(f: FormData) {
   const me = await requireMe('org_admin');
-  await asUser(me.id, (q) => q("delete from cohort_roster where id=$1 and status in ('expected','pending_extra')", [s(f, 'id')]));
+  const gone = await asUser(me.id, (q) => q("delete from cohort_roster where id=$1 and status in ('expected','pending_extra') returning cohort_id", [s(f, 'id')]));
   revalidatePath('/portal/partner/roster');
-  go('/portal/partner/roster', 'Removed.');
+  go(gone[0]?.cohort_id ? `/portal/partner/roster?cohort=${gone[0].cohort_id}` : '/portal/partner/roster', 'Removed.');
 }
 
 /** Founder or trainer: turn the partner's list into enrolled participants on the training day. */

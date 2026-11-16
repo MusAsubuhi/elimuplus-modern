@@ -3,7 +3,9 @@ import { MIN_SESSIONS, tierFor } from './pricing';
 
 /** How many people the quotation covers, how many are already on the list, and the cost of each extra person. */
 export async function rosterRoom(q: Q, cohortId: string) {
-  const c = (await q('select expected_participants from cohorts where id=$1', [cohortId]))[0];
+  const c = (await q('select expected_participants, status from cohorts where id=$1', [cohortId]))[0];
+  // Until the partner confirms the training, the list is still being planned: nobody is an "extra" and nothing is billed on top of the quotation.
+  const confirmed = !['requested', 'quoted'].includes(String(c?.status));
   const qt = (await q("select participants, sessions from quotes where cohort_id=$1 and scope='training' order by issued_on desc limit 1", [cohortId]))[0];
   const quoted = Number(qt?.participants ?? c?.expected_participants ?? 0) || null;
   const sessions = Number(qt?.sessions) || MIN_SESSIONS;
@@ -11,7 +13,7 @@ export async function rosterRoom(q: Q, cohortId: string) {
     `select count(*) filter (where status in ('expected','enrolled'))::int active, count(*) filter (where status='pending_extra')::int pending,
             count(*) filter (where extra_invoice_id is not null and status<>'withdrawn')::int paid_extra from cohort_roster where cohort_id=$1`, [cohortId]))[0];
   const cap = quoted === null ? null : quoted + counts.paid_extra;
-  return { quoted, cap, sessions, active: counts.active as number, pending: counts.pending as number, room: cap === null ? Infinity : Math.max(0, cap - counts.active) };
+  return { quoted, cap, sessions, confirmed, active: counts.active as number, pending: counts.pending as number, room: cap === null || !confirmed ? Infinity : Math.max(0, cap - counts.active) };
 }
 
 /** Price of extra people joining during a session: each at the rate for the new group size. Their follow-up visits are quoted later with everyone else's. */

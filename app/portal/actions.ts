@@ -324,8 +324,8 @@ export async function requestCohort(f: FormData) {
   await notify();
   revalidatePath('/portal', 'layout');
   back(P, rows.length === 1
-    ? 'Thank you. We are preparing your proposal and quotation and will send them to you shortly.'
-    : `Thank you. We are preparing ${rows.length} proposals and quotations, one for each training, and will send them to you shortly.`);
+    ? 'Thank you. This is a new training of its own, and we are preparing its proposal and quotation. To add people to it, use Add participants next to it below.'
+    : `Thank you. These are ${rows.length} new trainings, each on its own, and we are preparing a proposal and quotation for each. To add people to any of them, use Add participants next to it below.`);
 }
 
 export async function nominate(f: FormData) {

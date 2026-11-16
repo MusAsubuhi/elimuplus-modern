@@ -25,8 +25,8 @@ export default async function RequestTraining() {
           : <RequestForm orgs={orgs as { id: string; name: string }[]} action={requestCohort} />}
         </Card>
         <Card title="Requests and bookings" className="lg:col-span-2">
-          <Table head={['Cohort', 'Programme', 'Preferred start', 'Size', 'Status']} rows={reqs.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', d(c.start_date), c.expected_participants ?? '—', <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>])} empty="No open requests." />
-          <p className="mt-3 text-xs text-slate-500">Your quotation covers the training only. The 30, 60 and 90 day follow-up visits are quoted separately once the training is done.</p>
+          <Table head={['Training', 'Programme', 'Preferred start', 'Size', 'Status', '']} rows={reqs.map((c) => [<b key="n">{c.name}</b>, c.format === '12-day' ? '12-Day' : '5-Day', d(c.start_date), c.expected_participants ?? '—', <Badge key="s" tone={statusTone(c.status)}>{c.status}</Badge>, <a key="a" className="text-xs font-bold text-teal underline" href={`/portal/partner/roster?cohort=${c.id}`}>Add participants</a>])} empty="No open requests." />
+          <p className="mt-3 text-xs text-slate-500">Every request here is a new training of its own, with its own quotation, invoice and list of participants. To add people to a training you already have, use Add participants. Your quotation covers the training only. The 30, 60 and 90 day follow-up visits are quoted separately once the training is done.</p>
         </Card>
       </div>
     </>
