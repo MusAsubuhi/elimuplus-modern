@@ -5,7 +5,7 @@ import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { d, kes, pct } from '@/lib/format';
 import { label } from '@/lib/impact';
-import { recordExit } from '../../../../../actions';
+import { recordExit, removeParticipant } from '../../../../../actions';
 import { erasePerson } from '../../../../../story-actions';
 
 const yn = (v: unknown) => (v === true ? 'Yes' : v === false ? 'No' : '—');
@@ -114,6 +114,15 @@ export default async function Participant({ params }: { params: Promise<{ id: st
           <button className={submitCls}>Save</button>
         </form>
       </Card>
+      {me.roles.includes('founder') && (
+        <Card title="Remove from this cohort" className="mt-4" subtitle="For someone added as a participant by mistake, for example a partner's administrator or a trainer. Only their place in this cohort is removed, with its attendance and canvas. Their account and any other role they hold stay as they are.">
+          <form action={removeParticipant} className="flex flex-wrap items-center gap-3 text-sm">
+            <input type="hidden" name="enrolment" value={eid} /><input type="hidden" name="cohort" value={id} />
+            <label className="flex items-center gap-2"><input type="checkbox" name="confirm" value="yes" /> Yes, {e.display_name} should not be a participant in {e.cohort_name}</label>
+            <button className="rounded border border-red-300 bg-white px-3 py-2 text-sm font-bold text-red-700">Remove from cohort</button>
+          </form>
+        </Card>
+      )}
           <Card title="Stories" className="mt-4" subtitle="What the participant says changed. Permission is recorded with each story.">
         <ul className="mb-3 space-y-1 text-sm">
           {stories.map((st: any) => <li key={st.id}><Link href={`/portal/stories/${st.id}`} className="font-bold text-teal underline">{st.title || 'Untitled story'}</Link> <Badge tone={statusTone(st.status)}>{st.status}</Badge> <span className="text-xs text-slate-500">{d(st.created_at)}</span></li>)}

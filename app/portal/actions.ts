@@ -421,3 +421,31 @@ export async function recordExit(f: FormData) {
   revalidatePath(`/portal/cohorts/${cohort}`);
   back(path, 'Saved.');
 }
+
+
+/** A founder takes someone off a cohort's participant list, for example a partner's administrator or a trainer who was added as a participant by mistake.
+ *  Only the participation is removed: the person, their login and every other role they hold stay exactly as they are. */
+export async function removeParticipant(f: FormData) {
+  const me = await requireMe('founder');
+  const eid = s(f, 'enrolment'), cohort = s(f, 'cohort');
+  const P = `/portal/cohorts/${cohort}`;
+  if (s(f, 'confirm') !== 'yes') back(`${P}/participants/${eid}`, 'Tick the box to confirm the removal.', 'err');
+  let name = '';
+  try {
+    name = await asAdmin(async (q) => {
+      const e = (await q('select e.id, p.id person_id, p.display_name from enrolments e join people p on p.id=e.person_id where e.id=$1 and e.cohort_id=$2', [eid, cohort]))[0];
+      if (!e) throw new Error('gone');
+      if ((await q('select 1 from stories where enrolment_id=$1 limit 1', [eid]))[0]) throw new Error('story');
+      await q('delete from cohort_roster where enrolment_id=$1', [eid]);
+      await q('delete from enrolments where id=$1', [eid]);
+      // the register summaries were counted with this person in them, so count again without
+      for (const se of await q('select id from sessions where cohort_id=$1', [cohort])) await syncDaySummary(q, cohort, se.id, me.id);
+      return e.display_name as string;
+    });
+  } catch (e: any) {
+    back(`${P}/participants/${eid}`, e?.message === 'story' ? 'This participant has a story on record. Withdraw the story first, then remove them.' : 'Could not remove that participant. They may already be gone.', 'err');
+  }
+  await audit(me.id, `removed ${name} from a cohort's participants (person and other roles kept)`, 'enrolments');
+  revalidatePath(P); revalidatePath('/portal/cohorts'); revalidatePath('/portal/partner/roster'); revalidatePath('/portal/partner');
+  back(P, `${name} was removed from this cohort's participants. Their account and any other roles are unchanged.`);
+}
