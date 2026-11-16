@@ -12,11 +12,10 @@ const isOn = (path: string, href: string) => path === href || (href !== '/portal
 export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: string }) {
   const path = usePathname() ?? '';
   const [open, setOpen] = useState(false);
-  // Each section folds into its heading. The section holding the page you are on starts open; the rest start folded.
-  const activeTitle = groups.find((g) => g.items.some((i) => isOn(path, i.href)))?.title;
+  // Each section folds into its heading. Every section starts folded each time the menu opens.
   const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
   useEffect(() => setOpen(false), [path]);
-  useEffect(() => { if (activeTitle) setUnfolded((prev) => (prev.has(activeTitle) ? prev : new Set(prev).add(activeTitle))); }, [activeTitle]);
+  useEffect(() => { if (open) setUnfolded(new Set()); }, [open]);
   const toggle = (t: string) => setUnfolded((prev) => { const n = new Set(prev); n.has(t) ? n.delete(t) : n.add(t); return n; });
   useEffect(() => {
     if (!open) return;
@@ -32,7 +31,7 @@ export function MobileMenu({ groups, label }: { groups: NavGroup[]; label: strin
       <div className={`fixed inset-0 z-50 ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
         <div onClick={() => setOpen(false)} className={`absolute inset-0 bg-black/50 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} />
         <aside id="portal-drawer" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) setOpen(false); }}
-          className={`absolute left-0 top-0 max-h-[45vh] w-72 max-w-[85vw] overflow-y-auto rounded-br-2xl bg-teal px-3 pb-4 pt-2 text-white shadow-xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+          className={`absolute inset-y-0 left-0 w-1/2 min-w-[11.5rem] overflow-y-auto bg-teal px-2 pb-8 pt-2 text-white shadow-xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="mb-1 flex justify-end"><button type="button" aria-label="Close" onClick={() => setOpen(false)} className="h-9 w-9 rounded-lg text-xl hover:bg-white/10">✕</button></div>
           {groups.map((g) => {
             const single = groups.length === 1;
