@@ -32,17 +32,20 @@ export function PinResult({ state, onClose }: { state: NonNullable<PinState>; on
   );
 }
 
-export function AddPersonForm({ orgs, cohorts }: { orgs: { id: string; name: string }[]; cohorts: { id: string; name: string }[] }) {
+export type PersonDefaults = { enquiry?: string; name?: string; phone?: string; email?: string; occupation?: string; county?: string; ward?: string; role?: string; lang?: string; org?: string; orgType?: string; newOrg?: string };
+
+export function AddPersonForm({ orgs, cohorts, defaults = {} }: { orgs: { id: string; name: string }[]; cohorts: { id: string; name: string }[]; defaults?: PersonDefaults }) {
   const [state, action, pending] = useActionState(addPerson, null);
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
-  const [role, setRole] = useState('participant');
+  const [role, setRole] = useState(defaults.role ?? 'participant');
   useEffect(() => { if (state?.ok) { router.refresh(); ref.current?.reset(); } }, [state, router]);
   const needsOrg = role === 'org_admin' || role === 'org_viewer';
   return (
     <form ref={ref} onSubmit={submitter(action)} className="grid gap-3 text-sm sm:grid-cols-2">
-      <label className="block font-bold sm:col-span-2">Full name<input name="name" required className={inputCls} /></label>
-      <label className="block font-bold">Phone (their sign-in)<input name="phone" required inputMode="tel" placeholder="0712 345 678" className={inputCls} /></label>
+      {defaults.enquiry && <input type="hidden" name="enquiry" value={defaults.enquiry} />}
+      <label className="block font-bold sm:col-span-2">Full name<input name="name" required defaultValue={defaults.name} className={inputCls} /></label>
+      <label className="block font-bold">Phone (their sign-in)<input name="phone" required defaultValue={defaults.phone} inputMode="tel" placeholder="0712 345 678" className={inputCls} /></label>
       <label className="block font-bold">Known as<input name="display" placeholder="First name" className={inputCls} /></label>
       <label className="block font-bold">Role
         <select name="role" value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
@@ -50,7 +53,7 @@ export function AddPersonForm({ orgs, cohorts }: { orgs: { id: string; name: str
         </select>
       </label>
       <label className="block font-bold">Language
-        <select name="lang" defaultValue="sw" className={inputCls}><option value="sw">Kiswahili</option><option value="en">English</option></select>
+        <select name="lang" defaultValue={defaults.lang ?? 'sw'} className={inputCls}><option value="sw">Kiswahili</option><option value="en">English</option></select>
       </label>
       {(needsOrg || role === 'participant') && (
         <label className="block font-bold">Partner organisation{needsOrg ? '' : ' (optional)'}
@@ -66,11 +69,11 @@ export function AddPersonForm({ orgs, cohorts }: { orgs: { id: string; name: str
       <label className="block font-bold">Education level
         <select name="education" defaultValue="" className={inputCls}><option value="">Not recorded</option>{EDUCATION.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
       </label>
-      <label className="block font-bold">Occupation<input name="occupation" placeholder="e.g. tailor, student, teacher" className={inputCls} /></label>
-      <label className="block font-bold">Email (optional)<input name="email" type="email" className={inputCls} /></label>
+      <label className="block font-bold">Occupation<input name="occupation" defaultValue={defaults.occupation} placeholder="e.g. tailor, student, teacher" className={inputCls} /></label>
+      <label className="block font-bold">Email (optional)<input name="email" type="email" defaultValue={defaults.email} className={inputCls} /></label>
       <label className="flex items-start gap-2 text-sm"><input name="newsletter" type="checkbox" className="mt-1" /><span>They agreed to receive the Elimu+ newsletter by email (needs an email address)</span></label>
-      <label className="block font-bold">County<input name="county" defaultValue="Mombasa" className={inputCls} /></label>
-      <label className="block font-bold">Ward or area<input name="ward" placeholder="e.g. Likoni" className={inputCls} /></label>
+      <label className="block font-bold">County<input name="county" defaultValue={defaults.county ?? "Mombasa"} className={inputCls} /></label>
+      <label className="block font-bold">Ward or area<input name="ward" defaultValue={defaults.ward} placeholder="e.g. Likoni" className={inputCls} /></label>
       <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="guardian" />Under 18: a parent or guardian has agreed</label>
             <label className="flex gap-2 sm:col-span-2"><input type="checkbox" name="own" />Aged 18 or over: this person has agreed to be added (adults agree for themselves)</label>
       <div className="sm:col-span-2"><button disabled={pending} className={submitCls}>{pending ? 'Adding…' : 'Add person and create sign-in'}</button></div>
@@ -121,34 +124,35 @@ export function SetPinForm() {
   );
 }
 
-export function InvitePartnerForm({ orgs }: { orgs: { id: string; name: string }[] }) {
+export function InvitePartnerForm({ orgs, defaults = {} }: { orgs: { id: string; name: string }[]; defaults?: PersonDefaults }) {
   const [state, action, pending] = useActionState(invitePartnerContact, null);
   const router = useRouter();
   const ref = useRef<HTMLFormElement>(null);
-  const [org, setOrg] = useState('');
+  const [org, setOrg] = useState(defaults.org ?? '');
   useEffect(() => { if (state?.ok) { router.refresh(); ref.current?.reset(); setOrg(''); } }, [state, router]);
   return (
     <form ref={ref} onSubmit={submitter(action)} className="grid gap-3 text-sm sm:grid-cols-2">
+      {defaults.enquiry && <input type="hidden" name="enquiry" value={defaults.enquiry} />}
       <label className="block font-bold">Organisation
         <select name="org" value={org} onChange={(e) => setOrg(e.target.value)} className={inputCls}><option value="">A new organisation…</option>{orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
       </label>
       {!org && (
         <>
-          <label className="block font-bold">New organisation name<input name="new_org" placeholder="e.g. Likoni Community Church" className={inputCls} /></label>
+          <label className="block font-bold">New organisation name<input name="new_org" defaultValue={defaults.newOrg} placeholder="e.g. Likoni Community Church" className={inputCls} /></label>
           <label className="block font-bold">Type
-            <select name="org_type" defaultValue="church" className={inputCls}><option value="church">Church</option><option value="cdc">Church development centre</option><option value="school">School</option><option value="college">College</option><option value="ngo">NGO</option><option value="company">Company</option><option value="other">Other</option></select>
+            <select name="org_type" defaultValue={defaults.orgType ?? "church"} className={inputCls}><option value="church">Church</option><option value="cdc">Church development centre</option><option value="school">School</option><option value="college">College</option><option value="ngo">NGO</option><option value="company">Company</option><option value="other">Other</option></select>
           </label>
           <label className="block font-bold">County<input name="county" defaultValue="Mombasa" className={inputCls} /></label>
         </>
       )}
-      <label className="block font-bold">Their full name<input name="name" required placeholder="e.g. Pastor Grace Achieng" className={inputCls} /></label>
-      <label className="block font-bold">Phone (their sign-in)<input name="phone" required inputMode="tel" placeholder="0712 345 678" className={inputCls} /></label>
-      <label className="block font-bold">Email (for quotations and receipts)<input name="email" type="email" className={inputCls} /></label>
+      <label className="block font-bold">Their full name<input name="name" required defaultValue={defaults.name} placeholder="e.g. Pastor Grace Achieng" className={inputCls} /></label>
+      <label className="block font-bold">Phone (their sign-in)<input name="phone" required defaultValue={defaults.phone} inputMode="tel" placeholder="0712 345 678" className={inputCls} /></label>
+      <label className="block font-bold">Email (for quotations and receipts)<input name="email" type="email" defaultValue={defaults.email} className={inputCls} /></label>
       <label className="block font-bold">Their role
         <select name="role" defaultValue="org_admin" className={inputCls}><option value="org_admin">Partner admin: requests training, loads participants, pays and views everything</option><option value="org_viewer">Partner viewer: read only</option></select>
       </label>
       <label className="block font-bold">Message language
-        <select name="lang" defaultValue="en" className={inputCls}><option value="en">English</option><option value="sw">Kiswahili</option></select>
+        <select name="lang" defaultValue={defaults.lang ?? "en"} className={inputCls}><option value="en">English</option><option value="sw">Kiswahili</option></select>
       </label>
       <div className="sm:col-span-2"><button disabled={pending} className={submitCls}>{pending ? 'Creating…' : 'Create invitation and sign-in'}</button></div>
       {state && <div className="sm:col-span-2"><PinResult state={state} /></div>}

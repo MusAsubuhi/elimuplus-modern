@@ -28,6 +28,7 @@ export const FEATURES: Feature[] = [
   { key: 'consent', label: 'Consent forms', section: 'Programme', href: '/portal/consent', icon: '✍', delegable: false, roles: ['founder', 'master', 'facilitator'], note: 'Print adult and parent or guardian consent forms, including photo and video permission.' },
   { key: 'qa', label: 'Quality and reports', section: 'Programme', href: '/portal/qa', icon: '✓', delegable: false, roles: ['founder', 'master'], note: 'QA visits, reports and the supervision register.' },
   { key: 'alerts', label: 'Alerts', section: 'Home', href: '/portal/alerts', icon: '⚑', delegable: false, roles: ['founder'], note: 'Welfare, urgent and system alerts.' },
+  { key: 'enquiries', label: 'Website enquiries', section: 'Home', href: '/portal/enquiries', icon: '✉', delegable: false, roles: ['founder'], note: 'Trainer, organisation and quote forms from the website, ready to turn into accounts.' },
   { key: 'changes', label: 'Training change requests', section: 'Home', href: '/portal/changes', icon: '⇄', delegable: false, roles: ['founder'], note: 'Partner requests to change a booked training: approve or deny.' },
   { key: 'approvals', label: 'Approvals', section: 'Home', href: '/portal/approvals', icon: '✔', delegable: false, roles: ['founder'], note: 'Founder decisions.' },
   { key: 'impact', label: 'Impact', section: 'Programme', href: '/portal/impact', icon: '▲', delegable: true, roles: ['founder', 'master'], maxLevel: 'view', note: 'Numbers are limited to the trainer\u2019s own cohorts by the database.' },

@@ -67,6 +67,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const personas = me.demo ? await asAdmin((q) => q(`select p.id, p.display_name, (select string_agg(distinct role || coalesce(tier::text,''),'/') from role_assignments where person_id=p.id) r from people p order by p.full_name`)) : [];
   // founders and master trainers also see the facilitator and QA areas
   const groups: Role[] = me.roles.includes('founder') ? ['founder', 'master', 'facilitator', ...(me.roles.includes('participant') ? (['participant'] as Role[]) : [])] : me.roles;
+  const newEnq = me.roles.includes('founder') ? Number((await asUser(me.id, (q) => q("select count(*)::int n from web_enquiries where status='new'")).catch(() => [{ n: 0 }]))[0].n) : 0;
   const unread = me.roles.includes('founder') ? Number((await asUser(me.id, (q) => q('select count(*)::int n from founder_alerts a where not exists (select 1 from alert_reads r where r.alert_id=a.id and r.person_id=$1)', [me.id])).catch(() => [{ n: 0 }]))[0].n) : 0;
   const allowed = await allowedFeatures(me);
   const isFounder = me.roles.includes('founder');
@@ -76,7 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (isFounder) for (const sec of SECTIONS) {
     const items = FEATURES.filter((f) => f.section === sec);
     items.forEach((f) => seen.add(f.href));
-    navGroups.push({ title: sec, items: items.map((f) => ({ href: f.href, label: f.label, icon: f.icon, badge: f.href === '/portal/alerts' ? unread : 0 })) });
+    navGroups.push({ title: sec, items: items.map((f) => ({ href: f.href, label: f.label, icon: f.icon, badge: f.href === '/portal/alerts' ? unread : f.href === '/portal/enquiries' ? newEnq : 0 })) });
   }
   const order = ['My work', 'Programme', 'Partners', 'Money', 'People'];
   const addTo = (title: string, items: NavGroup['items']) => {

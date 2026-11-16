@@ -41,6 +41,14 @@ async function enrol(q: Q, cohortId: string, personId: string) {
   await q('insert into canvases(enrolment_id) values ($1) on conflict (enrolment_id) do nothing', [en.id]);
 }
 
+
+/** If the account came from a website enquiry, close that enquiry and link the person. */
+async function closeEnquiry(meId: string, id: string, personId: string, orgId?: string | null) {
+  revalidatePath('/portal/enquiries');
+  if (!/^[0-9a-f-]{36}$/.test(id)) return;
+  await asUser(meId, (q) => q("update web_enquiries set status='accepted', person_id=$2, organisation_id=$3, handled_by=$4, handled_at=now() where id=$1 and status='new'", [id, personId, orgId ?? null, meId])).catch((e) => console.error('[enquiry close]', e));
+}
+
 /* ---------- founders add people directly ---------- */
 export async function addPerson(_prev: PinState, f: FormData): Promise<PinState> {
   const me = await requireMe('founder');
@@ -78,6 +86,7 @@ export async function addPerson(_prev: PinState, f: FormData): Promise<PinState>
   const pin = tempPin();
   try { await provisionLogin(personId, phone, pin); }
   catch (e: any) { return { error: `${name} was added, but the sign-in could not be created (${e.message}). Use "Reset PIN" beside their name.` }; }
+  await closeEnquiry(me.id, s(f, 'enquiry'), personId, orgId);
   await audit(me.id, `added ${role.role}${role.tier ? ' tier ' + role.tier : ''}: ${name}`, 'people');
   revalidatePath('/portal/team');
   return { ok: true, name, phone, pin };
@@ -124,6 +133,7 @@ export async function invitePartnerContact(_prev: PinState, f: FormData): Promis
   const pin = tempPin();
   try { await provisionLogin(personId, phone, pin); }
   catch (e: any) { return { error: `${name} was added to ${orgName}, but the sign-in could not be created (${e.message}). Find them under Team and people and use "Reset PIN".` }; }
+  await closeEnquiry(me.id, s(f, 'enquiry'), personId, orgId);
   await audit(me.id, `invited ${role === 'org_admin' ? 'partner admin' : 'partner viewer'} ${name} for ${orgName}`, 'people');
   revalidatePath('/portal', 'layout');
   const link = `${(process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '')}/portal/login`;
