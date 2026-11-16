@@ -8,13 +8,15 @@ import { audit } from '@/lib/audit';
 import { certifyFoundingTrainer, endRole, grantRole, issueCertificate } from '../../team-actions';
 import { assignSupervisor } from '../../ops-actions';
 
-export default async function Team() {
+export default async function Team({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const me = await requireMe('founder');
+  const find = String((await searchParams).q ?? '').trim().toLowerCase().slice(0, 60);
   await audit(me.id, 'view team and sign-ins', 'people');
   const T = await asUser(me.id, async (q) => ({
     people: await q(`select p.id, p.full_name, p.display_name, p.phone, p.birth_year, p.education_level, p.county, p.ward, p.auth_user_id, p.pin_reset_required, p.status,
         (select coalesce(json_agg(json_build_object('id', ra.id, 'role', ra.role, 'tier', ra.tier, 'org', o.name) order by ra.start_date), '[]'::json)
            from role_assignments ra left join organisations o on o.id = ra.organisation_id where ra.person_id = p.id and ra.status = 'active') roles,
+        (select coalesce(json_agg(c.name order by c.seq), '[]'::json) from enrolments e join cohorts c on c.id = e.cohort_id where e.person_id = p.id) cohort_names,
         (select max(tier) from certifications c where c.person_id = p.id and c.status = 'active') cert_tier,
         (select share_token from certifications c where c.person_id = p.id and c.status = 'active' order by tier desc limit 1) cert_token
         from people p order by p.created_at desc, p.full_name`),
@@ -30,6 +32,28 @@ export default async function Team() {
   const founderPeers = T.people.filter((p) => isFounderRow(p) && p.id !== me.id);
   const meFounder = T.people.find((p) => p.id === me.id);
   const nextTier = (p: any) => (p.cert_tier ?? 0) + 1;
+  const has = (p: any, ...roles: string[]) => (p.roles as any[]).some((r) => roles.includes(r.role));
+  const shown = T.people.filter((p) => !find || `${p.full_name} ${p.display_name ?? ''} ${p.phone ?? ''}`.toLowerCase().includes(find));
+  const groupOf = (p: any) => has(p, 'founder', 'staff') ? 'Elimu+ team' : has(p, 'facilitator', 'trainer_candidate') ? 'Trainers and candidates' : has(p, 'org_admin', 'org_viewer') ? 'Partner contacts' : has(p, 'participant') ? `Participants: ${(p.cohort_names as string[])[0] ?? 'not in a cohort yet'}` : 'No active role';
+  const byGroup = new Map<string, any[]>();
+  for (const p of shown) { const k = groupOf(p); byGroup.set(k, [...(byGroup.get(k) ?? []), p]); }
+  const rank = (t: string) => (t === 'Elimu+ team' ? 0 : t === 'Trainers and candidates' ? 1 : t === 'Partner contacts' ? 2 : t.startsWith('Participants') ? 3 : 4);
+  const groups = [...byGroup.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0])).map(([title, people]) => ({ title, people, open: rank(title) < 3 }));
+  const personTable = (people: any[]) => (
+    <Table head={['Person', 'Roles', 'Details', 'Sign-in', '']} rows={people.map((p) => [
+      <div key="n"><b>{p.full_name}</b><div className="text-xs text-slate-500">{p.phone ?? 'no phone'}</div></div>,
+      <div key="r" className="flex flex-col gap-1">{(p.roles as any[]).map((r) => (
+        <form key={r.id} action={endRole} className="flex items-center gap-1">
+          <input type="hidden" name="assignment" value={r.id} />
+          <Badge tone={r.role === 'founder' ? 'gold' : r.role === 'facilitator' ? 'teal' : 'grey'}>{roleLabel(r.role, r.tier)}{r.org ? ` · ${r.org}` : ''}</Badge>
+          <button title="End this role" className="text-xs font-bold text-[#C8553D] hover:underline">end</button>
+        </form>))}
+        {!(p.roles as any[]).length && <span className="text-xs text-slate-400">no active role</span>}</div>,
+      <span key="d" className="text-xs text-slate-600">{[p.birth_year ? `${new Date().getFullYear() - p.birth_year} yrs` : '', educationLabel(p.education_level), [p.ward, p.county].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>,
+      p.auth_user_id ? (p.pin_reset_required ? <Badge key="s" tone="gold">temporary PIN</Badge> : <Badge key="s" tone="green">signed in</Badge>) : <Badge key="s" tone="red">no sign-in</Badge>,
+      <ResetPinButton key="x" personId={p.id} />,
+    ])} empty="No one yet." />
+  );
   return (
     <>
       <PageHeader image="/images/trainer-team.jpg" title="Team and people" subtitle="Add the people who work with you, give them a role and a first sign-in, and issue trainer certificates. Nobody can create an account on their own." />
@@ -48,20 +72,16 @@ export default async function Team() {
         <AddPersonForm orgs={T.orgs as any} cohorts={T.cohorts as any} />
       </Card>
 
-      <Card title="Everyone on the platform" className="mt-4">
-        <Table head={['Person', 'Roles', 'Details', 'Sign-in', '']} rows={T.people.map((p) => [
-          <div key="n"><b>{p.full_name}</b><div className="text-xs text-slate-500">{p.phone ?? 'no phone'}</div></div>,
-          <div key="r" className="flex flex-col gap-1">{(p.roles as any[]).map((r) => (
-            <form key={r.id} action={endRole} className="flex items-center gap-1">
-              <input type="hidden" name="assignment" value={r.id} />
-              <Badge tone={r.role === 'founder' ? 'gold' : r.role === 'facilitator' ? 'teal' : 'grey'}>{roleLabel(r.role, r.tier)}{r.org ? ` · ${r.org}` : ''}</Badge>
-              <button title="End this role" className="text-xs font-bold text-[#C8553D] hover:underline">end</button>
-            </form>))}
-            {!(p.roles as any[]).length && <span className="text-xs text-slate-400">no active role</span>}</div>,
-          <span key="d" className="text-xs text-slate-600">{[p.birth_year ? `${new Date().getFullYear() - p.birth_year} yrs` : '', educationLabel(p.education_level), [p.ward, p.county].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>,
-          p.auth_user_id ? (p.pin_reset_required ? <Badge key="s" tone="gold">temporary PIN</Badge> : <Badge key="s" tone="green">signed in</Badge>) : <Badge key="s" tone="red">no sign-in</Badge>,
-          <ResetPinButton key="x" personId={p.id} />,
-        ])} empty="No one yet." />
+      <Card title="Everyone on the platform" subtitle={`${T.people.length} people, grouped so the list stays short. Open a group to see who is in it.`} className="mt-4">
+        <form className="mb-4 flex flex-wrap gap-2"><input name="q" defaultValue={find} placeholder="Search by name or phone" className={`${inputCls} max-w-xs`} /><button className={submitCls}>Search</button>{find && <Link href="/portal/team" className="self-center text-xs font-bold text-teal underline">Clear</Link>}</form>
+        {groups.length === 0 && <p className="text-sm text-slate-600">{find ? 'No one matches that search.' : 'No one yet.'}</p>}
+        <div className="space-y-3">
+          {groups.map((g) => (
+            <details key={g.title} open={!!find || g.open} className="rounded-xl border border-teal-100">
+              <summary className="cursor-pointer select-none px-4 py-3 font-bold text-teal">{g.title} <span className="ml-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-slate-600">{g.people.length}</span></summary>
+              <div className="px-2 pb-3">{personTable(g.people)}</div>
+            </details>))}
+        </div>
       </Card>
 
       <Card title="Who supervises whom" subtitle="Trainee and associate reports go to their supervisor first. Founders see a summary of every report." className="mt-4">
