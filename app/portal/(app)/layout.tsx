@@ -47,6 +47,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
   org_admin: { title: 'Partner', items: [
     { href: '/portal/partner', label: 'Overview', icon: '◉' },
     { href: '/portal/partner/request', label: 'Request training', icon: '✎' },
+    { href: '/portal/partner/trainings', label: 'Your trainings', icon: '▣' },
     { href: '/portal/partner/roster', label: 'Add participants', icon: '+' },
     { href: '/portal/partner/support', label: 'Support given', icon: '♡' },
     { href: '/portal/partner/timeline', label: 'Our deliverables', icon: '◷' },

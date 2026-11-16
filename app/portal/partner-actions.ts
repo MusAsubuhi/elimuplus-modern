@@ -280,3 +280,71 @@ export async function removeSupportFounder(f: FormData) {
   revalidatePath('/portal/finance');
   go('/portal/finance', 'Support entry removed.');
 }
+
+/* ---------- asking for a change to a training already booked ---------- */
+const CHANGEABLE = ['requested', 'quoted', 'confirmed'];
+const iso = (x: unknown) => (x ? String(x).slice(0, 10) : '');
+const nairobiToday = () => new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+const addDays = (day: string, n: number) => new Date(Date.parse(day + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+
+/** A partner asks for a change. Nothing changes until someone at Elimu+ approves it. */
+export async function requestCohortChange(f: FormData) {
+  const me = await requireMe('org_admin');
+  const cohort = s(f, 'cohort');
+  const P = `/portal/partner/trainings?cohort=${cohort}`;
+  const reason = s(f, 'reason', 600);
+  if (!reason) go(P, 'Tell us why the change is needed. It helps us decide quickly.', 'err');
+  let msg = '';
+  try {
+    msg = await asUser(me.id, async (q) => {
+      const c = (await q(`select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1 and c.organisation_id in (select app.my_org_admin_orgs())`, [cohort]))[0];
+      if (!c) throw new Error('This training was not found.');
+      if (!CHANGEABLE.includes(c.status)) throw new Error('This training has already started or finished, so changes can no longer be requested here. Please call us.');
+      if ((await q("select 1 from cohort_change_requests where cohort_id=$1 and status='pending'", [cohort]))[0]) throw new Error('A change request for this training is already waiting for a decision. Withdraw it first if you want to send a different one.');
+      const before = { name: c.name, start_date: iso(c.start_date), venue: c.venue || '', audience: c.audience || '', language: c.language, expected_participants: c.expected_participants };
+      const want: Record<string, any> = {
+        name: s(f, 'name', 120), start_date: s(f, 'start_date', 10), venue: s(f, 'venue', 200), audience: s(f, 'audience', 200),
+        language: s(f, 'language', 2), expected_participants: s(f, 'expected_participants', 5) ? Math.round(Number(s(f, 'expected_participants', 5))) : null,
+      };
+      const changes: Record<string, any> = {};
+      for (const k of Object.keys(want)) {
+        const v = want[k];
+        if (v === '' || v === null || Number.isNaN(v)) continue;
+        if (String((before as any)[k] ?? '') !== String(v)) changes[k] = v;
+      }
+      if (!Object.keys(changes).length) throw new Error('Nothing is different from what we already have. Change at least one detail.');
+      const today = nairobiToday();
+      if (changes.start_date) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(changes.start_date)) throw new Error('Enter the new start date.');
+        if (changes.start_date < today) throw new Error('The new start date cannot be in the past.');
+      }
+      if (changes.language && !['sw', 'en'].includes(changes.language)) throw new Error('Choose Kiswahili or English.');
+      if ('expected_participants' in changes) {
+        const n = changes.expected_participants;
+        if (!(n >= 1 && n <= 500)) throw new Error('Enter a sensible number of participants.');
+        const listed = Number((await q("select count(*)::int n from cohort_roster where cohort_id=$1 and status<>'withdrawn'", [cohort]))[0].n);
+        if (n < listed) throw new Error(`You have already listed ${listed} people. Remove some from the list first, or ask for ${listed} or more.`);
+      }
+      // Close to the start (or after it) is flagged so whoever decides sees it straight away.
+      const startNow = before.start_date;
+      const late = !!startNow && startNow <= addDays(today, 7);
+      await q(`insert into cohort_change_requests(cohort_id, organisation_id, requested_by, changes, before, reason, late) values ($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7)`,
+        [cohort, c.organisation_id, me.id, JSON.stringify(changes), JSON.stringify(before), reason, late]);
+      await alertFounders(q, `${late ? 'Late change requested' : 'Change requested'}: ${c.org_name}`,
+        `${c.name}: ${Object.keys(changes).join(', ')}. ${late ? 'The training starts within a week, so please look at this today. ' : ''}Reason: ${reason}`, '/portal/changes', late ? 'urgent' : 'attention');
+      return late ? 'Your request has been sent. Because the training starts within a week it has been marked urgent. Nothing changes until we approve it.' : 'Your request has been sent. Nothing changes until someone at Elimu+ approves it, and you will see the decision here.';
+    });
+  } catch (e: any) { go(P, e?.message && !/^(error|relation|new row)/i.test(e.message) && e.message.length < 220 ? e.message : 'Could not send the request. Please try again.', 'err'); }
+  await audit(me.id, 'requested a change to a training', 'cohort_change_requests');
+  revalidatePath('/portal/partner/trainings'); revalidatePath('/portal/changes');
+  go(P, msg);
+}
+
+export async function withdrawCohortChange(f: FormData) {
+  const me = await requireMe('org_admin');
+  const id = s(f, 'request'), cohort = s(f, 'cohort');
+  const mine = await asUser(me.id, (q) => q("select id from cohort_change_requests where id=$1 and status='pending' and requested_by is not null", [id]));
+  if (mine.length) await asAdmin((q) => q("update cohort_change_requests set status='withdrawn', decided_at=now() where id=$1 and status='pending'", [id]));
+  revalidatePath('/portal/partner/trainings'); revalidatePath('/portal/changes');
+  go(`/portal/partner/trainings?cohort=${cohort}`, 'Request withdrawn.');
+}

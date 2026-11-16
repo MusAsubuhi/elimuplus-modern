@@ -73,7 +73,8 @@ export default async function Doc({ params }: { params: Promise<{ kind: string; 
       const co = inv.cohort_id ? (await q('select name from cohorts where id=$1', [inv.cohort_id]))[0] : null;
       const paid = Number((await q('select coalesce(sum(amount_kes),0)::int n from payments where invoice_id=$1', [inv.id]))[0].n);
       const lines = inv.quote_id ? await q('select * from quote_lines where quote_id=$1 order by kind', [inv.quote_id]) : [];
-      return { inv, org, co, paid, lines };
+      const pays = await q('select p.amount_kes, p.method, p.reference, p.received_on, r.number rcp from payments p left join receipts r on r.payment_id=p.id where p.invoice_id=$1 order by p.received_on', [inv.id]);
+      return { inv, org, co, paid, lines, pays };
     });
     if (!x) notFound();
     return <Invoice {...x} />;
@@ -187,7 +188,7 @@ function Quotation({ qt, org, co, lines = [] }: any) {
   );
 }
 
-function Invoice({ inv, org, co, paid, lines }: any) {
+function Invoice({ inv, org, co, paid, lines, pays = [] }: any) {
   const bal = inv.amount_kes - paid;
   return (
     <>
@@ -203,6 +204,13 @@ function Invoice({ inv, org, co, paid, lines }: any) {
           <tbody><tr><td className={td}>{inv.description || (inv.kind === 'followup' ? '30, 60 and 90-day follow-up visits' : 'Training')}</td><td className={td}>{kes(inv.amount_kes)}</td></tr>
             <tr><td className={`${td} text-right font-bold`}>Paid so far</td><td className={td}>{kes(paid)}</td></tr>
             <tr><td className={`${td} text-right font-bold`}>Balance due</td><td className={`${td} font-bold`}>{kes(bal)}</td></tr></tbody></table>
+        {pays.length > 0 && (
+          <>
+            <h2 className={h2}>Payments received</h2>
+            <table className="break-inside-avoid mt-2 w-full border-collapse"><thead><tr><th className={th}>Date received</th><th className={th}>Method</th><th className={th}>Reference</th><th className={th}>Receipt</th><th className={th}>Amount</th></tr></thead>
+              <tbody>{pays.map((x: any, i: number) => <tr key={i}><td className={td}>{d(x.received_on)}</td><td className={td}>{x.method}</td><td className={td}>{x.reference || ''}</td><td className={td}>{x.rcp || ''}</td><td className={td}>{kes(x.amount_kes)}</td></tr>)}</tbody></table>
+          </>
+        )}
         {lines.length > 0 && <p className="mt-2 text-xs text-slate-500">Based on quotation lines: {lines.map((l: any) => `${l.description} (${l.qty} × ${kes(l.unit_kes)})`).join('; ')}</p>}
         <h2 className={h2}>How to pay</h2>
         <p className="break-inside-avoid mt-2 text-sm leading-relaxed">Bank transfer: {BANK.name}, account {BANK.number}, {BANK.bank}. Please use <b>{inv.number}</b> as the reference. After paying, sign in to the Elimu+ portal and choose “I have paid” on the invoice, so we can confirm it and send your receipt.</p>

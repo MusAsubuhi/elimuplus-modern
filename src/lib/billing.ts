@@ -17,13 +17,13 @@ export async function nextQuoteNumber(q: Q, code: string) {
   const n = Number((await q('select count(*)::int n from quotes where number like $1', [`ELIMU+-${code}-Q%-${y}`]))[0].n) + 1;
   return `ELIMU+-${code}-Q${n}-${y}`;
 }
-export async function nextInvoiceNumber(q: Q, code: string) {
-  const y = new Date().getFullYear();
+export async function nextInvoiceNumber(q: Q, code: string, year?: number) {
+  const y = year ?? new Date().getFullYear();
   const n = Number((await q('select count(*)::int n from invoices where number like $1', [`ELIMU+-INV-${code}-%-${y}`]))[0].n) + 1;
   return `ELIMU+-INV-${code}-${String(n).padStart(2, '0')}-${y}`;
 }
-export async function nextReceiptNumber(q: Q) {
-  const y = new Date().getFullYear();
+export async function nextReceiptNumber(q: Q, year?: number) {
+  const y = year ?? new Date().getFullYear();
   const n = Number((await q('select count(*)::int n from receipts where number like $1', [`ELIMU+-R-${y}-%`]))[0].n) + 1;
   return `ELIMU+-R-${y}-${String(n).padStart(4, '0')}`;
 }
@@ -49,11 +49,11 @@ export function followupLines(participants: number) {
 }
 
 /** Issue a receipt for a payment that has just been recorded. Safe to call twice. */
-export async function issueReceipt(q: Q, paymentId: string): Promise<{ id: string; token: string; number: string }> {
+export async function issueReceipt(q: Q, paymentId: string, issuedOn?: string): Promise<{ id: string; token: string; number: string }> {
   const have = (await q('select id, number, share_token from receipts where payment_id=$1', [paymentId]))[0];
   if (have) return { id: have.id, token: have.share_token, number: have.number };
-  const num = await nextReceiptNumber(q);
-  const r = (await q('insert into receipts(payment_id, number) values ($1,$2) returning id, share_token', [paymentId, num]))[0];
+  const num = await nextReceiptNumber(q, issuedOn ? Number(issuedOn.slice(0, 4)) : undefined);
+  const r = (await q('insert into receipts(payment_id, number, issued_on) values ($1,$2,coalesce($3::date, current_date)) returning id, share_token', [paymentId, num, issuedOn ?? null]))[0];
   return { id: r.id, token: r.share_token, number: num };
 }
 
@@ -76,13 +76,13 @@ export async function orgContacts(orgId: string): Promise<string[]> {
 }
 
 /** Create an invoice from a quote. Used by the founders' Deals page and by the daily job that bills follow-ups. */
-export async function createInvoice(q: Q, o: { quoteId: string | null; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string; issuedOn?: string }) {
+export async function createInvoice(q: Q, o: { quoteId: string | null; orgId: string; cohortId: string | null; kind: 'training' | 'followup' | 'other'; visit?: 30 | 60 | 90; amount: number; description: string; dueOn: string; issuedOn?: string; number?: string; manualNote?: string }) {
   const org = (await q('select name, code from organisations where id=$1', [o.orgId]))[0];
-  const num = await nextInvoiceNumber(q, orgCode(org.name, org.code));
+  const num = o.number || await nextInvoiceNumber(q, orgCode(org.name, org.code), o.issuedOn ? Number(o.issuedOn.slice(0, 4)) : undefined);
   const r = (await q(
-    `insert into invoices(quote_id, organisation_id, cohort_id, number, issued_on, due_on, amount_kes, status, kind, description, visit)
-     values ($1,$2,$3,$4,coalesce($10::date, current_date),$5,$6,'issued',$7,$8,$9) returning id, number, share_token`,
-    [o.quoteId, o.orgId, o.cohortId, num, o.dueOn, o.amount, o.kind, o.description, o.visit ?? null, o.issuedOn ?? null]))[0];
+    `insert into invoices(quote_id, organisation_id, cohort_id, number, issued_on, due_on, amount_kes, status, kind, description, visit, manual, manual_note)
+     values ($1,$2,$3,$4,coalesce($10::date, current_date),$5,$6,'issued',$7,$8,$9,$11,$12) returning id, number, share_token`,
+    [o.quoteId, o.orgId, o.cohortId, num, o.dueOn, o.amount, o.kind, o.description, o.visit ?? null, o.issuedOn ?? null, !!o.manualNote, o.manualNote ?? null]))[0];
   return { id: r.id as string, number: r.number as string, token: r.share_token as string };
 }
 

@@ -391,10 +391,15 @@ export async function recordPayment(f: FormData) {
   const amount = Number(s(f, 'amount'));
   const dest = s(f, 'back') === '/portal/deals' ? '/portal/deals' : '/portal/finance';
   if (!(amount > 0)) back(dest, 'Enter an amount.', 'err');
+  const today = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+  const on = s(f, 'received_on') || today;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(on)) back(dest, 'Enter the date the money came in.', 'err');
+  if (on > today) back(dest, 'The date received cannot be in the future.', 'err');
+  if (on < '2025-12-01') back(dest, 'Elimu+ started in December 2025, so the date received cannot be earlier than that.', 'err');
   await asUser(me.id, async (q) => {
-    const pay = (await q('insert into payments(invoice_id,amount_kes,method,reference,received_on,recorded_by) values($1,$2,$3,$4,current_date,$5) returning id',
-      [inv, amount, s(f, 'method') || 'mpesa', s(f, 'reference'), me.id]))[0];
-    await issueReceipt(q, pay.id);
+    const pay = (await q('insert into payments(invoice_id,amount_kes,method,reference,received_on,recorded_by) values($1,$2,$3,$4,$5::date,$6) returning id',
+      [inv, amount, ['mpesa', 'bank', 'cash', 'card'].includes(s(f, 'method')) ? s(f, 'method') : 'mpesa', s(f, 'reference'), on, me.id]))[0];
+    await issueReceipt(q, pay.id, on);
     const r = (await q(`select i.amount_kes::int a, coalesce((select sum(amount_kes) from payments where invoice_id=i.id),0)::int p from invoices i where i.id=$1`, [inv]))[0];
     await q('update invoices set status=$2 where id=$1', [inv, r.p >= r.a ? 'paid' : 'part_paid']);
   });

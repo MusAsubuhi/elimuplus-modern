@@ -223,7 +223,7 @@ export async function confirmNotice(f: FormData) {
         [n.invoice_id, amount, n.method, n.reference, n.paid_on, me.id]))[0];
       const r = (await q(`select i.amount_kes::int a, coalesce((select sum(amount_kes) from payments where invoice_id=i.id),0)::int p from invoices i where i.id=$1`, [n.invoice_id]))[0];
       await q('update invoices set status=$2 where id=$1', [n.invoice_id, r.p >= r.a ? 'paid' : 'part_paid']);
-      const rc = await issueReceipt(q, p.id);
+      const rc = await issueReceipt(q, p.id, n.paid_on ? String(n.paid_on).slice(0, 10) : undefined);
       await q("update payment_notices set status='confirmed', reviewed_by=$2, reviewed_at=now(), payment_id=$3 where id=$1", [id, me.id, p.id]);
       const org = (await q('select name, contact_email, contact_person from organisations where id=$1', [n.organisation_id]))[0];
       const err = await mailDoc(org?.contact_email ? [org.contact_email] : [], `Elimu+ receipt ${rc.number}`,
@@ -255,4 +255,52 @@ export async function resendReceipt(f: FormData) {
   await asUser(me.id, (q) => q('update receipts set sent_at=now() where id=$1', [x.id]));
   revalidatePath(P);
   back(`Receipt ${x.number} sent.`);
+}
+
+
+/** Founders add an invoice by hand for work delivered before the portal could record it, optionally with the payment that settled it. */
+export async function addEarlierInvoice(f: FormData) {
+  const me = await requireMe('founder');
+  const today = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+  const isDate = (x: string) => /^\d{4}-\d{2}-\d{2}$/.test(x);
+  const org = s(f, 'org'), cohort = s(f, 'cohort') || null, desc = s(f, 'description', 300), note = s(f, 'note', 400);
+  const amount = Math.round(Number(s(f, 'amount'))), issued = s(f, 'issued_on'), due = s(f, 'due_on') || issued;
+  const kind = (['training', 'followup', 'other'].includes(s(f, 'kind')) ? s(f, 'kind') : 'training') as 'training' | 'followup' | 'other';
+  const paidAmt = Math.round(Number(s(f, 'paid_amount')) || 0), paidOn = s(f, 'paid_on');
+  if (!org) back('Choose the organisation.', 'err');
+  if (!desc) back('Describe what the invoice is for.', 'err');
+  if (!(amount > 0)) back('Enter the invoice amount.', 'err');
+  if (!isDate(issued) || !isDate(due)) back('Enter the date the invoice should carry.', 'err');
+  if (issued < '2025-12-01') back('Elimu+ started in December 2025, so an invoice cannot be dated earlier than that.', 'err');
+  if (issued > today) back('An earlier invoice cannot be dated in the future. Use a normal quotation for new work.', 'err');
+  if (due < issued) back('The due date cannot be before the issue date.', 'err');
+  if (paidAmt > amount) back('The amount received is more than the invoice.', 'err');
+  if (paidAmt > 0) {
+    if (!isDate(paidOn)) back('Enter the date the money came in.', 'err');
+    if (paidOn < issued) back('The money cannot come in before the invoice date. Move the invoice date earlier.', 'err');
+    if (paidOn > today) back('The date received cannot be in the future.', 'err');
+  }
+  const manualNo = s(f, 'number', 60);
+  let msg = '';
+  try {
+    msg = await asUser(me.id, async (q) => {
+      if (manualNo && (await q('select 1 from invoices where number=$1', [manualNo]))[0]) throw new Error('dup');
+      const inv = await createInvoice(q, { quoteId: null, orgId: org, cohortId: cohort, kind, amount, description: desc, dueOn: due, issuedOn: issued, number: manualNo || undefined, manualNote: note || 'Added by hand for earlier work' });
+      let out = `Invoice ${inv.number} dated ${issued} added.`;
+      if (paidAmt > 0) {
+        const pay = (await q('insert into payments(invoice_id,amount_kes,method,reference,received_on,recorded_by) values($1,$2,$3,$4,$5::date,$6) returning id',
+          [inv.id, paidAmt, ['mpesa', 'bank', 'cash', 'card'].includes(s(f, 'method')) ? s(f, 'method') : 'mpesa', s(f, 'reference', 60), paidOn, me.id]))[0];
+        await q('update invoices set status=$2 where id=$1', [inv.id, paidAmt >= amount ? 'paid' : 'part_paid']);
+        const rc = await issueReceipt(q, pay.id, paidOn);
+        out += ` Payment of KES ${paidAmt.toLocaleString('en-KE')} recorded on ${paidOn} and receipt ${rc.number} issued with that date. It now counts in cash received for that day.`;
+      }
+      return out;
+    });
+  } catch (e: any) {
+    console.error('[earlier invoice]', e);
+    back(e?.message === 'dup' ? 'That invoice number is already used.' : 'Could not add the invoice. Check the details and try again.', 'err');
+  }
+  await audit(me.id, `added earlier invoice (${issued}) KES ${amount}${paidAmt ? `, paid ${paidAmt} on ${paidOn}` : ''}`, 'invoices');
+  revalidatePath('/portal', 'layout');
+  back(msg + ' Press Email on the invoice or receipt below to send it.');
 }

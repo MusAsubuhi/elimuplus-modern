@@ -5,7 +5,7 @@ import { d, kes } from '@/lib/format';
 import { docUrl } from '@/lib/billing';
 import { training } from '@/lib/pricing';
 import { recordPayment } from '../../actions';
-import { acceptDeal, applyDiscount, confirmNotice, createDeal, declineDeal, quoteFollowups, rejectNotice, removeDiscount, resendReceipt, sendDeal, sendInvoice } from '../../deal-actions';
+import { acceptDeal, addEarlierInvoice, applyDiscount, confirmNotice, createDeal, declineDeal, quoteFollowups, rejectNotice, removeDiscount, resendReceipt, sendDeal, sendInvoice } from '../../deal-actions';
 
 const mini = 'rounded border border-teal-100 bg-white px-2 py-1 text-xs font-bold text-teal hover:bg-mist';
 const Hidden = ({ k, v }: { k: string; v: string }) => <input type="hidden" name={k} value={v} />;
@@ -21,6 +21,7 @@ export default async function Deals() {
       (select count(*)::int from enrolments e where e.cohort_id=qt.cohort_id and e.status <> 'dropped') enrolled
       from quotes qt join organisations o on o.id=qt.organisation_id left join cohorts c on c.id=qt.cohort_id order by qt.issued_on desc, qt.number desc nulls last`),
     invoices: await q(`select i.*, o.name org_name, coalesce((select sum(amount_kes) from payments p where p.invoice_id=i.id),0)::int paid from invoices i join organisations o on o.id=i.organisation_id order by i.issued_on desc`),
+    cohorts: await q(`select c.id, c.name, c.organisation_id from cohorts c order by c.created_at desc`),
     notices: await q(`select n.*, i.number inv, o.name org_name from payment_notices n join invoices i on i.id=n.invoice_id join organisations o on o.id=n.organisation_id where n.status='pending' order by n.created_at`),
     receipts: await q(`select r.*, p.amount_kes, i.number inv, o.name org_name from receipts r join payments p on p.id=r.payment_id join invoices i on i.id=p.invoice_id join organisations o on o.id=i.organisation_id order by r.issued_on desc, r.number desc limit 30`),
   }));
@@ -127,18 +128,19 @@ export default async function Deals() {
 
       <Card title="Invoices" className="mt-4" subtitle="The quotation is dated the day it is placed. The training invoice is raised automatically the day after the programme ends (5 or 12 days). The follow-up visits are quoted separately once the training is done (“Quote the follow-ups” on the quotation); after that quotation is accepted, each visit is invoiced automatically about two weeks before it, at a third of the follow-up fee.">
         <Table head={['Invoice', 'Partner', 'Type', 'Amount', 'Paid', 'Due', 'Status', '']}
-          rows={X.invoices.map((i) => [<b key="n">{i.number}</b>, i.org_name, i.kind, kes(i.amount_kes), kes(i.paid), d(i.due_on), <Badge key="s" tone={statusTone(i.status)}>{i.status}</Badge>,
+          rows={X.invoices.map((i) => [<b key="n">{i.number}</b>, i.org_name, i.manual ? `${i.kind} (earlier)` : i.kind, kes(i.amount_kes), kes(i.paid), d(i.due_on), <Badge key="s" tone={statusTone(i.status)}>{i.status}</Badge>,
             <div key="a" className="flex gap-2"><a className={mini} href={docUrl('invoice', i.share_token)} target="_blank">Open</a>
               <form action={sendInvoice}><Hidden k="invoice" v={i.id} /><button className={mini}>{i.sent_at ? 'Resend' : 'Email'}</button></form></div>])} />
         {X.invoices.some((i) => i.amount_kes - i.paid > 0) && (
           <form action={recordPayment} className="mt-4 rounded-lg bg-mist p-3 text-sm">
             <p className="mb-2 font-bold text-teal">Record a payment you received</p>
             <Hidden k="back" v="/portal/deals" />
-            <div className="grid gap-2 sm:grid-cols-5">
+            <div className="grid gap-2 sm:grid-cols-6">
               <select name="invoice" className={inputCls}>{X.invoices.filter((i) => i.amount_kes - i.paid > 0).map((i) => <option key={i.id} value={i.id}>{i.number} · {i.org_name} · {kes(i.amount_kes - i.paid)} due</option>)}</select>
               <input name="amount" type="number" min="1" placeholder="Amount received (KES)" required className={inputCls} />
               <select name="method" className={inputCls}><option value="mpesa">M-Pesa</option><option value="bank">Bank</option><option value="cash">Cash</option></select>
               <input name="reference" placeholder="M-Pesa code / reference" className={inputCls} />
+              <input name="received_on" type="date" min="2025-12-01" max={new Date().toISOString().slice(0, 10)} defaultValue={new Date().toISOString().slice(0, 10)} aria-label="Date the money came in" title="Date the money came in" className={inputCls} />
               <button className={submitCls}>Record payment</button>
             </div>
             <p className="mt-2 text-xs text-slate-500">Recording a payment marks the invoice paid (or part paid) and creates the receipt. It appears in the Receipts list at the bottom of this page, where you press Email to send it. If the partner told you they paid through their portal, confirm it in the box at the top instead.</p>
@@ -151,6 +153,34 @@ export default async function Deals() {
           </div>
         )}
         <p className="mt-3 text-xs text-slate-500">The flow: quotation placed and accepted, programme delivered, invoice raised the next day, partner pays, you record the payment (or confirm their notice), the receipt is created below and emailed.</p>
+      </Card>
+
+      <Card title="Add an earlier invoice" className="mt-4" subtitle="For work delivered since December 2025 that was never invoiced in the portal. Choose the dates it should carry. If the money has already come in, fill in the payment part too: the receipt takes the date received and the amount counts in cash received on that day.">
+        <form action={addEarlierInvoice} className="space-y-3 text-sm">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <select name="org" required className={inputCls}><option value="">Organisation</option>{X.orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select>
+            <select name="cohort" className={inputCls}><option value="">Not linked to a cohort</option>{X.cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <select name="kind" className={inputCls}><option value="training">Training</option><option value="followup">Follow-up visits</option><option value="other">Other</option></select>
+          </div>
+          <input name="description" required placeholder="What it is for, e.g. Entrepreneurship training for 30 youth, 3 to 7 Feb 2026" className={inputCls + ' w-full'} />
+          <div className="grid gap-2 sm:grid-cols-4">
+            <input name="amount" type="number" min="1" required placeholder="Invoice amount (KES)" className={inputCls} />
+            <label className="text-xs text-slate-600">Invoice date<input name="issued_on" type="date" min="2025-12-01" max={new Date().toISOString().slice(0, 10)} required className={inputCls + ' w-full'} /></label>
+            <label className="text-xs text-slate-600">Due date (optional)<input name="due_on" type="date" className={inputCls + ' w-full'} /></label>
+            <label className="text-xs text-slate-600">Own number (optional)<input name="number" placeholder="Leave blank for the next number" className={inputCls + ' w-full'} /></label>
+          </div>
+          <div className="rounded-lg bg-mist p-3">
+            <p className="mb-2 font-bold text-teal">How the money came in (leave blank if unpaid)</p>
+            <div className="grid gap-2 sm:grid-cols-5">
+              <input name="paid_amount" type="number" min="1" placeholder="Amount received (KES)" className={inputCls} />
+              <input name="paid_on" type="date" min="2025-12-01" max={new Date().toISOString().slice(0, 10)} aria-label="Date received" title="Date received" className={inputCls} />
+              <select name="method" className={inputCls}><option value="mpesa">M-Pesa</option><option value="bank">Bank</option><option value="cash">Cash</option><option value="card">Card</option></select>
+              <input name="reference" placeholder="M-Pesa code / reference" className={inputCls} />
+              <button className={submitCls}>Add invoice</button>
+            </div>
+          </div>
+          <input name="note" placeholder="Note for the record (optional)" className={inputCls + ' w-full'} />
+        </form>
       </Card>
 
       <Card title="Receipts" className="mt-4">
