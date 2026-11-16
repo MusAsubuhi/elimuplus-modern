@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
+import { asAdmin, asUser } from '@/lib/db';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, submitCls } from '@/components/ui';
 import { d } from '@/lib/format';
@@ -9,14 +9,16 @@ import { markAttendance } from '../../actions';
 
 const iso = (x: any) => (x instanceof Date ? x.toISOString().slice(0, 10) : String(x ?? '').slice(0, 10));
 
+import { advanceCohortStatuses } from '@/lib/cohort-status';
 export default async function Attendance({ searchParams }: { searchParams: Promise<{ c?: string; s?: string }> }) {
   const me = await requireMe('facilitator', 'founder');
   const sp = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
+  await asAdmin((q) => advanceCohortStatuses(q)).catch(() => {});
   const cards = await asUser(me.id, async (q) => {
     // cohorts that are running, or start in the next two days; each gets its programme days created if they are missing
     const cohorts = await q(`select c.id, c.name, c.format, c.start_date, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id
-      where c.status in ('quoted','confirmed','delivering') and c.start_date is not null and c.start_date <= current_date + 2 order by c.start_date`);
+      where c.status in ('quoted','confirmed','delivering','followup') and c.start_date is not null and c.start_date <= current_date + 2 order by c.start_date`);
     const out: any[] = [];
     for (const c of cohorts) {
       await ensureSessions(q, c.id);
