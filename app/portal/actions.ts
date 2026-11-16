@@ -435,7 +435,11 @@ export async function removeParticipant(f: FormData) {
     name = await asAdmin(async (q) => {
       const e = (await q('select e.id, p.id person_id, p.display_name from enrolments e join people p on p.id=e.person_id where e.id=$1 and e.cohort_id=$2', [eid, cohort]))[0];
       if (!e) throw new Error('gone');
-      if ((await q('select 1 from participant_stories where enrolment_id=$1 limit 1', [eid]))[0]) throw new Error('story');
+      // Records that are evidence about a person (money, welfare, stories, certificates, listings) are never deleted here.
+      for (const [tbl, what] of [['participant_stories', 'a story'], ['support_ledger', 'support entries'], ['welfare_flags', 'a welfare flag'], ['participant_certificates', 'a certificate'], ['directory_listings', 'a directory listing']])
+        if ((await q(`select 1 from ${tbl} where enrolment_id=$1 limit 1`, [eid]))[0]) throw new Error(`keep:${what}`);
+      // Everything else belongs to the place in the cohort and goes with it.
+      for (const tbl of ['attendance', 'followup_schedule', 'canvases', 'baselines', 'learning_checks', 'exit_feedback']) await q(`delete from ${tbl} where enrolment_id=$1`, [eid]);
       await q('delete from cohort_roster where enrolment_id=$1', [eid]);
       await q('delete from enrolments where id=$1', [eid]);
       // the register summaries were counted with this person in them, so count again without
@@ -443,7 +447,7 @@ export async function removeParticipant(f: FormData) {
       return e.display_name as string;
     });
   } catch (e: any) {
-    back(`${P}/participants/${eid}`, e?.message === 'story' ? 'This participant has a story on record. Withdraw the story first, then remove them.' : 'Could not remove that participant. They may already be gone.', 'err');
+    back(`${P}/participants/${eid}`, String(e?.message).startsWith('keep:') ? `This participant has ${String(e.message).slice(5)} on record, which is not deleted here. Handle that first, then remove them.` : 'Could not remove that participant. They may already be gone.', 'err');
   }
   await audit(me.id, `removed ${name} from a cohort's participants (person and other roles kept)`, 'enrolments');
   revalidatePath(P); revalidatePath('/portal/cohorts'); revalidatePath('/portal/partner/roster'); revalidatePath('/portal/partner');
