@@ -2,6 +2,7 @@
 import { audit } from '@/lib/audit';
 import { trainingDates, programmeDays } from '@/lib/billing';
 import { syncDaySummary } from '@/lib/sessions';
+import { refreshCompletion } from '@/lib/completion';
 import { alertFounders, issueReceipt, nextQuoteNumber, orgCode, quoteLines } from '@/lib/billing';
 import { MIN_SESSIONS } from '@/lib/pricing';
 import { cookies } from 'next/headers';
@@ -156,6 +157,7 @@ export async function markAttendance(f: FormData) {
     await q('update sessions set attendance_confirmed_at=now(), attendance_confirmed_by=$2 where id=$1 and cohort_id=$3', [session, me.id, cohort]);
     await syncDaySummary(q, cohort, session, me.id);
   });
+  await asAdmin((q) => refreshCompletion(q, cohort)).catch(() => {});
   const ret = s(f, 'back') === 'attendance' ? '/portal/attendance' : `/portal/cohorts/${cohort}`;
   revalidatePath(`/portal/cohorts/${cohort}`); revalidatePath('/portal/attendance'); revalidatePath('/portal/needs'); revalidatePath('/portal/partner/timeline');
   back(ret, 'Attendance confirmed');
@@ -452,4 +454,54 @@ export async function removeParticipant(f: FormData) {
   await audit(me.id, `removed ${name} from a cohort's participants (person and other roles kept)`, 'enrolments');
   revalidatePath(P); revalidatePath('/portal/cohorts'); revalidatePath('/portal/partner/roster'); revalidatePath('/portal/partner');
   back(P, `${name} was removed from this cohort's participants. Their account and any other roles are unchanged.`);
+}
+
+
+/** Someone attended outside the normal class times: a trainer or founder records which days were made up, when, and a note. The class register still shows them absent that day; completion counts the make-up. */
+export async function recordMakeup(f: FormData) {
+  const me = await requireMe('facilitator', 'founder');
+  const eid = s(f, 'enrolment'), cohort = s(f, 'cohort');
+  const P = `/portal/cohorts/${cohort}/participants/${eid}`;
+  const days = f.getAll('day').map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0 && n <= 12);
+  const on = s(f, 'made_up_on'), note = s(f, 'note').slice(0, 300);
+  const today = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+  if (!days.length) back(P, 'Tick the day or days that were made up.', 'err');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(on) || on > today) back(P, 'Enter the date they attended. It cannot be in the future.', 'err');
+  if (!note) back(P, 'Add a short note, for example who taught them and where, so the record can be trusted later.', 'err');
+  let done = 0;
+  try {
+    done = await asUser(me.id, async (q) => {
+      const e = (await q('select id from enrolments where id=$1 and cohort_id=$2', [eid, cohort]))[0];
+      if (!e) throw new Error('gone');
+      let n = 0;
+      for (const day of days) {
+        const se = (await q('select id from sessions where cohort_id=$1 and day_number=$2', [cohort, day]))[0];
+        if (!se) continue;
+        const have = (await q('select present from attendance where session_id=$1 and enrolment_id=$2', [se.id, eid]))[0];
+        if (have?.present) continue; // they were there on the day
+        await q(`insert into attendance(session_id, enrolment_id, present, made_up_on, made_up_note, made_up_by) values ($1,$2,false,$3::date,$4,$5)
+                 on conflict (session_id, enrolment_id) do update set made_up_on=excluded.made_up_on, made_up_note=excluded.made_up_note, made_up_by=excluded.made_up_by`, [se.id, eid, on, note, me.id]);
+        n++;
+      }
+      return n;
+    });
+  } catch (e) { console.error('[makeup]', e); back(P, 'Could not record that. Check that this person is in the cohort.', 'err'); }
+  if (!done) back(P, 'Nothing to record: they were already marked present on those days.', 'err');
+  const moved = await asAdmin((q) => refreshCompletion(q, cohort)).catch(() => 0);
+  await audit(me.id, `recorded ${done} make-up day(s) attended ${on}`, 'attendance');
+  revalidatePath(P); revalidatePath(`/portal/cohorts/${cohort}`); revalidatePath('/portal/cohorts');
+  back(P, `${done} make-up day${done === 1 ? '' : 's'} recorded.${moved ? ' They now count as having completed the programme.' : ''}`);
+}
+
+export async function clearMakeup(f: FormData) {
+  const me = await requireMe('facilitator', 'founder');
+  const eid = s(f, 'enrolment'), cohort = s(f, 'cohort'), day = Number(s(f, 'day'));
+  const P = `/portal/cohorts/${cohort}/participants/${eid}`;
+  await asUser(me.id, async (q) => {
+    await q(`update attendance a set made_up_on=null, made_up_note=null, made_up_by=null from sessions se
+             where se.id=a.session_id and se.cohort_id=$1 and se.day_number=$2 and a.enrolment_id=$3 and not a.present`, [cohort, day, eid]);
+  });
+  await audit(me.id, `removed a make-up record for day ${day}`, 'attendance');
+  revalidatePath(P); revalidatePath(`/portal/cohorts/${cohort}`);
+  back(P, 'Make-up record removed. Completion is not taken back automatically; change the status below if needed.');
 }

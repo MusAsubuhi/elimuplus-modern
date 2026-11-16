@@ -5,7 +5,7 @@ import { requireMe } from '@/lib/session';
 import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { d, kes, pct } from '@/lib/format';
 import { label } from '@/lib/impact';
-import { recordExit, removeParticipant } from '../../../../../actions';
+import { clearMakeup, recordExit, recordMakeup, removeParticipant } from '../../../../../actions';
 import { erasePerson } from '../../../../../story-actions';
 
 const yn = (v: unknown) => (v === true ? 'Yes' : v === false ? 'No' : '—');
@@ -20,23 +20,24 @@ export default async function Participant({ params }: { params: Promise<{ id: st
       (select r.own_consent from cohort_roster r where r.cohort_id = e.cohort_id and r.phone = p.phone limit 1) roster_own
       from enrolments e join people p on p.id = e.person_id join cohorts c on c.id = e.cohort_id where e.id = $1 and e.cohort_id = $2`, [eid, id]))[0];
     if (!e) return null;
-    const [base, learn, exit, adult, youth, att, boxes, support, welfare, sched, stories] = await Promise.all([
+    const [base, learn, exit, adult, youth, att, days, boxes, support, welfare, sched, stories] = await Promise.all([
       q('select * from baselines where enrolment_id = $1', [eid]),
       q('select * from learning_checks where enrolment_id = $1 order by stage desc', [eid]),
       q('select * from exit_feedback where enrolment_id = $1', [eid]),
       q('select * from followup_forms where enrolment_id = $1 order by stage, visited_on', [eid]),
       q('select * from youth_followups where enrolment_id = $1 order by stage, visited_on', [eid]),
-      q('select count(*) filter (where a.present)::int present, count(*)::int total from attendance a join sessions s on s.id = a.session_id where s.cohort_id = $1 and a.enrolment_id = $2', [id, eid]),
+      q('select count(*) filter (where a.present)::int present, count(*) filter (where not a.present and a.made_up_on is not null)::int madeup, count(*)::int total from attendance a join sessions s on s.id = a.session_id where s.cohort_id = $1 and a.enrolment_id = $2', [id, eid]),
+      q('select s.day_number, s.session_date, a.present, a.made_up_on, a.made_up_note from sessions s left join attendance a on a.session_id = s.id and a.enrolment_id = $2 where s.cohort_id = $1 order by s.day_number', [id, eid]),
       q('select count(distinct a.box_number)::int n from canvas_answers a join canvases cv on cv.id = a.canvas_id where cv.enrolment_id = $1', [eid]),
       q('select entry_date, item, amount_kes, funder from support_ledger where enrolment_id = $1 order by entry_date', [eid]),
       q('select category, summary, status, created_at from welfare_flags where enrolment_id = $1 order by created_at desc', [eid]),
       q('select visit, due_date, status from followup_schedule where enrolment_id = $1 order by visit', [eid]),
       q(`select id, title, status, created_at from participant_stories where enrolment_id = $1 and status <> 'withdrawn' order by created_at desc`, [eid]),
     ]);
-    return { e, base: base[0], learn, exit: exit[0], adult, youth, att: att[0], boxes: boxes[0]?.n ?? 0, support, welfare, sched, stories };
+    return { e, base: base[0], learn, exit: exit[0], adult, youth, att: att[0], days, boxes: boxes[0]?.n ?? 0, support, welfare, sched, stories };
   });
   if (!x) notFound();
-  const { e, base: b, learn, exit, adult, youth, att, boxes, support, welfare, sched, stories } = x;
+  const { e, base: b, learn, exit, adult, youth, att, days, boxes, support, welfare, sched, stories } = x;
   const pre = learn.find((l) => l.stage === 'pre'), post = learn.find((l) => l.stage === 'post');
   const minor = !!e.birth_year && new Date().getFullYear() - e.birth_year < 18;
   const isYouth = b?.kind === 'youth' || (!b && e.birth_year && new Date().getFullYear() - e.birth_year < 25);
@@ -50,7 +51,7 @@ export default async function Participant({ params }: { params: Promise<{ id: st
       </PageHeader>
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Status" value={<Badge tone={statusTone(e.status)}>{e.status}</Badge>} sub={e.exit_reason ? label(e.exit_reason) : undefined} />
-        <Stat tone="green" label="Attendance" value={att?.total ? `${pct(att.present, att.total)}%` : '—'} sub={att?.total ? `${att.present} of ${att.total} sessions` : undefined} />
+        <Stat tone="green" label="Attendance" value={att?.total ? `${pct(att.present + att.madeup, att.total)}%` : '—'} sub={att?.total ? `${att.present + att.madeup} of ${att.total} sessions${att.madeup ? ` (${att.madeup} made up)` : ''}` : undefined} />
         <Stat tone="gold" label="Learning" value={pre && post ? `${Math.round(100 * pre.score / pre.out_of)}% → ${Math.round(100 * post.score / post.out_of)}%` : pre ? `${Math.round(100 * pre.score / pre.out_of)}%` : '—'} sub="Before and after the training" />
         <Stat label="Canvas" value={`${boxes}/12`} sub="boxes filled" />
       </div>
@@ -103,6 +104,33 @@ export default async function Participant({ params }: { params: Promise<{ id: st
         <Card title="Start-up support given"><Table head={['Date', 'Item', 'Amount', 'Funder']} rows={support.map((s) => [d(s.entry_date), s.item, kes(s.amount_kes), s.funder ?? '—'])} empty="None recorded." /></Card>
         <Card title="Welfare flags"><Table head={['Raised', 'Category', 'Summary', 'Status']} rows={welfare.map((w) => [d(w.created_at), t(w.category), w.summary, <Badge key="s" tone={statusTone(w.status)}>{w.status}</Badge>])} empty="None." /></Card>
       </div>
+
+      <Card title="Attendance by day" className="mt-4" subtitle="Four of five days (ten of twelve) completes the programme. Someone who came outside the normal class times can have those days recorded as made up.">
+        <div className="flex flex-wrap gap-2 text-sm">
+          {days.map((x: any) => (
+            <div key={x.day_number} className={`rounded-lg border px-3 py-2 ${x.present ? 'border-emerald-200 bg-emerald-50' : x.made_up_on ? 'border-gold/50 bg-gold/10' : 'border-teal-100 bg-white'}`}>
+              <b>Day {x.day_number}</b> <span className="text-xs text-slate-600">{x.session_date ? d(x.session_date) : ''}</span>
+              <div className="text-xs">{x.present ? 'Present' : x.made_up_on ? `Made up on ${d(x.made_up_on)}` : x.present === false ? 'Absent' : 'Not recorded'}</div>
+              {x.made_up_note && <div className="max-w-[16rem] text-xs text-slate-600">{x.made_up_note}</div>}
+              {!x.present && x.made_up_on && (
+                <form action={clearMakeup}><input type="hidden" name="enrolment" value={eid} /><input type="hidden" name="cohort" value={id} /><input type="hidden" name="day" value={x.day_number} /><button className="mt-1 text-xs font-bold text-red-700 underline">Remove make-up</button></form>
+              )}
+            </div>
+          ))}
+        </div>
+        {days.some((x: any) => !x.present) && (
+          <form action={recordMakeup} className="mt-4 space-y-2 rounded-lg bg-mist p-3 text-sm">
+            <input type="hidden" name="enrolment" value={eid} /><input type="hidden" name="cohort" value={id} />
+            <p className="font-bold text-teal">Record a make-up lesson</p>
+            <div className="flex flex-wrap gap-3">{days.filter((x: any) => !x.present).map((x: any) => <label key={x.day_number} className="flex items-center gap-1"><input type="checkbox" name="day" value={x.day_number} /> Day {x.day_number}</label>)}</div>
+            <div className="grid gap-2 sm:grid-cols-4">
+              <label className="text-xs text-slate-600">Date they attended<input name="made_up_on" type="date" required className={inputCls} /></label>
+              <input name="note" required maxLength={300} placeholder="Note: who taught them, where, why it was outside class" className={`${inputCls} sm:col-span-2 self-end`} />
+              <button className={`${submitCls} self-end`}>Record</button>
+            </div>
+          </form>
+        )}
+      </Card>
 
       <Card title="Completed or left early" className="mt-4" subtitle="Give a reason when someone leaves, so partners see why and not only a number.">
         <form action={recordExit} className="grid gap-2 text-sm sm:grid-cols-4">

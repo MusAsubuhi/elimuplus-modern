@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { asAdmin } from '@/lib/db';
+import { refreshCompletion } from '@/lib/completion';
 import { addDaysIso, alertFounders, createInvoice, docUrl, mailDoc, orgContacts, releaseDueQuotes, splitFollowup, trainingEnds, visitDates } from '@/lib/billing';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: Request) {
   const auth = req.headers.get('authorization');
   if (!process.env.CRON_SECRET || auth !== `Bearer ${process.env.CRON_SECRET}`) return NextResponse.json({ error: 'unauthorised' }, { status: 401 });
+  await asAdmin((q) => refreshCompletion(q)).catch((e) => console.error('[completion]', e));
   const released = await releaseDueQuotes().catch((e) => { console.error('[release]', e); return 0; });
   const today = new Date().toISOString().slice(0, 10);
   const horizon = addDaysIso(today, 14), earliest = addDaysIso(today, -3);

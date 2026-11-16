@@ -1,7 +1,8 @@
 import { dateRange } from '@/lib/billing';
 import { greeting } from '@/lib/i18n';
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
+import { asAdmin, asUser } from '@/lib/db';
+import { refreshCompletion } from '@/lib/completion';
 import { requirePartner } from '@/lib/session';
 import { partnerData } from '@/lib/partner';
 import { Badge, Card, ImgBand, PageHeader, Stat, Table, statusTone, inputCls, submitCls } from '@/components/ui';
@@ -17,6 +18,7 @@ import { signSessionPhotos } from '@/lib/session-photos';
 export default async function Partner({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   const sp = await searchParams;
   const me = await requirePartner();
+  await asAdmin((q) => refreshCompletion(q)).catch(() => {});
   const { orgs, cohorts, follow, roster, noms, impact, photos } = await asUser(me.id, async (q) => ({
     photos: await q("select p.id, p.day_number, p.storage_path, p.caption, p.status, c.name cohort_name from session_photos p join cohorts c on c.id=p.cohort_id where p.status='approved' order by c.seq, p.day_number").catch(() => []),
     ...(await partnerData(q)),

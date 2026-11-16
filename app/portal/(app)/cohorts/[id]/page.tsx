@@ -1,7 +1,8 @@
 import { dateRange, trainingEnds } from '@/lib/billing';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { asUser } from '@/lib/db';
+import { asAdmin, asUser } from '@/lib/db';
+import { refreshCompletion } from '@/lib/completion';
 import { requireMe } from '@/lib/session';
 import { Badge, Card, ImgBand, PageHeader, Stat, Table, inputCls, statusTone, submitCls } from '@/components/ui';
 import { BarCard, PieCard } from '@/components/charts';
@@ -20,6 +21,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const me = await requireMe('facilitator', 'founder');
   const { id } = await params;
   const sp = await searchParams;
+  await asAdmin((q) => refreshCompletion(q, id)).catch(() => {});
   const data = await asUser(me.id, async (q) => {
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
@@ -42,7 +44,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
       q(`select id, stage, participant_name, visited_on, business_status, urgent, sales_range, stock_value_kes, answers from followup_forms where cohort_id=$1 order by visited_on desc, created_at desc`, [id]),
       q("select id, full_name, phone, status from cohort_roster where cohort_id=$1 order by created_at", [id]),
       q('select * from day_summaries where cohort_id=$1', [id]),
-      q('select e.id, count(*) filter (where a.present)::int p, count(a.id)::int t from enrolments e left join attendance a on a.enrolment_id=e.id where e.cohort_id=$1 group by e.id', [id]),
+      q('select e.id, count(*) filter (where a.present or a.made_up_on is not null)::int p, count(a.id)::int t from enrolments e left join attendance a on a.enrolment_id=e.id where e.cohort_id=$1 group by e.id', [id]),
       q('select enrolment_id, number, share_token from participant_certificates where cohort_id=$1', [id]),
     ]);
     const photos = await q('select id, day_number, storage_path, caption, status, uploaded_by from session_photos where cohort_id=$1 order by day_number', [id]).catch(() => []);
@@ -168,7 +170,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
         const pending = rows.filter((x) => !x.cert);
         const ended = sessions.length > 0 && sessions.every((s) => s.session_date && new Date(s.session_date) <= new Date());
         return (
-          <Card title="Certificates of completion" className="mt-4" subtitle={certs.length ? `${certs.length} issued` : 'Not issued yet. Participants should leave with one, so do this soon after the last day.'}
+          <Card title="Certificates of completion" className="mt-4" subtitle={certs.length ? `${certs.length} issued. Certificates are a keepsake: completion does not depend on them.` : 'Not issued yet. A certificate is a keepsake and is not needed to complete the programme: anyone who attended at least 80% of the days is marked completed once training ends.'}
             action={certs.length ? <a href={`/portal/cohorts/${id}/certificates`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Print certificates</a> : undefined}>
             {ended && !certs.length && <p className="mb-3 rounded-lg bg-gold-100 px-3 py-2 text-sm font-semibold text-gold-600">Training has finished and no certificates have been issued yet.</p>}
             {isFounder && pending.length > 0 ? (
