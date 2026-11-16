@@ -19,7 +19,7 @@ export default async function Impact({ searchParams }: { searchParams: Promise<{
       <PageHeader title="Impact" subtitle="What changed for participants, across every cohort. Built from the baseline, follow-up and exit forms; totals only." />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Trained" value={sp2.trained} sub={`${t.female} women · ${t.male} men across all enrolled`} />
-        <Stat tone="gold" label="In training now" value={sp2.inTraining} sub={sp2.notCompleted ? `${sp2.notCompleted} finished without completing` : 'Cohorts running today'} />
+        <Stat tone="gold" label="In training now" value={sp2.inTraining} sub={sp2.notCompleted ? `${sp2.notCompleted} finished without completing` : 'People in cohorts running today'} />
         <Stat label="Upcoming" value={sp2.upcoming} sub={`${sp2.total} enrolled in all, ${sp2.dropped} dropped`} />
         <Stat tone="green" label="Trading at 30 days" value={a30.sold14Known ? `${pct(a30.sold14, a30.sold14Known)}%` : '—'} sub={a30.n ? `${a30.sold14} of ${a30.sold14Known} reached` : 'No visits yet'} />
         <Stat tone="gold" label="Trading at 90 days" value={a90.sold14Known ? `${pct(a90.sold14, a90.sold14Known)}%` : '—'} sub={a90.n ? `${a90.sold14} of ${a90.sold14Known} reached` : 'No visits yet'} />

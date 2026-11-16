@@ -40,9 +40,9 @@ export default async function Cohorts() {
       <PageHeader image="/images/home-facilitator.jpg" title="My cohorts" subtitle={`${greeting('en', me.displayName)}. Every cohort you are assigned to, with attendance, canvas progress and follow-up tasks.`} />
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Cohorts" value={rows.length} sub={`${rows.reduce((s, r) => s + r.n, 0)} participants in all`} />
-        <Stat tone="green" label="Completed training" value={split.trained} sub={split.missed ? `${split.missed} finished without completing` : 'Attended enough days'} />
-        <Stat tone="gold" label="In training now" value={split.ongoing} sub="Cohorts running today" />
-        <Stat label="Upcoming" value={split.upcoming} sub="Cohorts not yet started" />
+        <Stat tone="green" label="Completed training" value={split.trained} sub={split.missed ? `${split.missed} finished without completing` : 'People who attended enough days'} />
+        <Stat tone="gold" label="In training now" value={split.ongoing} sub="People in cohorts running today" />
+        <Stat label="Upcoming" value={split.upcoming} sub="People in cohorts not yet started" />
         <Stat tone={overdue.length ? 'red' : 'gold'} label="Follow-ups overdue" value={overdue.length} sub={`${due.length} open in total`} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
