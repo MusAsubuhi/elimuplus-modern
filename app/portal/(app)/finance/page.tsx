@@ -4,6 +4,7 @@ import { Badge, Card, PageHeader, Stat, Table, inputCls, statusTone, submitCls }
 import { BarCard, PieCard } from '@/components/charts';
 import { d, kes, pct } from '@/lib/format';
 import { audit } from '@/lib/audit';
+import { SupportForm } from '@/components/support-form';
 import { recordPayment } from '../../actions';
 import { recordSupportFounder, removeSupportFounder } from '../../partner-actions';
 
@@ -22,7 +23,7 @@ export default async function Finance() {
     lines: await q(`select l.kind, sum(l.qty*l.unit_kes)::int total from quote_lines l join quotes qt on qt.id=l.quote_id group by l.kind order by 2 desc`),
     trainerPay: await q(`select t.*, p.display_name, c.name cohort from trainer_payments t join people p on p.id=t.person_id left join cohorts c on c.id=t.cohort_id order by t.paid_on desc`),
     support: await q(`select s.*, p.display_name, o.name given_org, c.name cohort_name from support_ledger s join enrolments e on e.id=s.enrolment_id join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id left join organisations o on o.id=s.given_by_org order by s.entry_date desc, s.created_at desc`),
-    enrolled: await q(`select e.id, p.display_name, c.name cohort_name from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.seq desc, p.display_name`),
+    enrolled: await q(`select e.id, p.display_name, c.id cohort_id, c.name cohort_name from enrolments e join people p on p.id=e.person_id join cohorts c on c.id=e.cohort_id order by c.seq desc, p.display_name`),
     settings: await q(`select key, value from settings where key in ('cohort1_support_total_kes','expense_threshold_kes')`),
   }));
   const billed = F.invoices.reduce((s, i) => s + i.amount_kes, 0), paid = F.invoices.reduce((s, i) => s + i.paid, 0);
@@ -61,16 +62,7 @@ export default async function Finance() {
         <Table head={['Date', 'Participant', 'Item', 'Amount', 'Given by', 'Recorded by', '']} empty="Nothing recorded yet."
           rows={F.support.map((s) => [d(s.entry_date), <span key="p"><b>{s.display_name}</b><span className="block text-xs text-slate-500">{s.cohort_name}</span></span>, s.item, kes(s.amount_kes), s.funder ?? s.given_org ?? '', s.source === 'partner' ? <Badge key="b" tone="gold">{s.given_org ?? 'partner'}</Badge> : 'Elimu+',
             <form key="x" action={removeSupportFounder}><input type="hidden" name="id" value={s.id} /><button className="text-xs font-bold text-red-700 underline">Remove</button></form>])} />
-        <form action={recordSupportFounder} className="mt-4 grid gap-2 rounded-lg bg-mist p-3 text-sm sm:grid-cols-6">
-          <select name="enrolment" required className={`${inputCls} sm:col-span-2`}><option value="">Participant</option>{F.enrolled.map((e) => <option key={e.id} value={e.id}>{e.display_name} · {e.cohort_name}</option>)}</select>
-          <input name="item" required placeholder="What it was for" className={inputCls} />
-          <input name="amount" type="number" min="1" required placeholder="Amount (KES)" className={inputCls} />
-          <input name="entry_date" type="date" className={inputCls} />
-          <select name="given_by" className={inputCls}><option value="founders">Given by Elimu+</option><option value="partner">Given by the partner</option></select>
-          <input name="funder" placeholder="Funder (optional)" className={`${inputCls} sm:col-span-2`} />
-          <input name="note" placeholder="Note (optional)" className={`${inputCls} sm:col-span-3`} />
-          <button className={submitCls}>Add entry</button>
-        </form>
+        <SupportForm action={recordSupportFounder} people={F.enrolled as any} submitCls={submitCls} />
       </Card>
     </>
   );
