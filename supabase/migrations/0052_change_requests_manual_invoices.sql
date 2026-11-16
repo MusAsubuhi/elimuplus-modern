@@ -27,3 +27,4 @@ create policy ccr_write on public.cohort_change_requests for all using (app.is_f
 -- 2. Invoices and payments added by hand for work done before the portal existed.
 alter table public.invoices add column if not exists manual boolean not null default false;
 alter table public.invoices add column if not exists manual_note text;
+grant select, insert, update, delete on public.cohort_change_requests to authenticated, service_role;
