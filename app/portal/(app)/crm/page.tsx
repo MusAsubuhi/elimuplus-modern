@@ -52,7 +52,7 @@ export default async function Crm({ searchParams }: { searchParams: Promise<{ ta
             <ul className="space-y-3">{people.map((p) => (
               <li key={p.id} id={`p-${p.id}`} className="rounded-lg border border-teal-100 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span><b>{p.full_name}</b> <span className="text-xs text-slate-500">· {p.contact} · as {String(p.role).replace(/_/g, ' ')} · suggested by {p.nominator ?? 'a partner'}</span></span>
+                  <span><b>{p.full_name}</b> <span className="text-xs text-slate-500">· {p.contact || 'no phone or email'} · as {String(p.role).replace(/_/g, ' ')} · suggested by {p.nominator ?? 'a partner'}</span></span>
                   {tick(p.called, 'Called', 'Not called')}
                 </div>
                 <form action={logActivity} className="mt-2 grid gap-2 sm:grid-cols-6">

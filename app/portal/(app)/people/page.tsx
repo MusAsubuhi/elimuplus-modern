@@ -35,7 +35,7 @@ export default async function People() {
           const age = i.birth_year ? yr - i.birth_year : null;
           const minor = age !== null && age < 18;
           return [
-            <div key="n"><b>{i.full_name}</b>{minor && <span className="ml-2"><Badge tone="gold">under 18</Badge></span>}<div className="text-xs text-slate-500">{i.contact}</div></div>,
+            <div key="n"><b>{i.full_name}</b>{minor && <span className="ml-2"><Badge tone="gold">under 18</Badge></span>}<div className="text-xs text-slate-500">{i.contact || 'No phone or email given'}</div></div>,
             <div key="a" className="text-xs">{[age !== null ? `${age} yrs` : '', educationLabel(i.education_level), i.occupation].filter(Boolean).join(' · ')}<div className="text-slate-500">{[i.ward, i.county].filter(Boolean).join(', ')}</div>{i.note && <div className="mt-1 text-slate-600">{i.note}</div>}<div className={i.called ? 'text-emerald-700' : 'text-slate-500'}>{i.called ? '✓ Called' : 'Not called yet'} · <a className="underline" href={`/portal/crm?tab=people#p-${i.id}`}>log a call</a></div>{minor && <div className={i.guardian_consent ? 'text-emerald-700' : 'font-bold text-[#C8553D]'}>{i.guardian_consent ? 'Guardian consent on file' : 'No guardian consent yet'}</div>}</div>,
             i.role.replace(/_/g, ' '), i.org_name ?? 'Direct', i.nominator,
             i.status === 'nominated' ? (

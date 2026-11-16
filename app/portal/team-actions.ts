@@ -271,8 +271,8 @@ export async function suggestIndividual(f: FormData) {
   const me = await requireMe();
   const ret = s(f, 'back') || '/portal/invite';
   const age = Number(s(f, 'age')) || 0;
-  const contact = s(f, 'contact');
-  if (!s(f, 'name') || !contact) back(ret, 'Name and phone or email are required.', 'err');
+  const contact = s(f, 'contact') || null; // optional: many young people have no phone or email
+  if (!s(f, 'name')) back(ret, 'Name is required. Phone or email is optional.', 'err');
   if (!age) back(ret, 'Add their age. An approximate age is fine.', 'err');
   if (!s(f, 'education')) back(ret, 'Choose their education level.', 'err');
   const minor = age < 18;
@@ -346,10 +346,11 @@ export async function approveInvitation(_prev: PinState, f: FormData): Promise<P
   const override = s(f, 'override');
   if (!called && !override) return { error: 'Call this person first and log the call in CRM (they must be reached). If a call is not possible, type the reason in the box and approve again.' };
   if (!called) await asUser(me.id, (q) => q("insert into crm_activities(invitation_id, kind, outcome, summary, logged_by) values ($1,'note','completed',$2,$3)", [id, 'Approved without a call. Reason: ' + override, me.id]));
-  const phone = normPhone(s(f, 'phone'));
-  if (!phone) return { error: 'Enter the phone number they will sign in with, for example 0712 345 678.' };
-  if (await phoneTaken(phone)) return { error: 'Someone with that phone number is already on the platform.' };
-  const isEmail = String(inv.contact).includes('@');
+  // A phone number is only needed for a sign-in. Without one the person is still added (and enrolled), but has no account to sign in to.
+  const phone = s(f, 'phone') ? normPhone(s(f, 'phone')) : null;
+  if (s(f, 'phone') && !phone) return { error: 'That phone number does not look right, for example 0712 345 678. Leave it blank if they have none.' };
+  if (phone && await phoneTaken(phone)) return { error: 'Someone with that phone number is already on the platform.' };
+  const isEmail = String(inv.contact ?? '').includes('@');
   let personId = '';
   try {
     personId = await asUser(me.id, async (q) => {
@@ -366,6 +367,10 @@ export async function approveInvitation(_prev: PinState, f: FormData): Promise<P
       return p.id as string;
     });
   } catch (e) { console.error("[portal action]", e); return { error: 'Could not create the account. Check the details and try again.' }; }
+  if (!phone) {
+    await audit(me.id, `approved suggestion and added without a sign-in: ${inv.full_name}`, 'invitations');
+    return { ok: true, name: inv.full_name, message: `${inv.full_name} was added without a sign-in because no phone number was given. They are on the list and can be enrolled. To give them an account later, use Add person on the Team page with a phone number.` };
+  }
   const pin = tempPin();
   try { await provisionLogin(personId, phone, pin); }
   catch (e: any) { return { error: `${inv.full_name} was added, but the sign-in could not be created (${e.message}). Use "Reset PIN" on the Team page.` }; }

@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 const box = 'w-full rounded-lg border border-teal-100 bg-white px-3 py-2.5 text-sm focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal';
 
-/** Rows of name, phone, age and gender, all required; "Add another person" adds a row. Under 18 shows a guardian tick box; an adult ticks their own agreement. */
+/** Rows of name, phone (optional), age and gender; "Add another person" adds a row. Under 18 shows a guardian tick box; an adult ticks their own agreement. */
 export function RosterForm({ cohort, action }: { cohort: string; action: (f: FormData) => void | Promise<void> }) {
   const [n, setN] = useState(1);
   const [ages, setAges] = useState<Record<number, string>>({});
@@ -21,8 +21,8 @@ export function RosterForm({ cohort, action }: { cohort: string; action: (f: For
               <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Full name
                 <input name={`name_${i}`} required autoComplete="off" className={`${box} mt-1`} placeholder="e.g. Amina Wanjiru" />
               </label>
-              <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Phone number
-                <input name={`phone_${i}`} required inputMode="tel" autoComplete="off" className={`${box} mt-1`} placeholder="0712345678" />
+              <label className="text-xs font-semibold text-slate-700 sm:col-span-2">Phone number (optional)
+                <input name={`phone_${i}`} inputMode="tel" autoComplete="off" className={`${box} mt-1`} placeholder="0712345678, leave blank if they have none" />
               </label>
               <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                 <label className="text-xs font-semibold text-slate-700">Age

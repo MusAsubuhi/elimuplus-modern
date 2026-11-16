@@ -17,6 +17,7 @@ export function PinResult({ state, onClose }: { state: NonNullable<PinState>; on
   const [copied, setCopied] = useState(false);
   if (state.error) return <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{state.error}</p>;
   if (!state.ok) return null;
+  if (!state.pin) return <div className="rounded-xl border-2 border-gold bg-gold-100 p-4 text-sm"><p className="font-bold text-teal">{state.name} was added.</p><p className="mt-1 text-xs text-slate-700">{state.message}</p>{onClose && <button type="button" className="mt-3 rounded-lg border border-teal px-3 py-2 text-sm font-bold text-teal" onClick={onClose}>Done</button>}</div>;
   const text = state.message ?? `Elimu+ Portal sign-in\nPhone: ${state.phone}\nTemporary PIN: ${state.pin}\nYou will choose your own PIN the first time you sign in.`;
   return (
     <div className="rounded-xl border-2 border-gold bg-gold-100 p-4 text-sm">
@@ -92,14 +93,14 @@ export function ResetPinButton({ personId }: { personId: string }) {
   );
 }
 
-export function ApproveInvitationForm({ invitationId, contact, called = true }: { invitationId: string; contact: string; called?: boolean }) {
+export function ApproveInvitationForm({ invitationId, contact, called = true }: { invitationId: string; contact: string | null; called?: boolean }) {
   const [state, action, pending] = useActionState(approveInvitation, null);
-  const isEmail = contact.includes('@');
+  const isEmail = !contact || contact.includes('@');
   if (state?.ok) return <PinResult state={state} />;
   return (
     <form onSubmit={submitter(action)} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="invitation" value={invitationId} />
-      <label className="text-xs font-bold">Sign-in phone<input name="phone" required defaultValue={isEmail ? '' : contact} inputMode="tel" className={`${inputCls} w-36`} /></label>
+      <label className="text-xs font-bold">Sign-in phone (optional)<input name="phone" defaultValue={isEmail ? '' : contact ?? ''} inputMode="tel" className={`${inputCls} w-36`} /></label>
       <label className="text-xs font-bold">Language<select name="lang" defaultValue="sw" className={`${inputCls} w-28`}><option value="sw">Kiswahili</option><option value="en">English</option></select></label>
       {!called && <label className="w-full text-xs font-bold text-[#C8553D]">Not called yet. If you must approve without a call, say why<input name="override" className={inputCls} placeholder="Reason (it is recorded)" /></label>}
       <button disabled={pending} className={submitCls}>{pending ? '…' : 'Approve and create account'}</button>

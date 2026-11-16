@@ -81,7 +81,7 @@ export default async function Partner({ searchParams }: { searchParams: Promise<
           <form action={nominate} className="space-y-2 text-sm">
             <input type="hidden" name="back" value="/portal/partner" /><input type="hidden" name="role" value="participant" /><input type="hidden" name="org" value={myOrg?.id} />
             <input name="name" placeholder="Full name" required className={inputCls} />
-            <input name="contact" placeholder="Phone or email" required className={inputCls} />
+            <input name="contact" placeholder="Phone or email (optional)" className={inputCls} />
             <input name="birth" type="number" placeholder="Year of birth" className={inputCls} />
             <label className="flex gap-2 text-xs"><input type="checkbox" name="guardian" />Under 18: a parent or guardian has agreed</label>
             <label className="flex gap-2 text-xs"><input type="checkbox" name="own" />Aged 18 or over: this person has agreed to be added (adults agree for themselves)</label>

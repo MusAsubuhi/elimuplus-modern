@@ -3,7 +3,7 @@ import { audit } from '@/lib/audit';
 import { trainingDates, programmeDays } from '@/lib/billing';
 import { syncDaySummary } from '@/lib/sessions';
 import { alertFounders, issueReceipt, nextQuoteNumber, orgCode, quoteLines } from '@/lib/billing';
-import { CONTACT, MIN_SESSIONS } from '@/lib/pricing';
+import { MIN_SESSIONS } from '@/lib/pricing';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
@@ -265,40 +265,67 @@ export async function reconcileExpense(f: FormData) {
 }
 
 /* ---------- partner ---------- */
+/** Most trainings one request can hold. Enough for a full back-to-back series without letting a form run away. */
+const MAX_TRAININGS_PER_REQUEST = 12;
+
+/** An organisation asks for one training or a whole series of back-to-back trainings in a single request. Each training becomes its own cohort and its own quotation. */
 export async function requestCohort(f: FormData) {
   const me = await requireMe('org_admin');
   const P = '/portal/partner/request';
-  const size = Math.round(Number(s(f, 'size')));
-  if (!(size > 0)) back(P, 'Enter how many participants will attend.', 'err');
   const org = s(f, 'org');
   const mine = (await asUser(me.id, (q) => q('select id, name, code from organisations where id=$1 and id in (select app.my_org_admin_orgs())', [org])))[0];
   if (!mine) back(P, 'That organisation is not yours.', 'err');
-  // One self-service quotation per organisation. A second one goes through a conversation with us.
-  const had = (await asAdmin((q) => q('select count(*)::int n from quotes where organisation_id=$1', [org])))[0].n;
-  if (had > 0) back(P, `Your organisation already has a quotation with us. For another cohort, please contact Elimu+ on ${CONTACT.phone} or ${CONTACT.email} and we will prepare it with you.`, 'err');
-  const format = s(f, 'format') === '12-day' ? '12-day' : '5-day';
-  const sessions = format === '12-day' ? 12 : MIN_SESSIONS;
-  try {
-    const cohort = (await asUser(me.id, (q) => q(
-      `insert into cohorts(organisation_id,name,format,language,audience,start_date,venue,expected_participants,status)
-       values($1,$2,$3,$4,$5,$6,$7,$8,'requested') returning id`,
-      [org, s(f, 'name') || 'New cohort request', format, s(f, 'language') === 'en' ? 'en' : 'sw', s(f, 'audience'), s(f, 'start') || null, s(f, 'venue'), size])))[0];
-    const delayMin = 40 + Math.floor(Math.random() * 110); // 40 to 150 minutes
-    await asAdmin(async (q) => {
-      const num = await nextQuoteNumber(q, orgCode(mine.name, mine.code));
-      const qt = (await q(
-        `insert into quotes(organisation_id, cohort_id, number, participants, sessions, valid_until, status, self_service, requested_by, release_at)
-         values ($1,$2,$3,$4,$5,current_date + 30,'draft',true,$6, now() + ($7 || ' minutes')::interval) returning id`,
-        [org, cohort.id, num, size, sessions, me.id, String(delayMin)]))[0];
-      for (const l of quoteLines(size, sessions)) await q('insert into quote_lines(quote_id, kind, description, qty, unit_kes) values ($1,$2,$3,$4,$5)', [qt.id, l.kind, l.description, l.qty, l.unit_kes]);
-      // Partners may only create a cohort as 'requested' (database rule); it becomes 'quoted' once the quotation exists.
-      await q("update cohorts set status='quoted' where id=$1 and status='requested'", [cohort.id]);
-      await alertFounders(q, `${mine.name} requested a quotation`, `${size} participants, ${format}. It will be released to them automatically in about ${delayMin} minutes. Open Proposals and receipts to review or change it.`, '/portal/deals', 'info');
+  // The form sends numbered rows (name_0, size_0 ...). An older single-row form without numbers still works.
+  const count = Math.min(MAX_TRAININGS_PER_REQUEST, Math.max(1, Number(s(f, 'count')) || 1));
+  const key = (k: string, i: number) => (f.has(`${k}_${i}`) ? `${k}_${i}` : k);
+  const rows: { name: string; format: '5-day' | '12-day'; language: 'sw' | 'en'; audience: string; start: string | null; venue: string; size: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const size = Math.round(Number(s(f, key('size', i))));
+    const blank = !s(f, key('name', i)) && !s(f, key('start', i)) && !(size > 0);
+    if (blank && count > 1) continue; // an untouched extra row is ignored
+    if (!(size > 0)) back(P, count > 1 ? `Training ${i + 1}: enter how many participants will attend.` : 'Enter how many participants will attend.', 'err');
+    rows.push({
+      name: s(f, key('name', i)) || `New cohort request ${i + 1}`,
+      format: s(f, key('format', i)) === '12-day' ? '12-day' : '5-day',
+      language: s(f, key('language', i)) === 'en' ? 'en' : 'sw',
+      audience: s(f, key('audience', i)),
+      start: s(f, key('start', i)) || null,
+      venue: s(f, key('venue', i)),
+      size,
     });
-  } catch (e) { console.error("[portal action]", e); back(P, 'Could not send the request.', 'err'); }
+  }
+  if (!rows.length) back(P, 'Add at least one training.', 'err');
+  try {
+    const made: { name: string; size: number; format: string; delayMin: number }[] = [];
+    for (const r of rows) {
+      const sessions = r.format === '12-day' ? 12 : MIN_SESSIONS;
+      const cohort = (await asUser(me.id, (q) => q(
+        `insert into cohorts(organisation_id,name,format,language,audience,start_date,venue,expected_participants,status)
+         values($1,$2,$3,$4,$5,$6,$7,$8,'requested') returning id`,
+        [org, r.name, r.format, r.language, r.audience, r.start, r.venue, r.size])))[0];
+      // Spread the automatic release so a series does not all go out in the same minute.
+      const delayMin = 40 + Math.floor(Math.random() * 110) + made.length * 5;
+      await asAdmin(async (q) => {
+        const num = await nextQuoteNumber(q, orgCode(mine.name, mine.code));
+        const qt = (await q(
+          `insert into quotes(organisation_id, cohort_id, number, participants, sessions, valid_until, status, self_service, requested_by, release_at)
+           values ($1,$2,$3,$4,$5,current_date + 30,'draft',true,$6, now() + ($7 || ' minutes')::interval) returning id`,
+          [org, cohort.id, num, r.size, sessions, me.id, String(delayMin)]))[0];
+        for (const l of quoteLines(r.size, sessions)) await q('insert into quote_lines(quote_id, kind, description, qty, unit_kes) values ($1,$2,$3,$4,$5)', [qt.id, l.kind, l.description, l.qty, l.unit_kes]);
+        // Partners may only create a cohort as 'requested' (database rule); it becomes 'quoted' once the quotation exists.
+        await q("update cohorts set status='quoted' where id=$1 and status='requested'", [cohort.id]);
+      });
+      made.push({ name: r.name, size: r.size, format: r.format, delayMin });
+    }
+    const list = made.map((m) => `${m.name} (${m.size}, ${m.format})`).join('; ');
+    await asAdmin((q) => alertFounders(q, `${mine.name} requested ${made.length === 1 ? 'a quotation' : `${made.length} quotations`}`,
+      `${list}. ${made.length === 1 ? 'It' : 'They'} will be released to them automatically over the next couple of hours. Open Proposals and receipts to review or change ${made.length === 1 ? 'it' : 'them'}.`, '/portal/deals', 'info'));
+  } catch (e) { console.error("[portal action]", e); back(P, 'Could not send the request. If some trainings were saved, they appear under Requests and bookings; send only the ones that are missing.', 'err'); }
   await notify();
   revalidatePath('/portal', 'layout');
-  back(P, 'Thank you. We are preparing your proposal and quotation and will send them to you shortly.');
+  back(P, rows.length === 1
+    ? 'Thank you. We are preparing your proposal and quotation and will send them to you shortly.'
+    : `Thank you. We are preparing ${rows.length} proposals and quotations, one for each training, and will send them to you shortly.`);
 }
 
 export async function nominate(f: FormData) {
@@ -307,13 +334,13 @@ export async function nominate(f: FormData) {
   const minor = birth ? new Date().getFullYear() - birth < 18 : false;
   const role = s(f, 'role') || 'participant';
   const ret = s(f, 'back') || '/portal/partner';
-  if (!s(f, 'name') || !s(f, 'contact')) back(ret, 'Name and phone or email are required.', 'err');
+  if (!s(f, 'name')) back(ret, 'Name is required. Phone or email is optional.', 'err');
   if (birth && !minor && f.get('own') !== 'on') back(ret, 'An adult must agree to be added. Tick that they have agreed for themselves.', 'err');
   try {
     await asUser(me.id, (q) => q(
       `insert into invitations(full_name,contact,role,organisation_id,cohort_id,birth_year,guardian_consent,own_consent,nominated_by,note)
        values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [s(f, 'name'), s(f, 'contact'), role, s(f, 'org') || null, s(f, 'cohort') || null, birth, minor && f.get('guardian') === 'on', !minor && f.get('own') === 'on', me.id,
+      [s(f, 'name'), s(f, 'contact') || null, role, s(f, 'org') || null, s(f, 'cohort') || null, birth, minor && f.get('guardian') === 'on', !minor && f.get('own') === 'on', me.id,
        minor ? 'Under 18: guardian consent needed before approval' : s(f, 'note')]));
   } catch (e) { console.error("[portal action]", e); back(ret, 'You are not allowed to nominate that role.', 'err'); }
   await notify();

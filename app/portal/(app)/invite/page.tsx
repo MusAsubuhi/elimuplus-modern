@@ -21,7 +21,7 @@ export default async function Suggest() {
           <form action={suggestIndividual} className="grid gap-3 text-sm sm:grid-cols-2">
             <input type="hidden" name="back" value="/portal/invite" />
             <label className="block font-bold sm:col-span-2">Full name<input name="name" required className={inputCls} /></label>
-            <label className="block font-bold">Phone or email<input name="contact" required className={inputCls} /></label>
+            <label className="block font-bold">Phone or email (optional)<input name="contact" className={inputCls} /></label>
             <label className="block font-bold">Age (approximate is fine)<input name="age" type="number" min="10" max="99" required className={inputCls} /></label>
             <label className="block font-bold">Education level
               <select name="education" required defaultValue="" className={inputCls}><option value="" disabled>Choose…</option>{EDUCATION.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>

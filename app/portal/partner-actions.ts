@@ -36,15 +36,15 @@ export async function notifyPayment(f: FormData) {
   go(P, 'Thank you. We will match it against our statement and send your receipt.');
 }
 
-type RosterRow = { name: string; phone: string; gender: 'F' | 'M'; year: number; guardian: boolean; own: boolean };
+type RosterRow = { name: string; phone: string | null; gender: 'F' | 'M'; year: number; guardian: boolean; own: boolean };
 const THIS_YEAR = () => new Date().getFullYear();
 
-/** One person, checked. Name, phone, age and gender are all required. Under 18 needs a parent or guardian's agreement; an adult agrees for themselves, and no guardian is involved. */
+/** One person, checked. Name, age and gender are required; a phone number is optional (many young people do not have one) but must be valid if given. Under 18 needs a parent or guardian's agreement; an adult agrees for themselves, and no guardian is involved. */
 function checkPerson(nameRaw: string, phoneRaw: string, genderRaw: string, ageRaw: string, consentRaw: boolean): { row?: RosterRow; error?: string } {
   const name = nameRaw.replace(/\s+/g, ' ').trim();
   if (name.length < 2) return { error: `${name || 'A line'}: name is missing` };
-  const phone = normPhone(phoneRaw);
-  if (!phone) return { error: `${name}: a valid phone number is needed (for example 0712345678)` };
+  const phone = phoneRaw.trim() ? normPhone(phoneRaw) : null;
+  if (phoneRaw.trim() && !phone) return { error: `${name}: that phone number does not look right (for example 0712345678). Leave it blank if they have none` };
   const g = /^f/i.test(genderRaw.trim()) ? 'F' : /^m/i.test(genderRaw.trim()) ? 'M' : null;
   if (!g) return { error: `${name}: gender is needed (F or M)` };
   const n = Number(String(ageRaw).trim());
@@ -57,7 +57,7 @@ function checkPerson(nameRaw: string, phoneRaw: string, genderRaw: string, ageRa
   return { row: { name, phone, gender: g, year, guardian: age < 18, own: age >= 18 } };
 }
 
-/** Lines of "Name, phone, F/M, age, agreed (yes)" pasted from a spreadsheet or typed. Under 18: a guardian agreed. Adults agree for themselves: either "yes" on the line or the box above the list. */
+/** Lines of "Name, phone (may be blank), F/M, age, agreed (yes)" pasted from a spreadsheet or typed. Under 18: a guardian agreed. Adults agree for themselves: either "yes" on the line or the box above the list. */
 function parseRoster(text: string, adultsAgreed = false) {
   const rows: RosterRow[] = [];
   const bad: string[] = [];
