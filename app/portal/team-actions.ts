@@ -160,7 +160,10 @@ export async function resetPin(_prev: PinState, f: FormData): Promise<PinState> 
   const pin = tempPin();
   try { await provisionLogin(id, phone, pin); } catch (e: any) { return { error: e.message }; }
   await audit(me.id, `reset PIN for ${p.full_name}`, 'people');
-  return { ok: true, name: p.full_name, phone, pin };
+  const link = `${(process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '')}/portal/login`;
+  const first = String(p.full_name).split(/\s+/)[0];
+  const message = `Hello ${first}, your Elimu+ portal account is ready.\n\nSign in here: ${link}\nPhone: ${phone}\nTemporary PIN: ${pin}\n\nYou will choose your own PIN the first time you sign in. Reply to this message if you need any help.`;
+  return { ok: true, name: p.full_name, phone, pin, message };
 }
 
 export async function grantRole(f: FormData) {

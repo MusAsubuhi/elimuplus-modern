@@ -18,12 +18,14 @@ export function PinResult({ state, onClose }: { state: NonNullable<PinState>; on
   if (state.error) return <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{state.error}</p>;
   if (!state.ok) return null;
   if (!state.pin) return <div className="rounded-xl border-2 border-gold bg-gold-100 p-4 text-sm"><p className="font-bold text-teal">{state.name} was added.</p><p className="mt-1 text-xs text-slate-700">{state.message}</p>{onClose && <button type="button" className="mt-3 rounded-lg border border-teal px-3 py-2 text-sm font-bold text-teal" onClick={onClose}>Done</button>}</div>;
-  const text = state.message ?? `Elimu+ Portal sign-in\nPhone: ${state.phone}\nTemporary PIN: ${state.pin}\nYou will choose your own PIN the first time you sign in.`;
+  const portalLink = `${(process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '')}/portal/login`;
+  const text = state.message ?? `Elimu+ Portal sign-in\nSign in here: ${portalLink}\nPhone: ${state.phone}\nTemporary PIN: ${state.pin}\nYou will choose your own PIN the first time you sign in.`;
   return (
     <div className="rounded-xl border-2 border-gold bg-gold-100 p-4 text-sm">
       <p className="font-bold text-teal">{state.name} can now sign in.</p>
       <p className="mt-1">Phone <b>{state.phone}</b> · temporary PIN <b className="rounded bg-white px-2 py-0.5 font-mono text-lg tracking-widest">{state.pin}</b></p>
       <p className="mt-2 text-xs text-slate-700">This PIN is shown once and is not stored anywhere readable. Send it to them privately (WhatsApp or SMS). They must choose their own PIN at first sign-in.</p>
+      <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-3 text-xs text-slate-700">{text}</pre>
       <div className="mt-3 flex gap-2">
         <button type="button" className={submitCls} onClick={async () => { try { await navigator.clipboard.writeText(text); setCopied(true); } catch { /* ignore */ } }}>{copied ? 'Copied' : 'Copy message'}</button>
         {onClose && <button type="button" className="rounded-lg border border-teal px-3 py-2 text-sm font-bold text-teal" onClick={onClose}>Done</button>}
