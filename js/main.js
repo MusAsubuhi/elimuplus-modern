@@ -121,6 +121,11 @@ function initFormspreeForms() {
                 body: JSON.stringify({ email: subEmail.value, name: subName ? subName.value : '', consent: 'yes', source: src })
               }).catch(function () {});
             }
+            /* Copy of the form for the portal's Website enquiries list (trainer, organisation, partner and quote forms). Fire and forget. */
+            var subj = form.querySelector('input[name="_subject"]');
+            if (subj && /Trainer expression|Organisation registration|Partner enquiry|Quote request/.test(subj.value)) {
+              fetch('https://portal.elimuplus.com/api/enquiries', { method: 'POST', body: new FormData(form) }).catch(function () {});
+            }
             var kind = form.getAttribute('data-confirm');
             if (kind) {
               /* Fire-and-forget acknowledgement email; the form itself has already succeeded. */
