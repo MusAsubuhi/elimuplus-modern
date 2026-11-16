@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -37,7 +38,8 @@ async function personIdFromCookie(): Promise<string | null> {
   return rows[0]?.id ?? null;
 }
 
-export async function getMe(): Promise<Me | null> {
+/** Looked up once per page request: the layout and the page both ask, and each lookup is several database round trips. */
+export const getMe = cache(async function getMe(): Promise<Me | null> {
   const id = await personIdFromCookie();
   if (!id) return null;
   const info = await asAdmin(async (q) => {
@@ -67,7 +69,7 @@ export async function getMe(): Promise<Me | null> {
     mustChangePin: !!p.pin_reset_required,
     demo: (await dbMode()) === 'demo',
   };
-}
+});
 
 export async function requireMe(...allowed: Role[]): Promise<Me> {
   const me = await getMe();
