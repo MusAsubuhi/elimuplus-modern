@@ -1,5 +1,5 @@
 import 'server-only';
-import { stageSplit, type Impact } from './impact';
+import { cohortPhase, stageSplit, type Impact } from './impact';
 
 /**
  * One model feeds the on-screen preview, the PDF and the CSV, so the three can never disagree.
@@ -43,7 +43,7 @@ function rowOf(c: CohortIn): Row {
   const youthN = ['30', '60', '90'].reduce((s, k) => s + num(m.youth?.[k]?.n), 0);
   return {
     id: c.id, name: c.name, start: c.start, end: c.end, status: c.status,
-    enrolled: num(m.enrolled), completed: num(m.completed), completion: pct(num(m.completed), num(m.enrolled)),
+    enrolled: num(m.enrolled), completed: num(m.completed), completion: cohortPhase(c) === 'finished' ? pct(num(m.completed), num(m.enrolled)) : null,
     female: num(m.gender?.female), male: num(m.gender?.male), attendance: m.attendance_rate != null ? num(m.attendance_rate) : null,
     prePct: l.pre_pct != null ? num(l.pre_pct) : null, postPct: l.post_pct != null ? num(l.post_pct) : null,
     gain: num(l.paired_n) ? num(l.paired_gain) : null, pairedN: num(l.paired_n),
@@ -61,9 +61,11 @@ export function buildModel(list: CohortIn[], photoCount = 0): Model {
     return tw ? Math.round((xs.reduce((s, r) => s + (f(r) as number) * w(r), 0) / tw) * 10 ** dec) / 10 ** dec : null;
   };
   const enrolled = sum((r) => r.enrolled), completed = sum((r) => r.completed);
+  const fin = list.filter((c) => cohortPhase(c) === 'finished');
+  const finE = fin.reduce((a, c) => a + num(c.m.enrolled), 0), finC = fin.reduce((a, c) => a + num(c.m.completed), 0);
   const total: Row = {
     id: 'total', name: 'All selected cohorts', start: null, end: null, status: '',
-    enrolled, completed, completion: pct(completed, enrolled), female: sum((r) => r.female), male: sum((r) => r.male),
+    enrolled, completed, completion: pct(finC, finE), female: sum((r) => r.female), male: sum((r) => r.male),
     attendance: wavg((r) => r.attendance, (r) => r.enrolled), prePct: wavg((r) => r.prePct, (r) => r.enrolled), postPct: wavg((r) => r.postPct, (r) => r.enrolled),
     gain: wavg((r) => r.gain, (r) => r.pairedN), pairedN: sum((r) => r.pairedN),
     stages: [0, 1, 2].map((i) => {
@@ -90,7 +92,8 @@ export const hasData = (m: Model, key: string) => {
 
 /** Plain-language takeaways, including how cohorts compare when more than one is chosen. */
 export function takeaways(m: Model, key: string): string[] {
-  const { rows, total: t } = m, out: string[] = [];
+  const { rows, total: t, split } = m, out: string[] = [];
+  const finRows = rows.filter((r) => r.completion != null), finE = finRows.reduce((a, r) => a + r.enrolled, 0), finC = finRows.reduce((a, r) => a + r.completed, 0);
   const best = <T,>(f: (r: Row) => number | null, label: string, fmt: (v: number) => string) => {
     const xs = rows.filter((r) => f(r) != null);
     if (xs.length < 2) return;
@@ -99,7 +102,11 @@ export function takeaways(m: Model, key: string): string[] {
   };
   const P = (v: number) => `${v}%`;
   if (key === 'reach') {
-    out.push(`${t.enrolled} people enrolled and ${t.completed} completed${t.completion != null ? `, a completion rate of ${t.completion}%` : ''}.`);
+    {
+      const sp = split;
+      out.push(`${sp.total} people enrolled across the cohorts: ${sp.trained} trained, ${sp.inTraining} in training now and ${sp.upcoming} yet to start.`);
+      if (t.completion != null) out.push(`Among finished cohorts, ${finC} of ${finE} completed, a completion rate of ${t.completion}%.`);
+    }
     if (t.female + t.male) out.push(`${pct(t.female, t.female + t.male)}% of participants were women.`);
     if (t.attendance != null) out.push(`Average attendance was ${t.attendance}%.`);
     best((r) => r.completion, 'Completion', P); best((r) => r.attendance, 'Attendance', P);
