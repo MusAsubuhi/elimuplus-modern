@@ -38,7 +38,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ q
   const byGroup = new Map<string, any[]>();
   for (const p of shown) { const k = groupOf(p); byGroup.set(k, [...(byGroup.get(k) ?? []), p]); }
   const rank = (t: string) => (t === 'Elimu+ team' ? 0 : t === 'Trainers and candidates' ? 1 : t === 'Partner contacts' ? 2 : t.startsWith('Participants') ? 3 : 4);
-  const groups = [...byGroup.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0])).map(([title, people]) => ({ title, people, open: rank(title) < 3 }));
+  const groups = [...byGroup.entries()].sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0])).map(([title, people]) => ({ title, people }));
   const personTable = (people: any[]) => (
     <Table head={['Person', 'Roles', 'Details', 'Sign-in', '']} rows={people.map((p) => [
       <div key="n"><b>{p.full_name}</b><div className="text-xs text-slate-500">{p.phone ?? 'no phone'}</div></div>,
@@ -77,7 +77,7 @@ export default async function Team({ searchParams }: { searchParams: Promise<{ q
         {groups.length === 0 && <p className="text-sm text-slate-600">{find ? 'No one matches that search.' : 'No one yet.'}</p>}
         <div className="space-y-3">
           {groups.map((g) => (
-            <details key={g.title} open={!!find || g.open} className="rounded-xl border border-teal-100">
+            <details key={g.title} open={!!find} className="rounded-xl border border-teal-100">
               <summary className="cursor-pointer select-none px-4 py-3 font-bold text-teal">{g.title} <span className="ml-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-slate-600">{g.people.length}</span></summary>
               <div className="px-2 pb-3">{personTable(g.people)}</div>
             </details>))}
