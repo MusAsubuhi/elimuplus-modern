@@ -17,16 +17,6 @@
       "permanent": true
     },
     {
-      "source": "/about",
-      "destination": "/about",
-      "permanent": true
-    },
-    {
-      "source": "/about/",
-      "destination": "/about",
-      "permanent": true
-    },
-    {
       "source": "/who-we-are",
       "destination": "/about",
       "permanent": true
@@ -73,16 +63,6 @@
     },
     {
       "source": "/programmes/",
-      "destination": "/programme",
-      "permanent": true
-    },
-    {
-      "source": "/programme",
-      "destination": "/programme",
-      "permanent": true
-    },
-    {
-      "source": "/programme/",
       "destination": "/programme",
       "permanent": true
     },
@@ -137,16 +117,6 @@
       "permanent": true
     },
     {
-      "source": "/partner",
-      "destination": "/partner",
-      "permanent": true
-    },
-    {
-      "source": "/partner/",
-      "destination": "/partner",
-      "permanent": true
-    },
-    {
       "source": "/partners",
       "destination": "/partner",
       "permanent": true
@@ -167,16 +137,6 @@
       "permanent": true
     },
     {
-      "source": "/trainer",
-      "destination": "/trainer",
-      "permanent": true
-    },
-    {
-      "source": "/trainer/",
-      "destination": "/trainer",
-      "permanent": true
-    },
-    {
       "source": "/become-a-trainer",
       "destination": "/trainer",
       "permanent": true
@@ -184,16 +144,6 @@
     {
       "source": "/become-a-trainer/",
       "destination": "/trainer",
-      "permanent": true
-    },
-    {
-      "source": "/join",
-      "destination": "/join",
-      "permanent": true
-    },
-    {
-      "source": "/join/",
-      "destination": "/join",
       "permanent": true
     },
     {
@@ -207,16 +157,6 @@
       "permanent": true
     },
     {
-      "source": "/calculator",
-      "destination": "/calculator",
-      "permanent": true
-    },
-    {
-      "source": "/calculator/",
-      "destination": "/calculator",
-      "permanent": true
-    },
-    {
       "source": "/privacy-policy",
       "destination": "/privacy",
       "permanent": true
@@ -224,26 +164,6 @@
     {
       "source": "/privacy-policy/",
       "destination": "/privacy",
-      "permanent": true
-    },
-    {
-      "source": "/privacy",
-      "destination": "/privacy",
-      "permanent": true
-    },
-    {
-      "source": "/privacy/",
-      "destination": "/privacy",
-      "permanent": true
-    },
-    {
-      "source": "/blog",
-      "destination": "/blog",
-      "permanent": true
-    },
-    {
-      "source": "/blog/",
-      "destination": "/blog",
       "permanent": true
     },
     {
