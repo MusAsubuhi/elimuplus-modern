@@ -5,6 +5,7 @@ import { getLang, requireMe, type Role } from '@/lib/session';
 import { asAdmin, asUser } from '@/lib/db';
 import { logout, setLang, demoLogin } from '../actions';
 import Flash from '@/components/flash';
+import ScrollKeeper from '@/components/scroll-keeper';
 import { MobileMenu, TopNav, type NavGroup } from '@/components/portal-nav';
 import { t } from '@/lib/i18n';
 import { levelName } from '@/lib/levels';
@@ -135,7 +136,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         {me.demo && <div className="no-print bg-gold-100 px-5 py-1.5 text-center text-xs font-semibold text-gold-600">Demo data: synthetic people and figures. Nothing here is real or saved permanently.</div>}
-        <main className="mx-auto max-w-6xl p-5 md:p-8"><Flash />{children}</main>
+        <main className="mx-auto max-w-6xl p-5 md:p-8"><Flash /><ScrollKeeper />{children}</main>
       </div>
     </div>
   );
