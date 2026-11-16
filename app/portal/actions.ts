@@ -435,7 +435,7 @@ export async function removeParticipant(f: FormData) {
     name = await asAdmin(async (q) => {
       const e = (await q('select e.id, p.id person_id, p.display_name from enrolments e join people p on p.id=e.person_id where e.id=$1 and e.cohort_id=$2', [eid, cohort]))[0];
       if (!e) throw new Error('gone');
-      if ((await q('select 1 from stories where enrolment_id=$1 limit 1', [eid]))[0]) throw new Error('story');
+      if ((await q('select 1 from participant_stories where enrolment_id=$1 limit 1', [eid]))[0]) throw new Error('story');
       await q('delete from cohort_roster where enrolment_id=$1', [eid]);
       await q('delete from enrolments where id=$1', [eid]);
       // the register summaries were counted with this person in them, so count again without
