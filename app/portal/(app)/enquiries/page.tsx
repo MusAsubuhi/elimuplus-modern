@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { asUser } from '@/lib/db';
 import { requireFeature } from '@/lib/access';
 import { Badge, Card, PageHeader } from '@/components/ui';
@@ -9,11 +10,12 @@ import { d } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-const KIND: Record<string, string> = { trainer: 'Trainer interest', organisation: 'Organisation registration', partner: 'Partner enquiry', quote: 'Quote request' };
+const KIND: Record<string, string> = { trainer: 'Trainer interest', organisation: 'Organisation registration', partner: 'Partner enquiry', quote: 'Quote request', mentor: 'Mentor application' };
 const FIELD: Record<string, string> = {
   full_name: 'Name', your_name: 'Name', contact_person: 'Contact person', email: 'Email', phone: 'Phone', whatsapp: 'WhatsApp', location: 'Location', occupation: 'Occupation',
   path: 'How they would join', motivation: 'Why they want to train', attended_programme: 'Attended an Elimu+ programme', institution_name: 'Organisation', organisation_name: 'Organisation',
   your_role: 'Their role', contact_role: 'Their role', institution_type: 'Type', organisation_type: 'Type', community_size: 'Community size', participants: 'Participants expected',
+  serves: 'Who they would mentor', languages: 'Languages', hours: 'Hours a month', background: 'Background', referee_name: 'Referee', referee_phone: 'Referee phone', agreed: 'Agreed to the conditions',
   participant_group: 'Who the participants are', programme: 'Programme', follow_up: 'Follow-up', timing: 'Preferred timing', message: 'Message', authorised: 'Authorised to register', newsletter_optin: 'Newsletter opt-in',
 };
 const orgType = (t = '') => { const x = t.toLowerCase(); return x.includes('cdc') || x.includes('development cent') ? 'cdc' : x.includes('church') || x.includes('faith') || x.includes('mosque') ? 'church' : x.includes('school') ? 'school' : x.includes('college') || x.includes('universit') ? 'college' : x.includes('ngo') || x.includes('non-gov') || x.includes('community') ? 'ngo' : x.includes('company') || x.includes('business') || x.includes('sacco') ? 'company' : 'other'; };
@@ -54,6 +56,12 @@ export default async function Enquiries() {
                 </div>
                 {!r.ack_sent_at && <CopyBox label="Or send this acknowledgement yourself (email or WhatsApp)" text={`${ackText(r as any).subject}\n\nHello ${(r.name ?? '').split(/\s+/)[0] || 'there'},\n\n${ackText(r as any).text.replace(/^[^\n]*\n+/, '')}`} />}
               </div>
+              {r.kind === 'mentor' ? (
+                <div className="rounded-lg border border-teal-100 p-3 text-sm">
+                  <p className="mb-2 text-slate-700">Mentors are vetted before they get a sign-in. Open the Mentoring page to read the full application and start vetting.</p>
+                  <Link href="/portal/mentoring" className="font-bold text-teal underline">Open Mentoring →</Link>
+                </div>
+              ) : (<>
               {r.status === 'accepted' && <p className="mb-3 rounded-lg bg-gold-100 px-3 py-2 text-sm font-semibold text-teal">Account created. Copy the sign-in message below before you leave this page. If you miss it, use Reset PIN on the Team page for a fresh one.</p>}
               <details className="rounded-lg border border-teal-100 p-3" open>
                 <summary className="cursor-pointer font-bold text-teal">{r.kind === 'trainer' ? 'Create their trainer account' : 'Create the partner account'}</summary>
@@ -63,6 +71,7 @@ export default async function Enquiries() {
                     : <InvitePartnerForm orgs={orgs as any} defaults={defaults} />}
                 </div>
               </details>
+              </>)}
               <form action={dismissEnquiry} className="mt-3"><input type="hidden" name="id" value={r.id} /><button className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50">Set aside (spam, duplicate or not a fit)</button></form>
             </Card>
           );
@@ -70,7 +79,7 @@ export default async function Enquiries() {
       </div>
       {past.length > 0 && (
         <Card className="mt-6" title="Handled">
-          <ul className="space-y-1 text-sm">{past.map((r) => <li key={r.id} className="flex flex-wrap items-center gap-2"><Badge tone={r.status === 'accepted' ? 'green' : 'grey'}>{r.status === 'accepted' ? 'Account created' : 'Set aside'}</Badge><b>{r.name || r.email}</b><span className="text-xs text-slate-500">{KIND[r.kind] ?? r.kind} · {d(r.created_at)}</span></li>)}</ul>
+          <ul className="space-y-1 text-sm">{past.map((r) => <li key={r.id} className="flex flex-wrap items-center gap-2"><Badge tone={r.status === 'accepted' ? 'green' : 'grey'}>{r.status === 'accepted' ? (r.kind === 'mentor' ? 'In vetting' : 'Account created') : 'Set aside'}</Badge><b>{r.name || r.email}</b><span className="text-xs text-slate-500">{KIND[r.kind] ?? r.kind} · {d(r.created_at)}</span></li>)}</ul>
         </Card>
       )}
     </>

@@ -48,6 +48,9 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/recognition', label: 'Recognition', icon: '✧', tab: 'My work' },
     { href: '/portal/suppliers', label: 'Suppliers', icon: '⌂', tab: 'People' },
     { href: '/portal/invite', label: 'Suggest people and partners', icon: '+', tab: 'People' }] },
+  mentor: { title: 'Mentoring', items: [
+    { href: '/portal/circles', label: 'My circles', icon: '☍' },
+    { href: '/portal/learn', label: 'Learning center', icon: '✦', tab: 'My work' }] },
   org_admin: { title: 'Partner', items: [
     { href: '/portal/partner', label: 'Overview', icon: '◉' },
     { href: '/portal/partner/request', label: 'Request training', icon: '✎' },
@@ -59,6 +62,7 @@ const NAV: Record<Role, { title: string; items: Item[] }> = {
     { href: '/portal/partner/library', label: 'Reports and documents', icon: '▤' },
     { href: '/portal/partner/reports', label: 'Build a report', icon: '▥' },
     { href: '/portal/learn', label: 'Learning center', icon: '✦' },
+    { href: '/portal/circles', label: 'Mentoring circles', icon: '☍' },
     { href: '/portal/recognition', label: 'Impact milestones', icon: '✧' }] },
   founder: { title: 'Founders', items: [] },
 };
@@ -102,6 +106,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (me.roles.some((r) => r === 'facilitator' || r === 'master')) {
     const n = Number((await asUser(me.id, (q) => q('select count(*)::int n from trainer_alerts where person_id=$1 and read_at is null', [me.id])).catch(() => [{ n: 0 }]))[0].n);
     addTo('My work', [{ href: '/portal/notices', label: 'My notices', icon: '✉', badge: n }]);
+  }
+  if (me.roles.includes('participant') || isFounder) {
+    const inCircle = await asUser(me.id, (q) => q('select 1 from app.my_circles() limit 1')).catch(() => []);
+    if (inCircle.length && !isFounder) addTo('My work', [{ href: '/portal/circles', label: me.language === 'sw' ? 'Kikundi changu cha ushauri' : 'My mentoring circle', icon: '☍' }]);
   }
   if (isEmployee) addTo('My work', [{ href: '/portal/my-pay', label: 'My pay and leave', icon: '₭' }]);
   if (shared.length > 0) navGroups.push({ title: 'Shared with you', items: shared.map((f) => ({ href: f.href, label: f.label, icon: f.icon })) });

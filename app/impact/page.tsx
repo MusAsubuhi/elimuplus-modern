@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { loadPublicImpact } from '@/lib/public-impact';
+import { loadPublicImpact, loadPublicMentoring } from '@/lib/public-impact';
 import { ImpactOverview } from '@/components/public-impact-view';
 
 export const revalidate = 600;
@@ -12,5 +12,6 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const list = await loadPublicImpact().catch(() => []);
-  return <ImpactOverview list={list} />;
+  const mentoring = await loadPublicMentoring().catch(() => null);
+  return <ImpactOverview list={list} mentoring={mentoring} />;
 }

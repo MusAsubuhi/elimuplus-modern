@@ -26,6 +26,9 @@ export default async function Needs() {
     quotes: await one(q, "select qt.number, o.name org_name from quotes qt join organisations o on o.id=qt.organisation_id where qt.status='draft' order by qt.issued_on"),
     notices: await one(q, "select i.number inv, o.name org_name from payment_notices n join invoices i on i.id=n.invoice_id join organisations o on o.id=n.organisation_id where n.status='pending'"),
     unconf: await (async () => { for (const c of await one(q, "select id from cohorts where status in ('confirmed','delivering') and start_date <= current_date")) await ensureSessions(q, c.id).catch(() => {}); return one(q, "select c.name, s.day_number, s.session_date from sessions s join cohorts c on c.id=s.cohort_id where c.status in ('confirmed','delivering') and s.session_date <= current_date and s.attendance_confirmed_at is null order by s.session_date"); })(),
+    mentApps: await one(q, "select name, created_at from web_enquiries where kind='mentor' and status='new' order by created_at"),
+    mentVet: await one(q, "select id, full_name, ((interview_on is not null)::int + (referee_on is not null)::int + (briefing_on is not null)::int + (agreement_on is not null)::int) steps from mentors where status='vetting' order by created_at"),
+    mentConcern: await one(q, "select c.id circle_id, c.name from circle_meeting_notes n join circle_meetings m on m.id=n.meeting_id join mentoring_circles c on c.id=m.circle_id where n.concern and m.held_on >= current_date - 14"),
     welfare: await one(q, "select count(*)::int n from welfare_flags where status='open'"),
     alerts: await one(q, "select a.id, a.kind, a.severity, a.title, a.link from founder_alerts a where a.severity in ('attention','urgent') and not exists (select 1 from alert_reads r where r.alert_id=a.id and r.person_id=$1) order by a.created_at desc limit 12", [me.id]),
     todos: await one(q, 'select * from founder_todos where done_at is null order by due_on nulls last, created_at'),
@@ -41,9 +44,12 @@ export default async function Needs() {
     { name: 'Programme', blurb: 'Quality and safeguarding.', items: [
       ...D.unconf.map((u: any) => ({ title: `Attendance not confirmed: ${u.name}, day ${u.day_number}`, detail: d(u.session_date), href: '/portal/attendance', tone: 'gold' })),
       ...D.photos.map((p: any) => ({ title: `${p.n} session photo${p.n === 1 ? '' : 's'} to check`, detail: p.cohort_name, href: '/portal/approvals', tone: 'gold' })),
+      ...D.mentConcern.map((c: any) => ({ title: `A mentor raised a concern in ${c.name}`, detail: 'Read their private note and speak with the mentor.', href: `/portal/circles/${c.circle_id}`, tone: 'red' })),
       ...(D.welfare[0]?.n ? [{ title: `${D.welfare[0].n} open welfare flag${D.welfare[0].n === 1 ? '' : 's'}`, detail: 'Follow up with the trainer who raised it.', href: '/portal/people', tone: 'red' }] : []),
     ] },
     { name: 'People and onboarding', blurb: 'Who and what is waiting to join.', items: [
+      ...D.mentApps.map((a: any) => ({ title: `Mentor application: ${a.name}`, detail: `Received ${d(a.created_at)}. Read it and start vetting, or set it aside.`, href: '/portal/mentoring', tone: 'gold' })),
+      ...D.mentVet.map((m: any) => ({ title: `Mentor in vetting: ${m.full_name}`, detail: `${m.steps} of 4 steps recorded.`, href: `/portal/mentoring/mentor/${m.id}` })),
       ...D.people.map((p: any) => ({ title: `${p.full_name ?? 'Someone'} suggested by ${p.nominator}`, detail: 'Approve to create the account and get the one-time PIN.', href: '/portal/people', tone: 'gold' })),
       ...D.orgs.map((o: any) => ({ title: `Organisation suggested: ${o.name}`, detail: `by ${o.who}`, href: '/portal/people', tone: 'gold' })),
       ...D.sups.map((s: any) => ({ title: `Supplier suggested: ${s.name}`, detail: s.who ? `by ${s.who}` : undefined, href: '/portal/suppliers', tone: 'gold' })),

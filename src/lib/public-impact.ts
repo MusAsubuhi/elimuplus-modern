@@ -22,6 +22,12 @@ export const loadPublicImpact = unstable_cache(async (): Promise<PubCohort[]> =>
   }));
 }, ['public-impact-v1'], { revalidate: 600 });
 
+/** Mentoring in numbers: circles and sessions, plus people once at least five are involved. Nothing else is ever published. */
+export const loadPublicMentoring = unstable_cache(async (): Promise<{ circles: number; meetings: number; people: number | null }> => {
+  const r = (await asAdmin((q) => q('select app.public_mentoring() r')))[0]?.r ?? {};
+  return { circles: Number(r.circles) || 0, meetings: Number(r.meetings) || 0, people: r.people == null ? null : Number(r.people) };
+}, ['public-mentoring-v1'], { revalidate: 600 });
+
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 export type Phase = 'running' | 'finished';
 export const phaseOf = (c: { start: string | null; end: string | null }, today = todayNairobi()): Phase => ((c.end ?? c.start ?? today) < today ? 'finished' : 'running');

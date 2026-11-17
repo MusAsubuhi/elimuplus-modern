@@ -16,7 +16,7 @@ await db.exec(`create temp table _m as select id, gen_random_uuid() as aid from 
   insert into auth.users select aid from _m; update public.people p set auth_user_id = m.aid from _m m where m.id = p.id; drop table _m;`);
 await db.exec(`grant usage on schema public, app, auth to authenticated;
   grant select, insert, update, delete on all tables in schema public to authenticated;
-  grant execute on function app.me(), app.is_founder(), app.my_orgs(), app.my_mentor_id(), app.my_circles(), app.i_mentor_circle(uuid), app.is_minor(uuid), app.circle_feedback(uuid), app.circle_roster(uuid), app.mentoring_summary() to authenticated;`);
+  grant execute on function app.me(), app.is_founder(), app.my_orgs(), app.my_mentor_id(), app.my_circles(), app.i_mentor_circle(uuid), app.is_minor(uuid), app.circle_feedback(uuid), app.circle_roster(uuid), app.mentoring_summary(), app.circles_visible() to authenticated;`);
 let pass = 0, fail = 0;
 const ok = (n, c, x = '') => { c ? pass++ : fail++; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}${c ? '' : '  -> ' + x}`); };
 async function as(id, sql, params) {
@@ -79,5 +79,9 @@ const t = (await as(mentorPerson, `select app.circle_feedback($1) r`, [circle]))
 ok('totals show at three answers', t.hidden === false && Number(t.usefulness) === 4, JSON.stringify(t));
 ok('the founder summary is available to founders only', (await as(founder, `select app.mentoring_summary() r`))[0].r.meetings === 1 && (await err(adults[0], `select app.mentoring_summary()`)) !== null);
 ok('a member sees first names only in the roster', (await as(adults[0], `select name from app.circle_roster($1) where role='mentee'`, [circle])).every((r) => !r.name.includes(' ')));
+const cv = await as(adults[0], `select mentor_name, members from app.circles_visible()`);
+ok('a member sees their circle with the mentor name, not the mentors table', cv.length === 1 && cv[0].mentor_name === 'Mentor Mary' && (await as(adults[0], `select 1 from public.mentors`)).length === 0);
+ok('someone outside any circle sees no circles', (await as(outsider, `select 1 from app.circles_visible()`)).length === 0);
+ok('the mentor sees their circle', (await as(mentorPerson, `select 1 from app.circles_visible()`)).length === 1);
 ok('public mentoring figures are not callable by signed-in people', (await db.query(`select has_function_privilege('authenticated','app.public_mentoring()','execute') a`)).rows[0].a === false);
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

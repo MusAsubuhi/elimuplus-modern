@@ -120,7 +120,7 @@ function Sections({ list, one }: { list: PubCohort[]; one?: PubCohort }) {
 }
 
 /** /impact: everything together, then one card per cohort. */
-export function ImpactOverview({ list }: { list: PubCohort[] }) {
+export function ImpactOverview({ list, mentoring }: { list: PubCohort[]; mentoring?: { circles: number; meetings: number; people: number | null } | null }) {
   const r = rollup(list);
   const today = todayNairobi();
   return (
@@ -137,6 +137,14 @@ export function ImpactOverview({ list }: { list: PubCohort[] }) {
       ) : (
         <>
           <Sections list={list} />
+          {mentoring && mentoring.circles > 0 && mentoring.meetings > 0 && (
+            <Band kicker="After the training" title="Mentoring circles" lead="Small groups from our cohorts keep meeting with a vetted mentor, so what was learned turns into steps taken.">
+              <div className="grid gap-5 sm:grid-cols-3">
+                <div className="rounded-2xl border border-teal-100 bg-white p-5 shadow-sm"><div className="text-4xl font-black text-[#0D3B3B]">{fmt(mentoring.circles)}</div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">circles formed</div></div>
+                <div className="rounded-2xl border border-teal-100 bg-white p-5 shadow-sm"><div className="text-4xl font-black text-[#0D3B3B]">{fmt(mentoring.meetings)}</div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">sessions held</div></div>
+                {mentoring.people != null && <div className="rounded-2xl border border-teal-100 bg-white p-5 shadow-sm"><div className="text-4xl font-black text-[#0D3B3B]">{fmt(mentoring.people)}</div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">people mentored</div></div>}
+              </div>
+            </Band>)}
           <Band kicker="Cohort by cohort" title="Every cohort has its own page" lead="Open one to see its own numbers and where it is on the 30, 60 and 90 day follow-up path.">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {[...list].sort((a, b) => b.seq - a.seq).map((c) => {

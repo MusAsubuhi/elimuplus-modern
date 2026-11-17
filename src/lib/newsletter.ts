@@ -2,7 +2,7 @@ import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { asAdmin } from './db';
 import { sendTransactional, removeFromList, broadcastDays } from './brevo';
-import { welcomeEmail, orgConfirmEmail, trainerConfirmEmail, letterEmail } from './emails';
+import { welcomeEmail, orgConfirmEmail, trainerConfirmEmail, mentorConfirmEmail, letterEmail } from './emails';
 
 const PORTAL = () => (process.env.PORTAL_URL || 'https://portal.elimuplus.com').replace(/\/$/, '');
 const secret = () => process.env.NEWSLETTER_SECRET || process.env.CRON_SECRET || process.env.FORMS_WEBHOOK_SECRET || '';
@@ -81,12 +81,12 @@ export async function unsubscribe(email: string, reason: string): Promise<void> 
 }
 
 /** One confirmation per address and kind per hour, so the form cannot be used to flood someone's inbox. */
-export async function sendConfirmation(kind: 'confirm_org' | 'confirm_trainer', email: string, name: string, organisation?: string): Promise<'sent' | 'skipped'> {
+export async function sendConfirmation(kind: 'confirm_org' | 'confirm_trainer' | 'confirm_mentor', email: string, name: string, organisation?: string): Promise<'sent' | 'skipped'> {
   const e = lc(email);
   const recent = await asAdmin((q) => q(`select 1 from email_log where kind=$1 and email=$2 and error is null and created_at > now() - interval '1 hour' limit 1`, [kind, e]));
   if (recent.length) return 'skipped';
   const first = name.trim().split(/\s+/)[0];
-  const m = kind === 'confirm_org' ? orgConfirmEmail(first, organisation) : trainerConfirmEmail(first);
+  const m = kind === 'confirm_org' ? orgConfirmEmail(first, organisation) : kind === 'confirm_mentor' ? mentorConfirmEmail(first) : trainerConfirmEmail(first);
   try {
     await sendTransactional({ to: e, name: name || undefined, subject: m.subject, html: m.html, text: m.text, tags: [kind] });
     await log(kind, e);

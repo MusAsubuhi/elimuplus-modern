@@ -133,6 +133,15 @@ export function trainerConfirmEmail(name: string | undefined): Mail {
   return { subject: 'We have received your Elimu+ trainer interest', ...wrap({ greeting: hi(name), headline: 'Thank you for your interest in training', kicker: 'Trainer interest', banner: { image: 'trainer-coaching.jpg', alt: 'An Elimu+ trainer coaching participants' }, body: paragraphs.join('\n\n') }) };
 }
 
+export function mentorConfirmEmail(name: string | undefined): Mail {
+  const paragraphs = [
+    'Thank you for offering to mentor with Elimu+. We have received your application.',
+    'Mentors work with small circles of people from our trainings, so we take our time to get to know each applicant. Two founders will read your application and one of us will contact you to arrange a short conversation. Nothing is decided by this email, and you do not need to do anything now.',
+    'If you would like to add anything, simply reply to this email.',
+  ];
+  return { subject: 'We have received your Elimu+ mentor application', ...wrap({ greeting: hi(name), headline: 'Thank you for offering to mentor', kicker: 'Mentor application', banner: { image: 'trainer-coaching.jpg', alt: 'An Elimu+ trainer coaching participants' }, body: paragraphs.join('\n\n') }) };
+}
+
 /** A weekly letter written in the portal: the body is plain text and a blank line starts a new paragraph. */
 export function letterEmail(subject: string, body: string, name: string | undefined, unsubscribeUrl: string): Mail {
   return { subject, ...wrap({ greeting: hi(name), headline: subject.replace(/^\[Test\]\s*/, ''), kicker: 'Elimu+ weekly letter', body, unsubscribeUrl }) };

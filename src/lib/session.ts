@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { asAdmin, asUser, dbMode } from './db';
 
-export type Role = 'founder' | 'master' | 'facilitator' | 'org_admin' | 'participant';
+export type Role = 'founder' | 'master' | 'facilitator' | 'org_admin' | 'participant' | 'mentor';
 export type Lang = 'sw' | 'en';
 
 export interface Me {
@@ -22,7 +22,7 @@ export interface Me {
   preview?: { orgId: string; orgName: string };
 }
 
-const ORDER: Role[] = ['founder', 'master', 'facilitator', 'org_admin', 'participant'];
+const ORDER: Role[] = ['founder', 'master', 'facilitator', 'org_admin', 'mentor', 'participant'];
 
 async function personIdFromCookie(): Promise<string | null> {
   const jar = await cookies();
@@ -59,6 +59,7 @@ export const getMe = cache(async function getMe(): Promise<Me | null> {
     if (r.role === 'facilitator') { roles.add('facilitator'); if ((r.tier ?? 0) >= 3) roles.add('master'); }
     if (r.role === 'org_admin' || r.role === 'org_viewer') roles.add('org_admin');
     if (r.role === 'participant') roles.add('participant');
+    if (r.role === 'mentor') roles.add('mentor');
   }
   const list = ORDER.filter((r) => roles.has(r));
   return {
