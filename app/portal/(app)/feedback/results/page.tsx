@@ -34,14 +34,15 @@ export default async function Page() {
   return (
     <div>
       <InfographicStyles />
-      <PageHeader title="System feedback" subtitle="What partners, trainers and founders tell us about the portal, as totals only. Nobody's answers can be read individually, and a group appears once at least three people have answered." />
+      <PageHeader title="System feedback" subtitle="What the people who use the portal tell us about the portal, as totals only. Nobody's answers can be read individually, and a group appears once at least three people have answered." />
       {!s || !s.responses ? (
-        <Soon>No answers yet. Partners, trainers and founders are asked once they have used the portal on five days over at least two weeks, then again every sixty days.</Soon>
+        <Soon>No answers yet. Everyone who uses the portal is asked once they have used the portal on five days over at least two weeks, then again every sixty days.</Soon>
       ) : (
         <>
-          <div className="mb-8 grid gap-4 sm:grid-cols-4">
+          <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <Tile value={s.responses} label="Answers so far" tone="gold" />
             <Tile value={`${s.answered.partner}/${Math.max(s.eligible.partner, s.answered.partner)}`} label="Partners who answered" sub="of those asked so far" tone="green" />
+            <Tile value={`${s.answered.participant}/${Math.max(s.eligible.participant, s.answered.participant)}`} label="Participants who answered" sub="of those asked so far" tone="clay" />
             <Tile value={`${s.answered.founder}/${Math.max(s.eligible.founder, s.answered.founder)}`} label="Founders who answered" sub="of those asked so far" tone="teal" />
             <Tile value={`${s.answered.trainer}/${Math.max(s.eligible.trainer, s.answered.trainer)}`} label="Trainers who answered" sub="of those asked so far" tone="light" />
           </div>
@@ -49,6 +50,7 @@ export default async function Page() {
           {s.partner && <Block g={s.partner} title="Partners" />}
           {s.trainer && <Block g={s.trainer} title="Trainers" />}
           {s.founder && <Block g={s.founder} title="Founders" />}
+          {s.participant && <Block g={s.participant} title="Participants" />}
           {s.overall && (
             <div className="grid gap-5 md:grid-cols-2">
               {s.by_tenure.length > 0 && <Panel title="Does it get easier with time?" note="Average ease by how long people have used the portal."><HBars rows={s.by_tenure.map((t: any) => ({ label: `${t.band} (${t.n})`, value: Number(t.ease_avg) }))} max={5} color={C.green} /></Panel>}

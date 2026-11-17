@@ -142,7 +142,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         {me.demo && <div className="no-print bg-gold-100 px-5 py-1.5 text-center text-xs font-semibold text-gold-600">Demo data: synthetic people and figures. Nothing here is real or saved permanently.</div>}
-        {due && <FeedbackNudge snooze={snoozeFeedback} />}
+        {due && <FeedbackNudge snooze={snoozeFeedback} lang={lang} />}
         <main className="mx-auto max-w-6xl p-5 md:p-8"><Flash /><ScrollKeeper />{children}</main>
       </div>
     </div>

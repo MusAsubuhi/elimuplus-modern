@@ -5,11 +5,12 @@ import { todayNairobi } from './book';
 import type { Me } from './session';
 import type { Audience } from './feedback-options';
 
-/** Who is asked: founders, trainers and partners. Participants answer their own forms instead. */
+/** Who is asked: founders, trainers and partners. Participants too. */
 export function audienceOf(me: Me): Audience | null {
   if (me.roles.includes('founder')) return 'founder';
   if (me.roles.includes('facilitator') || me.roles.includes('master')) return 'trainer';
   if (me.roles.includes('org_admin')) return 'partner';
+  if (me.roles.includes('participant')) return 'participant';
   return null;
 }
 
