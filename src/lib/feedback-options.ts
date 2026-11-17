@@ -1,7 +1,11 @@
 /** Choices for the system feedback form. Plain data so both the form and the results page can use it. */
-export type Audience = 'partner' | 'trainer';
+export type Audience = 'partner' | 'trainer' | 'founder';
 
 export const VALUABLE: Record<Audience, string[]> = {
+  founder: [
+    'Command view and alerts', 'Cohorts, attendance and follow-up', 'Partners, quotes and deals', 'Invoices, payments and money',
+    'Reports and impact numbers', 'Team, trainers and permissions', 'Marketing, social and news', 'Data completeness and evidence',
+  ],
   partner: [
     'Seeing every cohort and its progress', 'Follow-up results at 30, 60 and 90 days', 'Reports and documents in one place',
     'Invoices and payments', 'Requesting or changing a training', 'Adding participants', 'Certificates', 'The learning centre',

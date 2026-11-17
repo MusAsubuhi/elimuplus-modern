@@ -5,9 +5,9 @@ import { todayNairobi } from './book';
 import type { Me } from './session';
 import type { Audience } from './feedback-options';
 
-/** Who is asked: partners and trainers only. Founders and staff are never asked. */
+/** Who is asked: founders, trainers and partners. Participants answer their own forms instead. */
 export function audienceOf(me: Me): Audience | null {
-  if (me.roles.includes('founder')) return null;
+  if (me.roles.includes('founder')) return 'founder';
   if (me.roles.includes('facilitator') || me.roles.includes('master')) return 'trainer';
   if (me.roles.includes('org_admin')) return 'partner';
   return null;
