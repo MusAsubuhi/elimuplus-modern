@@ -12,7 +12,7 @@ const ROLE_LABEL: Record<string, string> = { facilitator: 'Facilitators', master
 export default async function Permissions() {
   await requireMe('founder');
   const { roleRows, personRows, people, orgs, chain } = await asAdmin(async (q) => ({
-    orgs: await q(`select o.id, o.name, o.type, p.name parent_name, a.named_participant_access, a.welfare_flag_visibility, a.released_report_types,
+    orgs: await q(`select o.id, o.name, o.type, p.name parent_name, a.named_participant_access, a.welfare_flag_visibility, a.released_report_types, a.public_listing,
                      (select count(*)::int from cohorts c where c.organisation_id=o.id) cohorts
                    from organisations o left join agreements a on a.organisation_id=o.id left join organisations p on p.id=o.parent_id
                    where not o.is_internal and o.status <> 'rejected' order by coalesce(p.name,o.name), o.parent_id nulls first, o.name`).catch(() => []),
@@ -85,6 +85,12 @@ export default async function Permissions() {
                     <option value="none">Nothing about participants</option>
                     <option value="aggregates">Totals and percentages only</option>
                     <option value="named">Named participants of their own cohorts</option>
+                  </select></label>
+                <label className="block"><span className="text-xs font-bold text-slate-500">On the public impact page</span>
+                  <select name="listing" defaultValue={o.public_listing ?? 'anonymous'} className={inputCls}>
+                    <option value="anonymous">Counted, shown without the organisation name</option>
+                    <option value="named">Counted and named</option>
+                    <option value="hidden">Not shown at all</option>
                   </select></label>
                 <label className="flex items-center gap-2 pt-5"><input type="checkbox" name="welfare" defaultChecked={!!o.welfare_flag_visibility} className="h-4 w-4" /> Can see welfare concerns about their participants</label>
                 <fieldset className="sm:col-span-2"><legend className="text-xs font-bold text-slate-500">Reports we generate that they may open (only once a report is released)</legend>

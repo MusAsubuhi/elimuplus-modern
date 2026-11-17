@@ -55,15 +55,17 @@ export async function saveAgreement(f: FormData) {
   const me = await requireMe('founder');
   const org = s(f, 'org');
   const named = ['none', 'aggregates', 'named'].includes(s(f, 'named')) ? s(f, 'named') : 'aggregates';
+  const listing = ['hidden', 'anonymous', 'named'].includes(s(f, 'listing')) ? s(f, 'listing') : 'anonymous';
   const types = ['session', 'followup_30', 'followup_60', 'followup_90', 'completion', 'impact'].filter((t) => f.get(`type:${t}`) === 'on');
   if (!org) back('Choose an organisation.', 'err');
   try {
     await asUser(me.id, (q) => q(
-      `insert into agreements (organisation_id, named_participant_access, welfare_flag_visibility, released_report_types)
-       values ($1,$2,$3,$4) on conflict (organisation_id) do update set named_participant_access=$2, welfare_flag_visibility=$3, released_report_types=$4`,
-      [org, named, f.get('welfare') === 'on', types]));
+      `insert into agreements (organisation_id, named_participant_access, welfare_flag_visibility, released_report_types, public_listing)
+       values ($1,$2,$3,$4,$5) on conflict (organisation_id) do update set named_participant_access=$2, welfare_flag_visibility=$3, released_report_types=$4, public_listing=$5`,
+      [org, named, f.get('welfare') === 'on', types, listing]));
   } catch (e) { console.error('[portal action]', e); back('Could not save that agreement.', 'err'); }
   await audit(me.id, 'permissions: partner agreement saved', 'agreements');
   revalidatePath(P);
+  revalidatePath('/impact');
   back('Partner agreement saved.');
 }

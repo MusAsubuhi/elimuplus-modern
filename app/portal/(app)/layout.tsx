@@ -11,6 +11,9 @@ import { t } from '@/lib/i18n';
 import { levelName } from '@/lib/levels';
 import { allowedFeatures } from '@/lib/access';
 import { FEATURES, SECTIONS } from '@/lib/features';
+import { feedbackDue, recordVisit } from '@/lib/feedback';
+import FeedbackNudge from '@/components/feedback-nudge';
+import { snoozeFeedback } from '../feedback-actions';
 
 type Item = { href: string; label: string; icon: string; tab?: string };
 const NAV: Record<Role, { title: string; items: Item[] }> = {
@@ -69,6 +72,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const groups: Role[] = me.roles.includes('founder') ? ['founder', 'master', 'facilitator', ...(me.roles.includes('participant') ? (['participant'] as Role[]) : [])] : me.roles;
   const newEnq = me.roles.includes('founder') ? Number((await asUser(me.id, (q) => q("select count(*)::int n from web_enquiries where status='new'")).catch(() => [{ n: 0 }]))[0].n) : 0;
   const unread = me.roles.includes('founder') ? Number((await asUser(me.id, (q) => q('select count(*)::int n from founder_alerts a where not exists (select 1 from alert_reads r where r.alert_id=a.id and r.person_id=$1)', [me.id])).catch(() => [{ n: 0 }]))[0].n) : 0;
+  await recordVisit(me).catch(() => undefined);
+  const due = await feedbackDue(me).catch(() => null);
   const allowed = await allowedFeatures(me);
   const isFounder = me.roles.includes('founder');
   const seen = new Set<string>();
@@ -137,6 +142,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         {me.demo && <div className="no-print bg-gold-100 px-5 py-1.5 text-center text-xs font-semibold text-gold-600">Demo data: synthetic people and figures. Nothing here is real or saved permanently.</div>}
+        {due && <FeedbackNudge snooze={snoozeFeedback} />}
         <main className="mx-auto max-w-6xl p-5 md:p-8"><Flash /><ScrollKeeper />{children}</main>
       </div>
     </div>
