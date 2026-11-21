@@ -31,14 +31,14 @@ const org = '00000000-0000-4000-8000-0000000000a2';
 const feed = async () => (await db.query('select app.public_cohort_listings() r')).rows[0].r;
 
 const base = await feed();
-ok('the four existing website cards are carried over', base.length === 4 && base[0].heading === 'November 2026' && base[3].heading === 'Mtongwe', JSON.stringify(base.map((x) => x.heading)));
+ok('the planned cards are carried over; the two hand-written cards are retired', base.length === 2 && base[0].heading === 'January 2027' && base[1].heading === 'April 2027', JSON.stringify(base.map((x) => x.heading)));
 
 await db.exec(`insert into public.cohorts(organisation_id,name,format,language,audience,start_date,venue,status)
   values ('${org}','Test Youth Cohort','12-day','sw','Youth, Form 3','2027-06-10','Likoni','requested')`);
 const [draft] = (await db.query(`select l.*, c.id cid from public.website_listings l join public.cohorts c on c.id=l.cohort_id where c.name='Test Youth Cohort'`)).rows;
 ok('a new cohort creates a draft listing', draft?.status === 'draft', JSON.stringify(draft));
-ok('draft wording is written from the cohort', draft.badge === 'Youth · 12-Day SEE' && draft.heading === 'June 2027' && /Likoni/.test(draft.blurb) && /exact dates to be confirmed/.test(draft.date_note), JSON.stringify(draft));
-ok('a draft is not in the public feed', (await feed()).length === 4);
+ok('draft wording is written from the cohort', draft.badge === 'Youth · 12-Day SEE' && draft.heading === 'June 2027' && /Likoni/.test(draft.blurb) && draft.date_note === 'Starts 10 June 2027', JSON.stringify(draft));
+ok('a draft is not in the public feed', (await feed()).length === 2);
 ok('a founder alert asks for a decision', (await db.query(`select count(*)::int n from public.founder_alerts where kind='website' and source_id=$1`, [draft.cid])).rows[0].n === 1);
 
 await db.exec(`insert into public.cohorts(organisation_id,name,format,language,audience,status) values ('${org}','Founders'' cohort test','5-day','en','Founders','requested'),('${org}','Old finished','5-day','sw','Adults','closed')`);
@@ -51,12 +51,20 @@ ok('a founder sees the draft', (await as(founder, 'select id from public.website
 await as(founder, `update public.website_listings set status='published', published_at=now() where id=$1`, [draft.id]);
 let f = await feed();
 const pub = f.find((x) => x.heading === 'June 2027');
-ok('publishing puts it in the feed', !!pub && f.length === 5);
+ok('publishing puts it in the feed', !!pub && f.length === 3);
 ok('the feed carries only four wording fields', pub && Object.keys(pub).sort().join() === 'badge,blurb,date_note,heading', pub && Object.keys(pub).join());
-ok('feed is ordered by date, and the undated Mtongwe card stays last', f.map((x) => x.heading).join() === 'November 2026,January 2027,April 2027,June 2027,Mtongwe', f.map((x) => x.heading).join());
+ok('feed is ordered by date, and ', f.map((x) => x.heading).join() === 'January 2027,April 2027,June 2027', f.map((x) => x.heading).join());
 
-await db.exec(`update public.cohorts set status='followup' where name='Test Youth Cohort'`);
-ok('a finished cohort leaves the website by itself', !(await feed()).some((x) => x.heading === 'June 2027'));
+await db.exec(`update public.cohorts set start_date=current_date-10, end_date=current_date-3, status='followup' where name='Test Youth Cohort'`);
+const fin = (await feed()).find((x) => x.heading === 'June 2027');
+ok('a finished cohort in follow-up stays, labelled finished', !!fin && /^Finished .* · follow-up visits under way$/.test(fin.date_note), fin && fin.date_note);
+await db.exec(`update public.cohorts set start_date=current_date-1, end_date=current_date+5, status='quoted' where name='Test Youth Cohort'`);
+ok('a running cohort says under way, with its end date', /^Under way · ends /.test(((await feed()).find((x) => x.heading === 'June 2027') ?? {}).date_note ?? ''));
+await db.exec(`update public.cohorts set start_date=current_date-60, end_date=current_date-40, status='followup' where name='Test Youth Cohort'`);
+ok('a cohort leaves the website 30 days after it ends', !(await feed()).some((x) => x.heading === 'June 2027'));
+await db.exec(`update public.cohorts set start_date=current_date-10, end_date=current_date-3 where name='Test Youth Cohort'`);
+await db.exec(`update public.cohorts set status='closed' where name='Test Youth Cohort'`);
+ok('a closed cohort leaves the website', !(await feed()).some((x) => x.heading === 'June 2027'));
 await db.exec(`update public.cohorts set status='quoted' where name='Test Youth Cohort'; update public.website_listings set status='hidden' where id='${draft.id}'`);
 ok('hiding takes it off the website', !(await feed()).some((x) => x.heading === 'June 2027'));
 

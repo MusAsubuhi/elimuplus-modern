@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { asUser } from '@/lib/db';
+import { asAdmin } from '@/lib/db';
 import { requireFeature } from '@/lib/access';
 import { audit } from '@/lib/audit';
 import { Badge, Card, PageHeader, Stat, inputCls, submitCls } from '@/components/ui';
@@ -15,7 +15,7 @@ const Fields = ({ l }: { l?: Partial<L> }) => (
     <label className="text-xs font-bold text-teal">Label (the dark tag)<input name="badge" defaultValue={l?.badge} maxLength={80} required className={inputCls} /></label>
     <label className="text-xs font-bold text-teal">Heading<input name="heading" defaultValue={l?.heading} maxLength={80} required className={inputCls} /></label>
     <label className="text-xs font-bold text-teal sm:col-span-2">Description<textarea name="blurb" defaultValue={l?.blurb} maxLength={500} rows={2} required className={inputCls} /></label>
-    <label className="text-xs font-bold text-teal sm:col-span-2">Dates line (gold, at the bottom of the card)<input name="date_note" defaultValue={l?.date_note} maxLength={120} required className={inputCls} /></label>
+    <label className="text-xs font-bold text-teal sm:col-span-2">{l?.cohort_id ? 'Dates line (automatic: worked out from the cohort’s dates, so it stays current)' : 'Dates line (gold, at the bottom of the card)'}<input name="date_note" defaultValue={l?.date_note} maxLength={120} required readOnly={!!l?.cohort_id} className={inputCls + (l?.cohort_id ? ' bg-gray-100 text-gray-600' : '')} /></label>
   </div>
 );
 
@@ -57,12 +57,12 @@ function Row({ l, mode }: { l: L; mode: 'draft' | 'published' | 'hidden' }) {
 export default async function Website() {
   const me = await requireFeature('website');
   await audit(me.id, 'view website listings', 'website_listings');
-  const list = (await asUser(me.id, (q) => q(`select l.id, l.cohort_id, c.name cohort_name, c.status cohort_status, c.start_date, l.badge, l.heading, l.blurb, l.date_note, l.status, l.published_at, l.starts_on
+  const list = (await asAdmin((q) => q(`select l.id, l.cohort_id, c.name cohort_name, c.status cohort_status, c.start_date, l.badge, l.heading, l.blurb, case when c.id is not null then app.listing_when(c) else l.date_note end date_note, l.status, l.published_at, l.starts_on
     from website_listings l left join cohorts c on c.id=l.cohort_id order by coalesce(c.start_date, l.starts_on) nulls last, l.created_at`))) as unknown as L[];
   const drafts = list.filter((l) => l.status === 'draft'), live = list.filter((l) => l.status === 'published'), hidden = list.filter((l) => l.status === 'hidden');
   return (
     <>
-      <PageHeader title="Website listings" subtitle="The cohort cards under “Cohorts in planning” on the Join page. A new cohort arrives here as a draft with the wording already written. Nothing goes public until you tap Publish, and a card leaves the website by itself once its cohort has finished." />
+      <PageHeader title="Website listings" subtitle="The cohort cards under “Cohorts in planning” on the Join page. A new cohort arrives here as a draft with the wording already written. Nothing goes public until you tap Publish, and each card’s dates line updates by itself as the cohort moves from upcoming to under way to finished, and the card leaves the website 30 days after the cohort ends." />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Stat tone={drafts.length ? 'gold' : 'teal'} label="Waiting for you" value={drafts.length} sub="drafts to publish or hide" />
         <Stat tone="green" label="On the website now" value={live.length} />
