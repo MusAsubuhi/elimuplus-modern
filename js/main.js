@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', function () {
     fetch('https://portal.elimuplus.com/api/website/cohorts', { headers: { Accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
+        var nf = data && data.next_forum, nfEl = document.getElementById('next-forum');
+        if (nf && nfEl) nfEl.textContent = 'Our next forum is on ' + String(nf) + '. Partner organisations and past participants will also be told directly.';
         var list = data && data.cohorts;
         if (!list || !list.length) return;
         var frag = document.createDocumentFragment();
