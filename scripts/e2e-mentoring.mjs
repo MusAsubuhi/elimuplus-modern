@@ -25,7 +25,7 @@ check('founder needs page 200', (await go(f, '/portal/needs')) === 200);
 check('founder menu has Mentoring', /Mentoring/.test(await text(f)));
 
 check('founder website listings page shows the four live cards', (await go(f, '/portal/website')) === 200 && /Mtongwe/.test(await text(f)) && /On the website now/.test(await text(f)));
-const api = await f.request.get(base + '/api/public/cohorts');
+const api = await f.request.get(base + '/api/website/cohorts');
 const feed = await api.json();
 check('public cohort feed returns the four published cards', api.status() === 200 && feed.cohorts?.length === 4 && !JSON.stringify(feed).match(/phone|@|KES/i), JSON.stringify(feed).slice(0, 200));
 await f.goto(base + '/portal/website', { waitUntil: 'networkidle' });
@@ -37,9 +37,9 @@ await addForm.locator('input[name=date_note]').fill('August 2027 · exact dates 
 await addForm.locator('input[name=starts_on]').fill('2027-08-01');
 await addForm.locator('button:has-text("Add as a draft")').click(); await f.waitForTimeout(2500);
 check('new listing arrives as a draft waiting for the founder', /Waiting for you/.test(await text(f)) && /August 2027/.test(await text(f)));
-check('a draft is not yet in the public feed', (await (await f.request.get(base + '/api/public/cohorts')).json()).cohorts.length === 4);
+check('a draft is not yet in the public feed', (await (await f.request.get(base + '/api/website/cohorts')).json()).cohorts.length === 4);
 await f.locator('button:has-text("Publish on the website")').first().click(); await f.waitForLoadState('networkidle');
-const after = (await (await f.request.get(base + '/api/public/cohorts')).json()).cohorts;
+const after = (await (await f.request.get(base + '/api/website/cohorts')).json()).cohorts;
 check('tapping Publish puts it in the feed, in date order', after.length === 5 && after[3].heading === 'August 2027' && after[4].heading === 'Mtongwe', JSON.stringify(after.map((x) => x.heading)));
 const pub = await (await browser.newContext()).newPage();
 check('public impact page 200', (await go(pub, '/impact')) === 200);
