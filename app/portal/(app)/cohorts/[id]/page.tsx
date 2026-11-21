@@ -22,6 +22,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   const { id } = await params;
   const sp = await searchParams;
   await asAdmin((q) => refreshCompletion(q, id)).catch(() => {});
+  const site = (await asUser(me.id, (q) => q('select status from website_listings where cohort_id=$1', [id])).catch(() => []))[0]?.status as string | undefined;
   const data = await asUser(me.id, async (q) => {
     const c = (await q('select c.*, o.name org_name from cohorts c join organisations o on o.id=c.organisation_id where c.id=$1', [id]))[0];
     if (!c) return null;
@@ -82,6 +83,7 @@ export default async function CohortPage({ params, searchParams }: { params: Pro
   return (
     <>
       <PageHeader image="/images/programme-youth-session.jpg" title={c.name} subtitle={`${c.org_name} · ${c.format === '12-day' ? '12-Day' : '5-Day'} · ${c.language === 'sw' ? 'Kiswahili' : 'English'} · ${dateRange(c, d)} · ${c.venue ?? ''} · ${leadLine}`}>
+        {site && <Link href="/portal/website" className="rounded-lg bg-white/15 px-3 py-1 text-xs font-bold">{site === 'published' ? 'On the website' : site === 'draft' ? 'Website: ready to publish' : 'Website: hidden'}</Link>}
         <Link href={`/portal/cohorts/${id}/outcomes`} className="rounded-lg bg-gold px-3 py-1 text-xs font-bold text-teal">Outcomes</Link>
         <Link href={`/portal/consent?cohort=${id}`} className="rounded-lg bg-white/15 px-3 py-1 text-xs font-bold">Print consent forms</Link>
         {me.roles.includes('founder') && (

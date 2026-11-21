@@ -29,6 +29,7 @@ export default async function Needs() {
     mentApps: await one(q, "select name, created_at from web_enquiries where kind='mentor' and status='new' order by created_at"),
     mentVet: await one(q, "select id, full_name, ((interview_on is not null)::int + (referee_on is not null)::int + (briefing_on is not null)::int + (agreement_on is not null)::int) steps from mentors where status='vetting' order by created_at"),
     mentConcern: await one(q, "select c.id circle_id, c.name from circle_meeting_notes n join circle_meetings m on m.id=n.meeting_id join mentoring_circles c on c.id=m.circle_id where n.concern and m.held_on >= current_date - 14"),
+    siteDrafts: await one(q, "select l.id, l.heading, l.badge from website_listings l where l.status='draft' order by l.created_at"),
     welfare: await one(q, "select count(*)::int n from welfare_flags where status='open'"),
     alerts: await one(q, "select a.id, a.kind, a.severity, a.title, a.link from founder_alerts a where a.severity in ('attention','urgent') and not exists (select 1 from alert_reads r where r.alert_id=a.id and r.person_id=$1) order by a.created_at desc limit 12", [me.id]),
     todos: await one(q, 'select * from founder_todos where done_at is null order by due_on nulls last, created_at'),
@@ -48,6 +49,7 @@ export default async function Needs() {
       ...(D.welfare[0]?.n ? [{ title: `${D.welfare[0].n} open welfare flag${D.welfare[0].n === 1 ? '' : 's'}`, detail: 'Follow up with the trainer who raised it.', href: '/portal/people', tone: 'red' }] : []),
     ] },
     { name: 'People and onboarding', blurb: 'Who and what is waiting to join.', items: [
+      ...D.siteDrafts.map((w: any) => ({ title: `Website: ${w.badge}, ${w.heading} is ready to publish`, detail: 'Read the wording, then Publish or Hide.', href: '/portal/website', tone: 'gold' })),
       ...D.mentApps.map((a: any) => ({ title: `Mentor application: ${a.name}`, detail: `Received ${d(a.created_at)}. Read it and start vetting, or set it aside.`, href: '/portal/mentoring', tone: 'gold' })),
       ...D.mentVet.map((m: any) => ({ title: `Mentor in vetting: ${m.full_name}`, detail: `${m.steps} of 4 steps recorded.`, href: `/portal/mentoring/mentor/${m.id}` })),
       ...D.people.map((p: any) => ({ title: `${p.full_name ?? 'Someone'} suggested by ${p.nominator}`, detail: 'Approve to create the account and get the one-time PIN.', href: '/portal/people', tone: 'gold' })),
