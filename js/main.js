@@ -6,6 +6,29 @@
    ============================================================= */
 
 document.addEventListener('DOMContentLoaded', function () {
+  /* Cohort cards on the Join page come from the portal: only listings a founder has published. If the portal cannot be reached,
+     or has nothing published, the cards already in the page stay as they are. */
+  (function () {
+    var box = document.getElementById('cohort-cards');
+    if (!box || !window.fetch) return;
+    fetch('https://portal.elimuplus.com/api/website/cohorts', { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        var list = data && data.cohorts;
+        if (!list || !list.length) return;
+        var frag = document.createDocumentFragment();
+        list.forEach(function (c) {
+          var card = document.createElement('article'); card.className = 'card';
+          [['span', 'card__badge', c.badge], ['h3', '', c.heading], ['p', '', c.blurb], ['p', 'cohort-date', c.date_note]].forEach(function (x) {
+            var el = document.createElement(x[0]); if (x[1]) el.className = x[1]; el.textContent = String(x[2] || ''); card.appendChild(el);
+          });
+          frag.appendChild(card);
+        });
+        box.textContent = ''; box.appendChild(frag);
+      })
+      .catch(function () {});
+  })();
+
   initMobileNav();
   initStickyNavbar();
   initFormspreeForms();
