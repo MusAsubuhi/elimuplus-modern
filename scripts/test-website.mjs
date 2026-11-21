@@ -71,5 +71,23 @@ ok('hiding takes it off the website', !(await feed()).some((x) => x.heading === 
 await db.exec(`insert into public.website_listings(badge,heading,blurb,date_note,starts_on,status) values ('Youth · 12-Day SEE','Last month','x','x', date_trunc('month', current_date)::date - interval '40 days','published')`);
 ok('a planned listing drops off after its month has passed', !(await feed()).some((x) => x.heading === 'Last month'));
 ok('the feed function is not callable by signed-in people', /permission denied/i.test((await err(founder, 'select app.public_cohort_listings()')) ?? ''));
+
+// A new cohort takes over the matching planned card instead of duplicating it
+const before = (await feed()).length;
+await db.exec(`insert into public.cohorts(organisation_id,name,format,language,audience,start_date,venue,status)
+  values ('${org}','Adoption Test Cohort','5-day','sw','Adults','2027-01-12','Likoni','requested')`);
+const [adopted] = (await db.query(`select l.* from public.website_listings l join public.cohorts c on c.id=l.cohort_id where c.name='Adoption Test Cohort'`)).rows;
+ok('a new cohort takes over the planned January card', adopted?.heading === 'January 2027' && adopted.status === 'published', JSON.stringify(adopted));
+ok('no duplicate card is created', (await db.query(`select count(*)::int n from public.website_listings where heading='January 2027' or starts_on='2027-01-12'`)).rows[0].n === 1);
+ok('the taken-over card shows live dates', ((await feed()).find((x) => x.heading === 'January 2027') ?? {}).date_note === 'Starts 12 January 2027');
+ok('the founders are told to check the wording', (await db.query(`select count(*)::int n from public.founder_alerts where kind='website' and title like 'A cohort took over%'`)).rows[0].n === 1);
+ok('the feed length is unchanged by adoption', (await feed()).length === before);
+
+// Next forum date
+const nf = async () => (await db.query('select app.public_next_forum() f')).rows[0].f;
+ok('no forum recorded gives no date', (await nf()) === null);
+await db.exec(`insert into public.seminars(code,title,held_on,venue,status) values ('F-TEST','Monthly Elimu+ Forum', current_date + 20, 'Likoni', 'planned')`);
+ok('the next recorded forum is reported by date only', /^\d{1,2} [A-Z][a-z]+ \d{4}$/.test((await nf()) ?? ''), await nf());
+ok('the forum function is not callable by signed-in people', /permission denied/i.test((await err(founder, 'select app.public_next_forum()')) ?? ''));
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
