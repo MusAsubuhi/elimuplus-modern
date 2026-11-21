@@ -129,7 +129,7 @@ function rel(html, depth) {
 }
 
 function page({ title, desc, canonical, image, body, depth, type, ld, rich }) {
-  const css = rel('<link rel="stylesheet" href="css/styles.css">', depth);
+  const css = rel('<link rel="stylesheet" href="css/styles.css?v=20261121">', depth);
   const fav = rel('<link rel="icon" href="images/favicon.png" type="image/png">', depth);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -173,7 +173,7 @@ ${body}
 
   ${rel(footer, depth)}
 
-  <script src="${'../'.repeat(depth)}js/main.js"></script>
+  <script src="${'../'.repeat(depth)}js/main.js?v=20261121"></script>
 </body>
 </html>
 `;

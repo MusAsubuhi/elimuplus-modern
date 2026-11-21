@@ -230,7 +230,7 @@ ${hasSample ? '  <meta name="robots" content="noindex, follow">\n' : ''}  <link 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20261121">
   <script defer data-domain="elimuplus.com" src="https://plausible.io/js/script.js"></script>
 </head>
 <body>
@@ -241,7 +241,7 @@ ${hasSample ? '  <meta name="robots" content="noindex, follow">\n' : ''}  <link 
 ${body}
   ${footer}
 
-  <script src="js/main.js"></script>
+  <script src="js/main.js?v=20261121"></script>
   <script>
     (function () {
       var btns = document.querySelectorAll('.filter-btn'), cards = document.querySelectorAll('#biz-grid .biz-card');
