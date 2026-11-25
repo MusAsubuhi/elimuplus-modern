@@ -121,9 +121,8 @@ An honest forum report has a column for this. These are the lessons, and what we
 ## What happens next
 
 <ul class="fx-steps">
-<li><strong>Next forum, end of November 2026.</strong> The date will be communicated to partner organisations and past participants. Its focus is the records clinic and the second half of "pay yourself".</li>
+<li><strong>Next forum, early December 2026.</strong> (Updated 25 November: the forum has moved to early December.) The date will be communicated to partner organisations and past participants. Its focus is the records clinic and the second half of "pay yourself".</li>
 <li><strong>Savings groups.</strong> The CDC and its Savings Group Ministry will call everyone who put their name down and hold a separate launch meeting once leaders and materials are in place.</li>
-<li><strong>No forum in December.</strong> We will rest, and see you in the new year.</li>
 </ul>
 
 ![Infographic: the first forum on one page, with 39 registered, 27 with a business, 24 slips, 3 panellists, 10 to 15 toddlers, training 16 and capital 10 on the slips, and 23 of 39 (59 percent) wanting savings groups](images/blog/forum-in-numbers.png)
