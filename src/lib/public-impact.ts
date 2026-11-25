@@ -11,16 +11,19 @@ import { todayNairobi } from './book';
 export type PubCohort = {
   seq: number; orgName: string | null; orgType: string; county: string | null; start: string | null; end: string | null;
   status: string; format: string; small: boolean; m: Record<string, any>;
+  no: number | null; label: string | null;   // public number (in the order cohorts ran) and public name
 };
 
 export const loadPublicImpact = unstable_cache(async (): Promise<PubCohort[]> => {
-  const rows = await asAdmin((q) => q('select * from app.public_impact()'));
+  const [rows, names] = await asAdmin(async (q) => [await q('select * from app.public_impact()'), await q('select seq, public_no, public_name from public.cohorts')]);
+  const nm = new Map<number, any>(names.map((x: any) => [Number(x.seq), x]));
   return rows.map((r: any) => ({
+    no: nm.get(Number(r.seq))?.public_no ?? null, label: nm.get(Number(r.seq))?.public_name ?? null,
     seq: Number(r.seq), orgName: r.org_name ?? null, orgType: r.org_type, county: r.county ?? null,
     start: r.start_date ? iso(r.start_date) : null, end: r.end_date ? iso(r.end_date) : null,
     status: r.status, format: r.format, small: !!r.small, m: r.m ?? {},
   }));
-}, ['public-impact-v1'], { revalidate: 600 });
+}, ['public-impact-v2'], { revalidate: 600 });
 
 /** Mentoring in numbers: circles and sessions, plus people once at least five are involved. Nothing else is ever published. */
 export const loadPublicMentoring = unstable_cache(async (): Promise<{ circles: number; meetings: number; people: number | null }> => {
@@ -29,10 +32,12 @@ export const loadPublicMentoring = unstable_cache(async (): Promise<{ circles: n
 }, ['public-mentoring-v1'], { revalidate: 600 });
 
 /** Cohorts that ran before the portal (kept as plain counts in historical_cohorts): added to the two headline tiles only. */
-export const loadPublicHistory = unstable_cache(async (): Promise<{ cohorts: number; people: number }> => {
-  const r = (await asAdmin((q) => q('select count(*)::int c, coalesce(sum(people_counted),0)::int p from public.historical_cohorts')))[0] ?? {};
-  return { cohorts: Number(r.c) || 0, people: Number(r.p) || 0 };
-}, ['public-history-v1'], { revalidate: 600 });
+export type HistCohort = { no: number | null; label: string | null; audience: string; period: string; people: number };
+export const loadPublicHistory = unstable_cache(async (): Promise<{ cohorts: number; people: number; list: HistCohort[] }> => {
+  const rows = await asAdmin((q) => q('select public_no, public_name, audience, period, people_counted from public.historical_cohorts order by public_no nulls last'));
+  const list = rows.map((r: any) => ({ no: r.public_no == null ? null : Number(r.public_no), label: r.public_name ?? null, audience: r.audience, period: r.period, people: Number(r.people_counted) || 0 }));
+  return { cohorts: list.length, people: list.reduce((s: number, x: HistCohort) => s + x.people, 0), list };
+}, ['public-history-v2'], { revalidate: 600 });
 
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 export type Phase = 'running' | 'finished';

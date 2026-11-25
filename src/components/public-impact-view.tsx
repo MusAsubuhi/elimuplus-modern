@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { Band, BeforeAfter, C, Dial, HBars, InfographicStyles, Journey, PeopleGrid, Panel, Ring, Soon, Split, Steps, Tile, fmt } from '@/components/infographics';
-import { addDays, monthYear, pctOf, phaseOf, rollup, type PubCohort } from '@/lib/public-impact';
+import { addDays, monthYear, pctOf, phaseOf, rollup, type PubCohort, type HistCohort } from '@/lib/public-impact';
 import { orgTypeLabel } from '@/lib/options';
 import { todayNairobi } from '@/lib/book';
 
-export const cohortName = (c: PubCohort) => `Cohort ${c.seq}`;
+export const cohortName = (c: { no: number | null; seq?: number; label: string | null }) => `Cohort ${c.no ?? c.seq}${c.label ? ` · ${c.label}` : ''}`;
 export const cohortPlace = (c: PubCohort) => [c.orgName ?? orgTypeLabel(c.orgType), c.county ? `${c.county} County` : null].filter(Boolean).join(' · ');
 const AGE: Record<string, string> = { under_18: 'Under 18', '18_24': '18 to 24', '25_34': '25 to 34', '35_plus': '35 and over' };
 
@@ -120,7 +120,7 @@ function Sections({ list, one }: { list: PubCohort[]; one?: PubCohort }) {
 }
 
 /** /impact: everything together, then one card per cohort. */
-export function ImpactOverview({ list, mentoring, history }: { list: PubCohort[]; mentoring?: { circles: number; meetings: number; people: number | null } | null; history?: { cohorts: number; people: number } | null }) {
+export function ImpactOverview({ list, mentoring, history }: { list: PubCohort[]; mentoring?: { circles: number; meetings: number; people: number | null } | null; history?: { cohorts: number; people: number; list?: HistCohort[] } | null }) {
   const r = rollup(list);
   const h = history ?? { cohorts: 0, people: 0 };
   const today = todayNairobi();
@@ -151,7 +151,25 @@ export function ImpactOverview({ list, mentoring, history }: { list: PubCohort[]
             </Band>)}
           <Band kicker="Cohort by cohort" title="Every cohort has its own page" lead="Open one to see its own numbers and where it is on the 30, 60 and 90 day follow-up path.">
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[...list].sort((a, b) => b.seq - a.seq).map((c) => {
+              {[
+                ...list.map((c) => ({ kind: 'live' as const, n: c.no ?? c.seq, c })),
+                ...(h.list ?? []).filter((x) => x.no != null).map((x) => ({ kind: 'hist' as const, n: x.no as number, x })),
+              ].sort((a, b) => b.n - a.n).map((it) => {
+                if (it.kind === 'hist') {
+                  const x = it.x;
+                  return (
+                    <div key={`h${x.no}`} className="ig-rise block rounded-2xl border border-teal-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="text-lg font-black text-[#0D3B3B]">{cohortName(x)}</div>
+                        <span className="rounded-full bg-[#2E8B7A]/15 px-2.5 py-0.5 text-xs font-black text-[#1B6666]">Trained</span>
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">{x.audience}{x.period ? ` · ${x.period}` : ''}</div>
+                      <div className="mt-4"><div className="text-4xl font-black text-[#0D3B3B]">{x.people}</div><div className="text-xs font-bold uppercase tracking-wider text-slate-500">people completed</div></div>
+                      <div className="mt-4 text-xs text-slate-500">Ran before this page existed, so only the headline count is shown.</div>
+                    </div>
+                  );
+                }
+                const c = it.c;
                 const finished = phaseOf(c, today) === 'finished';
                 return (
                   <Link key={c.seq} href={`/impact/${c.seq}`} className="group ig-rise block rounded-2xl border border-teal-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -221,6 +239,7 @@ function Footer() {
           <div className="mt-4 flex flex-wrap gap-3 text-sm font-bold">
             <a className="rounded-lg bg-[#D4A843] px-4 py-2 text-[#0D3B3B]" href="https://elimuplus.com/partner.html">Become a partner</a>
             <a className="rounded-lg border border-white/40 px-4 py-2" href="https://elimuplus.com/trainer.html">Become a trainer</a>
+            <a className="rounded-lg border border-white/40 px-4 py-2" href="https://elimuplus.com/mentor.html">Become a mentor</a>
           </div>
         </div>
       </div>
