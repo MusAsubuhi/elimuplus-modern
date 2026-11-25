@@ -31,6 +31,40 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function () {});
   })();
 
+
+  /* Count-up numbers: the big figures (home, programme, partner, blog) count up to their real value the first time they scroll into view.
+     Only the first number in each figure moves ("8 of 10" counts the 8; "KES 213,190" counts the 213,190). Without JavaScript, or with
+     "reduce motion" switched on, the real figure is shown straight away. */
+  (function () {
+    if (!('IntersectionObserver' in window) || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    var items = [];
+    document.querySelectorAll('.proof-stat__number, .fx-stat b').forEach(function (el) {
+      var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), n;
+      while ((n = w.nextNode())) {
+        var m = /\d[\d,]*/.exec(n.nodeValue);
+        if (m) { items.push({ el: el, node: n, pre: n.nodeValue.slice(0, m.index), post: n.nodeValue.slice(m.index + m[0].length), target: parseInt(m[0].replace(/,/g, ''), 10), commas: m[0].indexOf(',') > -1 }); break; }
+      }
+    });
+    if (!items.length) return;
+    var fmt = function (it, v) { return it.pre + (it.commas ? v.toLocaleString('en-US') : String(v)) + it.post; };
+    items.forEach(function (it) { it.el.style.fontVariantNumeric = 'tabular-nums'; it.node.nodeValue = fmt(it, 0); });
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        var it = items.filter(function (x) { return x.el === e.target; })[0], t0 = null, dur = 1600;
+        if (!it) return;
+        (function step(ts) {
+          if (t0 === null) t0 = ts;
+          var p = Math.min((ts - t0) / dur, 1), eased = 1 - Math.pow(1 - p, 3);
+          it.node.nodeValue = fmt(it, Math.round(it.target * eased));
+          if (p < 1) requestAnimationFrame(step);
+        })(performance.now());
+      });
+    }, { threshold: 0.4 });
+    items.forEach(function (it) { io.observe(it.el); });
+  })();
+
   initMobileNav();
   initStickyNavbar();
   initFormspreeForms();
