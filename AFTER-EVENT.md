@@ -2,7 +2,8 @@
 
 Run this after every forum, cohort start or follow-up report. Template: the Forum 1 report and the blog post `blog/posts/2026-11-09-what-39-caregivers-taught-us-at-our-first-forum.md`.
 
-1. **Update the facts (2 min).** Edit `site-facts.json` only: people total, cohort word, forum date, registered, savings interest, results, next forum, partner names. Then run `node build-facts.js`. It rewrites every page that shows the fact.
+0. **Totals are automatic.** `people_total`, `cohorts_word` and `ke358_cohorts_word` are pulled from the portal (`/api/website/totals`) every morning by `.github/workflows/sync-facts.yml`, or on demand with `node sync-facts.js`. Enter the cohort and its participants in the portal and the site follows. Cohorts that ran before the portal are kept in the portal table `historical_cohorts`.
+1. **Update the facts (2 min).** Edit `site-facts.json` only (everything except those three totals):  forum date, registered, savings interest, results, next forum, partner names. Then run `node build-facts.js`. It rewrites every page that shows the fact.
 2. **Check (1 min).** Run `node build-facts.js --check`. It must say "All pages agree".
 3. **Publish one blog or news item (5 min).** Copy the Forum 1 post file in `blog/posts/`, change the front matter and body, run `node build-blog.js`. Use the skill `elimu-report-to-post-and-newsletter` to draft it from the report.
 4. **Send the newsletter (2 min).** Brevo draft from the post; pick the Partners list or the Newsletter list; send or schedule it in Brevo.

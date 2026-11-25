@@ -1,0 +1,24 @@
+name: Sync site totals from the portal
+on:
+  schedule:
+    - cron: '17 4 * * *'   # daily, 07:17 Nairobi time
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node sync-facts.js
+      - name: Check pages agree
+        run: node build-facts.js --check
+      - name: Commit if the totals changed
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "elimuplus-bot"; git config user.email "hello@elimuplus.com"
+            git add -A; git commit -m "Sync site totals from the portal"; git push
+          fi
