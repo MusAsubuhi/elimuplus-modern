@@ -120,18 +120,22 @@ function Sections({ list, one }: { list: PubCohort[]; one?: PubCohort }) {
 }
 
 /** /impact: everything together, then one card per cohort. */
-export function ImpactOverview({ list, mentoring }: { list: PubCohort[]; mentoring?: { circles: number; meetings: number; people: number | null } | null }) {
+export function ImpactOverview({ list, mentoring, history }: { list: PubCohort[]; mentoring?: { circles: number; meetings: number; people: number | null } | null; history?: { cohorts: number; people: number } | null }) {
   const r = rollup(list);
+  const h = history ?? { cohorts: 0, people: 0 };
   const today = todayNairobi();
   return (
     <div className="bg-white font-sans text-[#1B2A2A]">
       <InfographicStyles />
       <TopBar />
       <Hero kicker="Elimu+ impact, live" title="Skills, ideas and effort, turned into real income." lead="This page updates itself every time a cohort is trained, followed up or added. It shows numbers only: no names, no photos, no phone numbers.">
-        <Tile value={fmt(r.completed)} label="People trained" sub={r.inTraining ? `and ${fmt(r.inTraining)} in training now` : 'completed the full programme'} tone="gold" />
-        <Tile value={fmt(r.cohorts)} label="Cohorts" sub="in partner churches, centres and schools" tone="green" />
+        <Tile value={fmt(r.completed + h.people)} label="People trained" sub={r.inTraining ? `and ${fmt(r.inTraining)} in training now` : 'completed the full programme'} tone="gold" />
+        <Tile value={fmt(r.cohorts + h.cohorts)} label="Cohorts" sub="in partner churches, centres and schools" tone="green" />
         <Tile value={r.attendance != null ? `${r.attendance}%` : '—'} label="Attendance" sub={r.sessions ? `across ${fmt(r.sessions)} training days` : 'once training days are confirmed'} tone="light" />
       </Hero>
+      {h.cohorts > 0 && (
+        <div className="mx-auto max-w-5xl px-5 pt-6 text-sm text-slate-600">The two tiles on the left include {fmt(h.cohorts)} earlier cohorts ({fmt(h.people)} people who completed) that ran before this page existed. The graphics below cover the cohorts recorded here, so they show fewer people.</div>
+      )}
       {list.length === 0 ? (
         <Band kicker="Coming soon" title="Our first results are on the way"><Soon>As soon as a cohort is under way, its numbers appear here.</Soon></Band>
       ) : (

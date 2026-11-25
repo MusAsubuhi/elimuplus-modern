@@ -28,6 +28,12 @@ export const loadPublicMentoring = unstable_cache(async (): Promise<{ circles: n
   return { circles: Number(r.circles) || 0, meetings: Number(r.meetings) || 0, people: r.people == null ? null : Number(r.people) };
 }, ['public-mentoring-v1'], { revalidate: 600 });
 
+/** Cohorts that ran before the portal (kept as plain counts in historical_cohorts): added to the two headline tiles only. */
+export const loadPublicHistory = unstable_cache(async (): Promise<{ cohorts: number; people: number }> => {
+  const r = (await asAdmin((q) => q('select count(*)::int c, coalesce(sum(people_counted),0)::int p from public.historical_cohorts')))[0] ?? {};
+  return { cohorts: Number(r.c) || 0, people: Number(r.p) || 0 };
+}, ['public-history-v1'], { revalidate: 600 });
+
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 export type Phase = 'running' | 'finished';
 export const phaseOf = (c: { start: string | null; end: string | null }, today = todayNairobi()): Phase => ((c.end ?? c.start ?? today) < today ? 'finished' : 'running');
